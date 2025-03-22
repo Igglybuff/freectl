@@ -1,12 +1,16 @@
 package search
 
 import (
+	"bufio"
+	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"freectl/internal/common"
 	"freectl/internal/tui"
@@ -22,6 +26,36 @@ type SearchResult struct {
 	Line     string
 	Score    int
 	Category string
+}
+
+// Add this function to check repository age
+func checkRepoAge(repoPath string) (bool, error) {
+	cmd := exec.Command("git", "-C", repoPath, "log", "-1", "--format=%ct")
+	output, err := cmd.Output()
+	if err != nil {
+		return false, fmt.Errorf("failed to get last commit timestamp: %w", err)
+	}
+
+	var timestamp int64
+	if _, err := fmt.Sscanf(string(output), "%d", &timestamp); err != nil {
+		return false, fmt.Errorf("failed to parse timestamp: %w", err)
+	}
+
+	lastCommit := time.Unix(timestamp, 0)
+	return time.Since(lastCommit) > 7*24*time.Hour, nil
+}
+
+// Add this function to prompt for update
+func promptForUpdate() bool {
+	fmt.Print("Repository is more than a week old. Would you like to update it? [Y/n] ")
+	reader := bufio.NewReader(os.Stdin)
+	response, err := reader.ReadString('\n')
+	if err != nil {
+		return false
+	}
+
+	response = strings.ToLower(strings.TrimSpace(response))
+	return response == "" || response == "y" || response == "yes"
 }
 
 var SearchCmd = &cobra.Command{
@@ -66,8 +100,36 @@ Examples:
 		query := strings.Join(args, " ")
 		limit, _ := cmd.Flags().GetInt("limit")
 		cacheDir, _ := cmd.Flags().GetString("cache-dir")
+		// Expand the ~ to the user's home directory
+		if len(cacheDir) >= 2 && cacheDir[:2] == "~/" { // Add length check and fix condition
+			home, err := os.UserHomeDir()
+			if err != nil {
+				log.Fatal("Failed to get home directory", "error", err)
+			}
+			cacheDir = filepath.Join(home, cacheDir[2:])
+		}
 
-		repoPath := common.GetRepoPath(cacheDir)
+		repoPath := filepath.Join(cacheDir, "FMHY")
+		if _, err := os.Stat(repoPath); os.IsNotExist(err) {
+			log.Fatal("Repository not found. Please run 'freectl update' first")
+		}
+
+		// Check repository age
+		needsUpdate, err := checkRepoAge(repoPath)
+		if err != nil {
+			log.Warn("Failed to check repository age", "error", err)
+		} else if needsUpdate && promptForUpdate() {
+			log.Info("Updating repository...")
+			updateCmd := exec.Command("git", "-C", repoPath, "pull")
+			updateCmd.Stdout = os.Stdout
+			updateCmd.Stderr = os.Stderr
+			if err := updateCmd.Run(); err != nil {
+				log.Error("Failed to update repository", "error", err)
+			} else {
+				log.Info("Repository updated successfully")
+			}
+		}
+
 		docsPath := filepath.Join(repoPath, "docs")
 		var results []SearchResult
 		var mu sync.Mutex
