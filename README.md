@@ -18,13 +18,14 @@ A command-line tool for searching and browsing the [Free Media Heck Yeah](https:
 git clone https://github.com/yourusername/freectl.git
 cd freectl
 go build
-sudo mv freectl /usr/local/bin/
+chmod +x freectl
+mv freectl ~/.local/bin/freectl
 ```
 
 ### Using Go
 
 ```bash
-go install github.com/yourusername/freectl@latest
+go install github.com/Igglybuff/freectl@latest
 ```
 
 ## Usage
@@ -63,4 +64,4 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the Unlicense License - see the LICENSE file for details.
