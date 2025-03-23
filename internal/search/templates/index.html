@@ -3,26 +3,69 @@
 <head>
     <title>FMHY Search</title>
     <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #333;
+            --border-color: #eee;
+            --link-color: #007bff;
+            --secondary-text: #6c757d;
+            --hover-bg: rgba(0,0,0,0.1);
+            --shadow-color: rgba(0,0,0,0.1);
+            --category-bg: #e9ecef;
+            --category-text: #495057;
+            --toast-bg: #333;
+            --toast-text: white;
+            --tab-color: #666;
+            --tab-active-color: #007bff;
+            --tab-border-color: transparent;
+            --tab-active-border-color: #007bff;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --border-color: #333;
+            --link-color: #66b0ff;
+            --secondary-text: #a0a0a0;
+            --hover-bg: rgba(255,255,255,0.1);
+            --shadow-color: rgba(0,0,0,0.3);
+            --category-bg: #333;
+            --category-text: #e0e0e0;
+            --toast-bg: #333;
+            --toast-text: white;
+            --tab-color: #a0a0a0;
+            --tab-active-color: #66b0ff;
+            --tab-border-color: transparent;
+            --tab-active-border-color: #66b0ff;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             max-width: 800px;
             margin: 40px auto;
             padding: 0 20px;
             line-height: 1.6;
-            color: #333;
+            color: var(--text-color);
+            background-color: var(--bg-color);
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .search-container {
+            margin-bottom: 20px;
         }
         .search-box {
             width: 100%;
             padding: 12px;
             font-size: 16px;
-            margin-bottom: 20px;
-            border: 2px solid #ddd;
+            border: 2px solid var(--border-color);
             border-radius: 6px;
             transition: border-color 0.2s;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            box-sizing: border-box;
         }
         .search-box:focus {
             outline: none;
-            border-color: #007bff;
+            border-color: var(--link-color);
         }
         .search-box.error {
             border-color: #dc3545;
@@ -40,15 +83,18 @@
         .result-item {
             margin-bottom: 20px;
             padding: 15px;
-            border: 1px solid #eee;
+            border: 1px solid var(--border-color);
             border-radius: 8px;
             transition: box-shadow 0.2s;
             display: flex;
             align-items: flex-start;
             justify-content: space-between;
+            background-color: var(--bg-color);
+            box-sizing: border-box;
+            width: 100%;
         }
         .result-item:hover {
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 8px var(--shadow-color);
         }
         .result-content {
             flex: 1;
@@ -57,14 +103,14 @@
         .category-tag {
             display: inline-block;
             padding: 4px 8px;
-            background-color: #e9ecef;
-            color: #495057;
+            background-color: var(--category-bg);
+            color: var(--category-text);
             border-radius: 4px;
             font-size: 14px;
             white-space: nowrap;
         }
         .result-link {
-            color: #007bff;
+            color: var(--link-color);
             text-decoration: none;
             font-size: 16px;
             display: inline-block;
@@ -74,24 +120,24 @@
             text-decoration: underline;
         }
         .result-domain {
-            color: #6c757d;
+            color: var(--secondary-text);
             font-size: 14px;
             display: inline-block;
             margin-left: 8px;
         }
         .result-score {
-            color: #6c757d;
+            color: var(--secondary-text);
             font-size: 12px;
             margin-top: 2px;
         }
         .no-results {
             text-align: center;
-            color: #6c757d;
+            color: var(--secondary-text);
             padding: 40px;
         }
         .loading {
             text-align: center;
-            color: #6c757d;
+            color: var(--secondary-text);
             padding: 20px;
         }
         .favorite-btn {
@@ -100,7 +146,7 @@
             cursor: pointer;
             padding: 8px;
             margin-left: 10px;
-            color: #ccc;
+            color: var(--secondary-text);
             transition: all 0.2s;
             position: relative;
             width: 32px;
@@ -145,8 +191,8 @@
             position: fixed;
             bottom: 20px;
             right: 20px;
-            background: #333;
-            color: white;
+            background: var(--toast-bg);
+            color: var(--toast-text);
             padding: 12px 24px;
             border-radius: 4px;
             opacity: 0;
@@ -166,6 +212,18 @@
         }
         .tab-buttons {
             margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .tab-left {
+            display: flex;
+            gap: 20px;
+        }
+        .tab-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
         }
         .tab-button {
             padding: 8px 16px;
@@ -173,12 +231,12 @@
             background: none;
             cursor: pointer;
             font-size: 16px;
-            color: #666;
-            border-bottom: 2px solid transparent;
+            color: var(--tab-color);
+            border-bottom: 2px solid var(--tab-border-color);
         }
         .tab-button.active {
-            color: #007bff;
-            border-bottom-color: #007bff;
+            color: var(--tab-active-color);
+            border-bottom-color: var(--tab-active-border-color);
         }
         #searchTab, #favoritesTab {
             display: none;
@@ -186,13 +244,67 @@
         #searchTab.active, #favoritesTab.active {
             display: block;
         }
+        .theme-toggle {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+            color: var(--secondary-text);
+            transition: color 0.2s;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .theme-toggle svg {
+            width: 32px;
+            height: 32px;
+            fill: currentColor;
+        }
+        .theme-toggle:hover {
+            color: var(--link-color);
+        }
+        .github-link {
+            color: var(--secondary-text);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: color 0.2s;
+        }
+        .github-link:hover {
+            color: var(--link-color);
+        }
+        .github-link svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
     </style>
 </head>
 <body>
-    <h1>FMHY Search</h1>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h1>FMHY Search</h1>
+        <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode">
+            <svg viewBox="0 0 24 24">
+                <path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-3.03 0-5.5-2.47-5.5-5.5 0-1.82.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/>
+            </svg>
+        </button>
+    </div>
     <div class="tab-buttons">
-        <button class="tab-button active" onclick="showTab('search')">Search</button>
-        <button class="tab-button" onclick="showTab('favorites')">Favorites</button>
+        <div class="tab-left">
+            <button class="tab-button active" onclick="showTab('search')">Search</button>
+            <button class="tab-button" onclick="showTab('favorites')">Favorites</button>
+        </div>
+        <div class="tab-right">
+            <a href="https://github.com/Igglybuff/freectl" target="_blank" class="github-link">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                </svg>
+                GitHub
+            </a>
+        </div>
     </div>
     <div id="searchTab" class="active">
         <div class="search-container">
@@ -209,12 +321,41 @@
         <div id="results" class="results"></div>
     </div>
     <div id="favoritesTab">
-        <input type="text" class="search-box" id="favoritesSearchInput" placeholder="Search through favorites...">
+        <input type="text" class="search-box" id="favoritesSearchInput" placeholder="Search favorites...">
         <div id="favorites" class="results"></div>
     </div>
     <div id="toast" class="toast"></div>
 
     <script>
+        // Add theme toggle functionality
+        function toggleTheme() {
+            const body = document.body;
+            const currentTheme = body.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            body.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        }
+
+        // Initialize theme from localStorage or system preference
+        function initializeTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme) {
+                document.body.setAttribute('data-theme', savedTheme);
+            } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.body.setAttribute('data-theme', 'dark');
+            }
+        }
+
+        // Initialize theme on page load
+        initializeTheme();
+
+        // Listen for system theme changes
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+            if (!localStorage.getItem('theme')) {
+                document.body.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+            }
+        });
+
         const searchInput = document.getElementById('searchInput');
         const favoritesSearchInput = document.getElementById('favoritesSearchInput');
         const resultsDiv = document.getElementById('results');
