@@ -202,13 +202,10 @@ function createResultHTML(result, showScore = true) {
     // Check if category is invalid
     const isInvalid = result.title.length > 80;
     
-    return `
-        <div class="result-item ${isInvalid ? 'invalid-result' : ''}">
+    return `<div class="result-item ${isInvalid ? 'invalid-result' : ''}">
             <div class="result-content">
-                <div>
-                    <a href="${result.url}" class="result-link" target="_blank" title="${result.description}">${description}</a>
-                    <span class="result-domain">${getDisplayText(result.url)}</span>
-                </div>
+                <a href="${result.url}" class="result-link" target="_blank" title="${result.description}">${description}</a>
+                <span class="result-domain">${getDisplayText(result.url)}</span>
                 ${showScore && currentSettings.showScores ? `<div class="result-score">Score: ${result.score}</div>` : ''}
             </div>
             <div style="display: flex; align-items: center; gap: 8px;">
@@ -220,14 +217,9 @@ function createResultHTML(result, showScore = true) {
                 <button class="favorite-btn ${isFavorite ? 'active' : ''}" 
                         data-link="${result.url}"
                         onclick="toggleFavorite('${result.url}', '${result.description.replace(/'/g, "\\'")}', '${result.title || ''}', '${result.repository.replace(/'/g, "\\'")}')"
-                        >
-                    <svg viewBox="0 0 24 24">
-                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-                    </svg>
-                </button>
+                        ><svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></button>
             </div>
-        </div>
-    `;
+        </div>`;
 }
 
 function filterFavorites(query) {
