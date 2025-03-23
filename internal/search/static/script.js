@@ -179,7 +179,8 @@ const defaultSettings = {
     cacheDir: '~/.local/cache/freectl',
     autoUpdate: true,
     truncateTitles: true,
-    maxTitleLength: 100
+    maxTitleLength: 100,
+    customHeader: 'Repository Search'
 };
 
 // Initialize current settings with defaults
@@ -581,49 +582,37 @@ function loadStats() {
 // Add event listener for repository selection
 document.getElementById('statsRepo').addEventListener('change', loadStats);
 
+// Add this function to update the header text
+function updateHeaderText(text) {
+    document.getElementById('mainHeader').textContent = text;
+    document.getElementById('pageTitle').textContent = text;
+}
+
+// Update loadSettings function to handle custom header
 function loadSettings() {
     fetch('/settings')
-        .then(response => {
-            if (!response.ok) {
-                return response.json().then(err => {
-                    throw new Error(err.error || 'Failed to load settings');
-                });
-            }
-            return response.json();
-        })
+        .then(response => response.json())
         .then(settings => {
-            // Update current settings
+            document.getElementById('minQueryLength').value = settings.minQueryLength;
+            document.getElementById('maxQueryLength').value = settings.maxQueryLength;
+            document.getElementById('searchDelay').value = settings.searchDelay;
+            document.getElementById('showScores').checked = settings.showScores;
+            document.getElementById('resultsPerPage').value = settings.resultsPerPage;
+            document.getElementById('cacheDir').value = settings.cacheDir;
+            document.getElementById('autoUpdate').checked = settings.autoUpdate;
+            document.getElementById('truncateTitles').checked = settings.truncateTitles;
+            document.getElementById('maxTitleLength').value = settings.maxTitleLength;
+            document.getElementById('customHeader').value = settings.customHeader;
+            updateHeaderText(settings.customHeader);
             currentSettings = settings;
-            
-            // Update UI with loaded settings
-            updateSettingsUI(settings);
         })
         .catch(error => {
             console.error('Error loading settings:', error);
-            showToast('Failed to load settings: ' + error.message, true);
-            
-            // Fall back to default settings
-            currentSettings = { ...defaultSettings };
-            updateSettingsUI(defaultSettings);
+            showToast('Failed to load settings', 'error');
         });
 }
 
-// Helper function to update UI with settings
-function updateSettingsUI(settings) {
-    document.getElementById('minQueryLength').value = settings.minQueryLength;
-    document.getElementById('maxQueryLength').value = settings.maxQueryLength;
-    document.getElementById('searchDelay').value = settings.searchDelay;
-    document.getElementById('showScores').checked = settings.showScores;
-    document.getElementById('resultsPerPage').value = settings.resultsPerPage;
-    document.getElementById('cacheDir').value = settings.cacheDir;
-    document.getElementById('autoUpdate').checked = settings.autoUpdate;
-    document.getElementById('truncateTitles').checked = settings.truncateTitles;
-    document.getElementById('maxTitleLength').value = settings.maxTitleLength;
-    // Update max title length input state based on truncate setting
-    const maxTitleInput = document.getElementById('maxTitleLength');
-    maxTitleInput.disabled = !settings.truncateTitles;
-}
-
+// Update saveSettings function to include custom header
 function saveSettings() {
     const settings = {
         minQueryLength: parseInt(document.getElementById('minQueryLength').value),
@@ -634,48 +623,82 @@ function saveSettings() {
         cacheDir: document.getElementById('cacheDir').value,
         autoUpdate: document.getElementById('autoUpdate').checked,
         truncateTitles: document.getElementById('truncateTitles').checked,
-        maxTitleLength: parseInt(document.getElementById('maxTitleLength').value)
+        maxTitleLength: parseInt(document.getElementById('maxTitleLength').value),
+        customHeader: document.getElementById('customHeader').value
     };
 
     fetch('/settings', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
         },
         body: JSON.stringify(settings)
     })
-    .then(response => {
-        if (!response.ok) {
-            return response.json().then(err => {
-                throw new Error(err.error || 'Failed to save settings');
-            });
-        }
-        return response.json();
-    })
+    .then(response => response.json())
     .then(savedSettings => {
         currentSettings = savedSettings;
+        updateHeaderText(savedSettings.customHeader);
         showToast('Settings saved successfully');
     })
     .catch(error => {
         console.error('Error saving settings:', error);
-        showToast('Failed to save settings: ' + error.message, true);
+        showToast('Failed to save settings', 'error');
     });
 }
 
+// Update resetSettings function to handle custom header
 function resetSettings() {
-    // Update UI with default settings
-    document.getElementById('minQueryLength').value = defaultSettings.minQueryLength;
-    document.getElementById('maxQueryLength').value = defaultSettings.maxQueryLength;
-    document.getElementById('searchDelay').value = defaultSettings.searchDelay;
-    document.getElementById('showScores').checked = defaultSettings.showScores;
-    document.getElementById('resultsPerPage').value = defaultSettings.resultsPerPage;
-    document.getElementById('cacheDir').value = defaultSettings.cacheDir;
-    document.getElementById('autoUpdate').checked = defaultSettings.autoUpdate;
-    document.getElementById('truncateTitles').checked = defaultSettings.truncateTitles;
-    document.getElementById('maxTitleLength').value = defaultSettings.maxTitleLength;
+    fetch('/settings')
+        .then(response => response.json())
+        .then(settings => {
+            const defaultSettings = {
+                minQueryLength: 2,
+                maxQueryLength: 1000,
+                searchDelay: 300,
+                showScores: true,
+                resultsPerPage: 10,
+                cacheDir: '~/.local/cache/freectl',
+                autoUpdate: true,
+                truncateTitles: true,
+                maxTitleLength: 100,
+                customHeader: 'Repository Search'
+            };
 
-    // Save default settings to server
-    saveSettings();
+            // Update UI with default values
+            document.getElementById('minQueryLength').value = defaultSettings.minQueryLength;
+            document.getElementById('maxQueryLength').value = defaultSettings.maxQueryLength;
+            document.getElementById('searchDelay').value = defaultSettings.searchDelay;
+            document.getElementById('showScores').checked = defaultSettings.showScores;
+            document.getElementById('resultsPerPage').value = defaultSettings.resultsPerPage;
+            document.getElementById('cacheDir').value = defaultSettings.cacheDir;
+            document.getElementById('autoUpdate').checked = defaultSettings.autoUpdate;
+            document.getElementById('truncateTitles').checked = defaultSettings.truncateTitles;
+            document.getElementById('maxTitleLength').value = defaultSettings.maxTitleLength;
+            document.getElementById('customHeader').value = defaultSettings.customHeader;
+            updateHeaderText(defaultSettings.customHeader);
+
+            // Save default settings
+            fetch('/settings', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(defaultSettings)
+            })
+            .then(response => response.json())
+            .then(savedSettings => {
+                currentSettings = savedSettings;
+                showToast('Settings reset to defaults');
+            })
+            .catch(error => {
+                console.error('Error saving default settings:', error);
+                showToast('Failed to save default settings', 'error');
+            });
+        })
+        .catch(error => {
+            console.error('Error resetting settings:', error);
+            showToast('Failed to reset settings', 'error');
+        });
 }
 
 // Update search delay based on settings
@@ -867,4 +890,58 @@ function performSearch(page = 1) {
             console.error('Error:', error);
             resultsDiv.innerHTML = '<div class="error">Failed to fetch results. Please try again.</div>';
         });
-} 
+}
+
+// Add repository function
+function addRepository() {
+    const addButton = document.getElementById('addRepo');
+    const repoUrl = document.getElementById('repoUrl').value.trim();
+    const repoName = document.getElementById('repoName').value.trim();
+
+    if (!repoUrl) {
+        showToast('Please enter a repository URL', true);
+        return;
+    }
+
+    addButton.disabled = true;
+    addButton.textContent = 'Adding repository...';
+
+    fetch('/repositories/add', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+            url: repoUrl,
+            name: repoName
+        })
+    })
+    .then(async response => {
+        const data = await response.json();
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to add repository');
+        }
+        return data;
+    })
+    .then(data => {
+        showToast(data.message || 'Repository added successfully');
+        // Clear the input fields
+        document.getElementById('repoUrl').value = '';
+        document.getElementById('repoName').value = '';
+        // Reload repository lists
+        loadRepositoryFilter();
+        loadRepositories();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast(error.message || 'Failed to add repository', true);
+    })
+    .finally(() => {
+        addButton.disabled = false;
+        addButton.textContent = 'Add Repository';
+    });
+}
+
+// Add event listener for add repository button
+document.getElementById('addRepo').addEventListener('click', addRepository); 

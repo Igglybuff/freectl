@@ -13,6 +13,7 @@ import (
 
 	"freectl/internal/common"
 	"freectl/internal/search"
+	"freectl/internal/settings"
 	"freectl/internal/stats"
 	"freectl/internal/update"
 
@@ -51,6 +52,7 @@ func startServer() error {
 	http.HandleFunc("/update", handleUpdate)
 	http.HandleFunc("/list", handleList)
 	http.HandleFunc("/settings", handleSettings)
+	http.HandleFunc("/repositories/add", handleAddRepository)
 
 	log.Infof("Starting server at http://localhost:%d", port)
 	return http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
@@ -375,7 +377,7 @@ func handleSettings(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if r.Method == "GET" {
-		settings, err := search.LoadSettings()
+		settings, err := settings.LoadSettings()
 		if err != nil {
 			log.Error("Failed to load settings", "error", err)
 			http.Error(w, fmt.Sprintf(`{"error": "%s"}`, err.Error()), http.StatusInternalServerError)
@@ -391,21 +393,21 @@ func handleSettings(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Method == "POST" {
-		var settings search.Settings
-		if err := json.NewDecoder(r.Body).Decode(&settings); err != nil {
+		var s settings.Settings
+		if err := json.NewDecoder(r.Body).Decode(&s); err != nil {
 			log.Error("Failed to decode settings from request", "error", err)
 			http.Error(w, fmt.Sprintf(`{"error": "Failed to decode settings: %s"}`, err.Error()), http.StatusBadRequest)
 			return
 		}
 
-		if err := search.SaveSettings(settings); err != nil {
+		if err := settings.SaveSettings(s); err != nil {
 			log.Error("Failed to save settings", "error", err)
 			http.Error(w, fmt.Sprintf(`{"error": "Failed to save settings: %s"}`, err.Error()), http.StatusInternalServerError)
 			return
 		}
 
 		// Return the saved settings as confirmation
-		if err := json.NewEncoder(w).Encode(settings); err != nil {
+		if err := json.NewEncoder(w).Encode(s); err != nil {
 			log.Error("Failed to encode response", "error", err)
 			http.Error(w, fmt.Sprintf(`{"error": "Failed to encode response: %s"}`, err.Error()), http.StatusInternalServerError)
 			return
@@ -418,6 +420,72 @@ func handleSettings(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error": "Method not allowed"}`, http.StatusMethodNotAllowed)
 		return
 	}
+}
+
+func handleAddRepository(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"error":   "Method not allowed",
+		})
+		return
+	}
+
+	log.Info("Received repository add request",
+		"method", r.Method,
+		"content_type", r.Header.Get("Content-Type"),
+		"accept", r.Header.Get("Accept"))
+
+	var req search.AddRepositoryRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Error("Failed to decode request body", "error", err)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"error":   fmt.Sprintf("Invalid request: %s", err.Error()),
+		})
+		return
+	}
+
+	log.Info("Adding repository", "url", req.URL, "name", req.Name)
+
+	// Get cache directory from environment or use default
+	cacheDir := os.Getenv("CACHE_DIR")
+	if cacheDir == "" {
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			log.Error("Failed to get home directory", "error", err)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success": false,
+				"error":   fmt.Sprintf("Failed to get home directory: %s", err.Error()),
+			})
+			return
+		}
+		cacheDir = filepath.Join(homeDir, ".local", "cache", "freectl")
+	}
+
+	if err := search.AddRepository(cacheDir, req.URL, req.Name); err != nil {
+		log.Error("Failed to add repository", "error", err)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	log.Info("Repository added successfully")
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"message": "Repository added successfully",
+	})
 }
 
 // Define a SearchResult struct for JSON encoding

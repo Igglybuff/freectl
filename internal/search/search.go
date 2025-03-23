@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"freectl/internal/common"
+	"freectl/internal/settings"
 
 	"github.com/charmbracelet/log"
 	"github.com/sahilm/fuzzy"
@@ -318,109 +319,56 @@ func Search(query string, cacheDir string, repoName string) ([]Result, error) {
 	return allResults, nil
 }
 
-// Settings represents the user settings
-type Settings struct {
-	MinQueryLength int    `json:"minQueryLength"`
-	MaxQueryLength int    `json:"maxQueryLength"`
-	SearchDelay    int    `json:"searchDelay"`
-	ShowScores     bool   `json:"showScores"`
-	ResultsPerPage int    `json:"resultsPerPage"`
-	CacheDir       string `json:"cacheDir"`
-	AutoUpdate     bool   `json:"autoUpdate"`
-	TruncateTitles bool   `json:"truncateTitles"`
-	MaxTitleLength int    `json:"maxTitleLength"`
+// AddRepositoryRequest represents the request to add a new repository
+type AddRepositoryRequest struct {
+	URL  string `json:"url"`
+	Name string `json:"name"`
 }
 
-// DefaultSettings returns the default settings
-func DefaultSettings() Settings {
-	return Settings{
-		MinQueryLength: 2,
-		MaxQueryLength: 1000,
-		SearchDelay:    300,
-		ShowScores:     true,
-		ResultsPerPage: 10,
-		CacheDir:       "~/.local/cache/freectl",
-		AutoUpdate:     true,
-		TruncateTitles: true,
-		MaxTitleLength: 100,
-	}
-}
-
-// GetSettingsPath returns the path to the settings file
-func GetSettingsPath() (string, error) {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		log.Error("Failed to get home directory", "error", err)
-		return "", fmt.Errorf("failed to get home directory: %w", err)
+// AddRepository adds a new repository to the cache
+func AddRepository(cacheDir string, url string, name string) error {
+	if url == "" {
+		return fmt.Errorf("repository URL is required")
 	}
 
-	configDir := filepath.Join(homeDir, ".config", "freectl")
-	if err := os.MkdirAll(configDir, 0755); err != nil {
-		log.Error("Failed to create config directory", "path", configDir, "error", err)
-		return "", fmt.Errorf("failed to create config directory: %w", err)
+	// If no name is provided, derive it from the URL
+	if name == "" {
+		name = filepath.Base(url)
+		// Remove .git extension if present
+		name = strings.TrimSuffix(name, ".git")
 	}
 
-	return filepath.Join(configDir, "config.json"), nil
-}
+	// Get the repository path using the common function
+	repoPath := common.GetRepositoryPath(cacheDir, name)
 
-// LoadSettings loads settings from the config file
-func LoadSettings() (Settings, error) {
-	path, err := GetSettingsPath()
-	if err != nil {
-		log.Error("Failed to get settings path", "error", err)
-		return DefaultSettings(), nil
+	// Check if repository already exists
+	if _, err := os.Stat(repoPath); !os.IsNotExist(err) {
+		return fmt.Errorf("repository %s already exists", name)
 	}
 
-	content, err := os.ReadFile(path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			// If file doesn't exist, create it with default settings
-			defaultSettings := DefaultSettings()
-			if err := SaveSettings(defaultSettings); err != nil {
-				log.Error("Failed to create default settings file", "error", err)
-				return defaultSettings, nil
-			}
-			return defaultSettings, nil
-		}
-		// For any other error, return default settings but log the error
-		log.Error("Failed to read settings file", "path", path, "error", err)
-		return DefaultSettings(), nil
+	// Clone the repository
+	log.Info("Cloning repository", "url", url, "name", name)
+	cmd := exec.Command("git", "clone", "--depth", "1", url, repoPath)
+	if output, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("failed to clone repository: %s", string(output))
 	}
 
-	var settings Settings
-	if err := json.Unmarshal(content, &settings); err != nil {
-		// If JSON parsing fails, return default settings but log the error
-		log.Error("Failed to parse settings file", "error", err)
-		return DefaultSettings(), nil
-	}
-
-	return settings, nil
-}
-
-// SaveSettings saves settings to the config file
-func SaveSettings(settings Settings) error {
-	path, err := GetSettingsPath()
-	if err != nil {
-		log.Error("Failed to get settings path", "error", err)
-		return err
-	}
-
-	content, err := json.MarshalIndent(settings, "", "    ")
-	if err != nil {
-		log.Error("Failed to marshal settings", "error", err)
-		return fmt.Errorf("failed to marshal settings: %w", err)
-	}
-
-	if err := os.WriteFile(path, content, 0644); err != nil {
-		log.Error("Failed to write settings file", "path", path, "error", err)
-		return fmt.Errorf("failed to write settings file: %w", err)
-	}
-
+	log.Info("Repository added successfully", "name", name)
 	return nil
 }
 
 // StartWebServer starts the web server
 func StartWebServer(port int, cacheDir string) error {
+	// Initialize logger with stdout
+	logger := log.NewWithOptions(os.Stdout, log.Options{
+		ReportCaller:    true,
+		ReportTimestamp: true,
+		Level:           log.DebugLevel,
+	})
+	log.SetDefault(logger)
+
+	log.Info("Starting web server", "port", port, "cache_dir", cacheDir)
+
 	// Serve static files
 	http.Handle("/static/", http.FileServer(http.FS(StaticFS)))
 
@@ -531,14 +479,14 @@ func StartWebServer(port int, cacheDir string) error {
 			w.Header().Set("Content-Type", "application/json")
 
 			if r.Method == "GET" {
-				settings, err := LoadSettings()
+				s, err := settings.LoadSettings()
 				if err != nil {
 					log.Error("Failed to load settings", "error", err)
 					http.Error(w, fmt.Sprintf(`{"error": "%s"}`, err.Error()), http.StatusInternalServerError)
 					return
 				}
 
-				if err := json.NewEncoder(w).Encode(settings); err != nil {
+				if err := json.NewEncoder(w).Encode(s); err != nil {
 					log.Error("Failed to encode settings", "error", err)
 					http.Error(w, fmt.Sprintf(`{"error": "Failed to encode settings: %s"}`, err.Error()), http.StatusInternalServerError)
 					return
@@ -547,21 +495,21 @@ func StartWebServer(port int, cacheDir string) error {
 			}
 
 			if r.Method == "POST" {
-				var settings Settings
-				if err := json.NewDecoder(r.Body).Decode(&settings); err != nil {
+				var s settings.Settings
+				if err := json.NewDecoder(r.Body).Decode(&s); err != nil {
 					log.Error("Failed to decode settings from request", "error", err)
 					http.Error(w, fmt.Sprintf(`{"error": "Failed to decode settings: %s"}`, err.Error()), http.StatusBadRequest)
 					return
 				}
 
-				if err := SaveSettings(settings); err != nil {
+				if err := settings.SaveSettings(s); err != nil {
 					log.Error("Failed to save settings", "error", err)
 					http.Error(w, fmt.Sprintf(`{"error": "Failed to save settings: %s"}`, err.Error()), http.StatusInternalServerError)
 					return
 				}
 
 				// Return the saved settings as confirmation
-				if err := json.NewEncoder(w).Encode(settings); err != nil {
+				if err := json.NewEncoder(w).Encode(s); err != nil {
 					log.Error("Failed to encode response", "error", err)
 					http.Error(w, fmt.Sprintf(`{"error": "Failed to encode response: %s"}`, err.Error()), http.StatusInternalServerError)
 					return
