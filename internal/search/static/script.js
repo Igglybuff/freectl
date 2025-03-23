@@ -195,11 +195,11 @@ function createResultHTML(result, showScore = true) {
         description = description.substring(0, currentSettings.maxTitleLength) + '...';
     }
     
-    // Use placeholder for empty category
-    const categoryText = result.title || 'n/a';
+    // Check if category is invalid
+    const isInvalid = result.title.length > 80;
     
     return `
-        <div class="result-item">
+        <div class="result-item ${isInvalid ? 'invalid-result' : ''}">
             <div class="result-content">
                 <div>
                     <a href="${result.url}" class="result-link" target="_blank" title="${result.description}">${description}</a>
@@ -208,7 +208,10 @@ function createResultHTML(result, showScore = true) {
                 ${showScore && currentSettings.showScores ? `<div class="result-score">Score: ${result.score}</div>` : ''}
             </div>
             <div style="display: flex; align-items: center; gap: 8px;">
-                <div class="category-tag">${categoryText}</div>
+                ${isInvalid ? 
+                    `<div class="warning-tag">⚠️ Invalid category</div>` :
+                    `<div class="category-tag">${result.title || 'n/a'}</div>`
+                }
                 <div class="repo-tag" style="background-color: ${repoColor}">${result.repository}</div>
                 <button class="favorite-btn ${isFavorite ? 'active' : ''}" 
                         data-link="${result.url}"
@@ -267,6 +270,7 @@ function loadFavorites() {
             allFavorites = favorites;
             currentFavorites = new Set(favorites.map(f => f.link));
             updateFavoritesDisplay();
+            updateFavoriteCategoryFilter();
         })
         .catch(error => console.error('Error:', error));
 }
@@ -343,74 +347,26 @@ function loadRepositoryFilter() {
         });
 }
 
-function performSearch(page = 1) {
-    const query = searchInput.value.trim();
-    if (!validateSearchInput(searchInput)) {
-        return;
-    }
-
-    const settings = JSON.parse(localStorage.getItem('settings')) || defaultSettings;
-    const selectedRepo = repoFilter.value;
-    const selectedCategory = categoryFilter.value;
-    currentQuery = query;
-    currentPage = page;
-    
-    resultsDiv.innerHTML = '<div class="loading">Searching...</div>';
-    document.getElementById('pagination').innerHTML = '';
-    
-    let url = `/search?q=${encodeURIComponent(query)}&page=${page}&per_page=${settings.resultsPerPage}`;
-    if (selectedRepo) {
-        url += `&repo=${encodeURIComponent(selectedRepo)}`;
-    }
-    if (selectedCategory) {
-        url += `&category=${encodeURIComponent(selectedCategory)}`;
-    }
-    
-    fetch(url)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Failed to fetch results');
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (!data || !data.results || data.results.length === 0) {
-                resultsDiv.innerHTML = '<div class="no-results">No results found. Go to Settings to update your repositories.</div>';
-                return;
-            }
-
-            // Store current results and update category filter
-            currentResults = data.results;
-            updateCategoryFilter(data.results, selectedCategory);
-
-            // Display results
-            resultsDiv.innerHTML = currentResults.map(result => createResultHTML(result, true)).join('');
-            updateFavoriteButtons();
-
-            // Update pagination info
-            totalPages = data.total_pages;
-            totalResults = data.total_results;
-            updatePagination();
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            resultsDiv.innerHTML = '<div class="error">Failed to fetch results. Please try again.</div>';
-        });
-}
+// Add this variable to store all categories from the last search
+let allSearchCategories = new Set();
 
 function updateCategoryFilter(results, selectedCategory = '') {
     const categoryFilter = document.getElementById('categoryFilter');
-    const categories = new Set();
     
-    // Add categories from results, using placeholder for empty ones
-    results.forEach(result => {
-        categories.add(result.title || 'n/a');
-    });
+    // Only update the full category list if this is a new search (not a filter)
+    if (!selectedCategory) {
+        allSearchCategories.clear();
+        // Add only valid categories from results
+        results.forEach(result => {
+            // Skip invalid categories (longer than 80 characters)
+            if (result.title && result.title.length <= 80) {
+                allSearchCategories.add(result.title || 'n/a');
+            }
+        });
+    }
     
-    currentCategories = categories;
-
     const options = ['<option value="">All categories</option>'];
-    Array.from(categories).sort().forEach(category => {
+    Array.from(allSearchCategories).sort().forEach(category => {
         const value = category === 'n/a' ? '' : category;
         // Only mark as selected if it exactly matches the selectedCategory
         const selected = category === selectedCategory;
@@ -424,9 +380,12 @@ function updateFavoriteCategoryFilter() {
     const favoriteCategoryFilter = document.getElementById('favoriteCategoryFilter');
     const categories = new Set();
     
-    // Add categories from favorites, using placeholder for empty ones
+    // Add only valid categories from favorites
     allFavorites.forEach(f => {
-        categories.add(f.category || 'n/a');
+        // Skip invalid categories (longer than 80 characters)
+        if (f.category && f.category.length <= 80) {
+            categories.add(f.category || 'n/a');
+        }
     });
     
     favoriteCategories = categories;
@@ -851,4 +810,61 @@ function updatePagination() {
     pageInfo.className = 'pagination-info';
     pageInfo.textContent = `Page ${currentPage} of ${totalPages} (${totalResults} results)`;
     pagination.appendChild(pageInfo);
+}
+
+function performSearch(page = 1) {
+    const query = searchInput.value.trim();
+    if (!validateSearchInput(searchInput)) {
+        return;
+    }
+
+    const settings = JSON.parse(localStorage.getItem('settings')) || defaultSettings;
+    const selectedRepo = repoFilter.value;
+    const selectedCategory = categoryFilter.value;
+    currentQuery = query;
+    currentPage = page;
+    
+    resultsDiv.innerHTML = '<div class="loading">Searching...</div>';
+    document.getElementById('pagination').innerHTML = '';
+    
+    let url = `/search?q=${encodeURIComponent(query)}&page=${page}&per_page=${settings.resultsPerPage}`;
+    if (selectedRepo) {
+        url += `&repo=${encodeURIComponent(selectedRepo)}`;
+    }
+    if (selectedCategory) {
+        url += `&category=${encodeURIComponent(selectedCategory)}`;
+    }
+    
+    fetch(url)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to fetch results');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (!data || !data.results || data.results.length === 0) {
+                resultsDiv.innerHTML = '<div class="no-results">No results found. Go to Settings to update your repositories.</div>';
+                return;
+            }
+
+            // Store current results
+            currentResults = data.results;
+            
+            // Only update category filter with full list on new searches, not category filters
+            updateCategoryFilter(data.results, selectedCategory);
+
+            // Display results
+            resultsDiv.innerHTML = currentResults.map(result => createResultHTML(result, true)).join('');
+            updateFavoriteButtons();
+
+            // Update pagination info
+            totalPages = data.total_pages;
+            totalResults = data.total_results;
+            updatePagination();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            resultsDiv.innerHTML = '<div class="error">Failed to fetch results. Please try again.</div>';
+        });
 } 

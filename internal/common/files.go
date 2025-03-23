@@ -65,35 +65,21 @@ func ExtractDomain(url string) string {
 	return url
 }
 
-// CleanCategory removes unusual Unicode characters and unwanted formatting from category names
+// CleanCategory removes all characters except alphanumeric and single spaces from category names
 func CleanCategory(category string) string {
-	// First trim any whitespace
-	category = strings.TrimSpace(category)
-
-	// Remove leading dashes, hyphens, and spaces
-	category = strings.TrimLeft(category, "- ")
-
-	// Remove trailing punctuation and spaces
-	category = strings.TrimRight(category, "/.,;:- ")
-
-	// Handle any remaining slashes with spaces around them
-	category = strings.ReplaceAll(category, " / ", " ")
-	category = strings.ReplaceAll(category, "/ ", " ")
-	category = strings.ReplaceAll(category, " /", " ")
-
 	var result strings.Builder
+	lastWasSpace := false
 	for _, char := range category {
-		// Keep ASCII characters (including spaces and basic punctuation)
-		if char < 128 {
+		if char == ' ' {
+			if !lastWasSpace {
+				result.WriteRune(char)
+			}
+		} else if (char >= 'A' && char <= 'Z') || (char >= 'a' && char <= 'z') || (char >= '0' && char <= '9') {
 			result.WriteRune(char)
 		}
+		lastWasSpace = char == ' '
 	}
-
-	// Clean up any double spaces and trim again
-	cleaned := strings.Join(strings.Fields(result.String()), " ")
-
-	// One final trim to catch any edge cases
-	return strings.TrimRight(cleaned, "/.,;:- ")
+	return strings.TrimSpace(result.String())
 }
 
 // CleanDescription removes unwanted formatting from link descriptions
@@ -133,4 +119,10 @@ func CleanMarkdown(line string) string {
 	line = strings.Join(strings.Fields(line), " ")
 
 	return line
+}
+
+// IsInvalidCategory checks if a category is invalid based on its characteristics
+func IsInvalidCategory(category string) bool {
+	// Categories longer than 80 characters are considered invalid
+	return len(category) > 80
 }

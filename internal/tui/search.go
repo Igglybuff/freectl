@@ -23,6 +23,10 @@ var (
 	statusMessageStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.AdaptiveColor{Light: "#04B575", Dark: "#04B575"}).
 				Render
+	invalidStyle = lipgloss.NewStyle().
+			Border(lipgloss.NormalBorder(), false, false, false, true).
+			BorderForeground(lipgloss.Color("#dc3545")).
+			PaddingLeft(1)
 )
 
 type SearchResult struct {
@@ -32,14 +36,24 @@ type SearchResult struct {
 	Line       string
 	Score      int
 	Repository string
+	IsInvalid  bool
 }
 
 func (i SearchResult) Title() string {
-	return i.Text
+	text := i.Text
+	if i.IsInvalid {
+		text = "⚠️ " + text
+		return invalidStyle.Render(text)
+	}
+	return text
 }
 
 func (i SearchResult) Description() string {
-	return fmt.Sprintf("Category: %s | Repository: %s | URL: %s | Score: %d", i.Category, i.Repository, i.Link, i.Score)
+	categoryText := "Invalid category"
+	if !i.IsInvalid {
+		categoryText = i.Category
+	}
+	return fmt.Sprintf("Category: %s | Repository: %s | URL: %s | Score: %d", categoryText, i.Repository, i.Link, i.Score)
 }
 
 func (i SearchResult) FilterValue() string {

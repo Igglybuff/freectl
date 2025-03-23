@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"freectl/internal/common"
 	"freectl/internal/search"
 	"freectl/internal/tui"
 
@@ -80,6 +81,7 @@ Examples:
 				Line:       r.Line,
 				Score:      r.Score,
 				Repository: r.Repository,
+				IsInvalid:  common.IsInvalidCategory(r.Category),
 			}
 		}
 

@@ -94,8 +94,8 @@ body {
     color: var(--text-color);
     cursor: pointer;
     transition: border-color 0.2s, box-shadow 0.2s;
-    min-width: 150px;
-    width: 200px;
+    min-width: 120px;
+    width: 160px;
 }
 
 .filter-select:hover {
@@ -152,13 +152,17 @@ body {
     padding: 15px;
     border: 1px solid var(--border-color);
     border-radius: 8px;
-    transition: box-shadow 0.2s;
+    transition: box-shadow 0.2s, border-color 0.2s;
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
     background-color: var(--bg-color);
     box-sizing: border-box;
     width: 100%;
+}
+
+.result-item.invalid-result {
+    border: 2px solid var(--error-color);
 }
 
 .result-item:hover {
@@ -180,6 +184,22 @@ body {
     text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
     white-space: nowrap;
     transition: opacity 0.2s;
+}
+
+.warning-tag {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    background-color: var(--error-color);
+    color: white;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+    white-space: nowrap;
+    transition: opacity 0.2s;
+}
+
+.warning-tag:hover {
+    opacity: 0.9;
 }
 
 .category-tag:hover {
