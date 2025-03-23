@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"freectl/internal/common"
+	"freectl/internal/repository"
 	"freectl/internal/settings"
 
 	"github.com/charmbracelet/log"
@@ -196,11 +197,24 @@ func Search(query string, cacheDir string, repoName string) ([]Result, error) {
 		}
 	}
 
+	// Filter out disabled repositories
+	var enabledRepos []common.Repository
+	for _, repo := range repos {
+		enabled, err := repository.IsEnabled(cacheDir, repo.Name)
+		if err != nil {
+			log.Error("Failed to check repository status", "name", repo.Name, "error", err)
+			continue
+		}
+		if enabled {
+			enabledRepos = append(enabledRepos, repo)
+		}
+	}
+
 	var allResults []Result
 	var mu sync.Mutex
 
-	// Search in each repository
-	for _, repo := range repos {
+	// Search in each enabled repository
+	for _, repo := range enabledRepos {
 		repoPath := repo.Path
 		log.Info("Searching in repository", "name", repo.Name, "path", repoPath)
 

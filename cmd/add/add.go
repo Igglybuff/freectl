@@ -2,12 +2,8 @@ package add
 
 import (
 	"fmt"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"strings"
 
-	"freectl/internal/common"
+	"freectl/internal/repository"
 
 	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
@@ -36,20 +32,11 @@ Examples:
 
 		// If no name is provided, derive it from the URL
 		if name == "" {
-			name = filepath.Base(url)
-			// Remove .git extension if present
-			name = strings.TrimSuffix(name, ".git")
+			name = repository.DeriveNameFromURL(url)
 		}
 
-		repoPath := common.GetRepositoryPath(cacheDir, name)
-		if _, err := os.Stat(repoPath); !os.IsNotExist(err) {
-			return fmt.Errorf("repository %s already exists", name)
-		}
-
-		// Clone the repository
-		log.Info("Cloning repository", "url", url, "name", name)
-		if err := cloneRepository(url, repoPath); err != nil {
-			return fmt.Errorf("failed to clone repository: %w", err)
+		if err := repository.Add(cacheDir, url, name); err != nil {
+			return fmt.Errorf("failed to add repository: %w", err)
 		}
 
 		log.Info("Repository added successfully", "name", name)
@@ -59,11 +46,4 @@ Examples:
 
 func init() {
 	AddCmd.Flags().StringVarP(&name, "name", "n", "", "Name for the repository (default: derived from URL)")
-}
-
-func cloneRepository(url, path string) error {
-	cmd := exec.Command("git", "clone", url, path)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
 }

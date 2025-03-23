@@ -2,9 +2,8 @@ package delete
 
 import (
 	"fmt"
-	"os"
 
-	"freectl/internal/common"
+	"freectl/internal/repository"
 
 	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
@@ -23,18 +22,16 @@ Example:
 		repoName := args[0]
 		cacheDir, _ := cmd.Flags().GetString("cache-dir")
 
-		// Get list of repositories
-		repos, err := common.ListRepositories(cacheDir)
+		// Check if repository exists
+		repos, err := repository.List(cacheDir)
 		if err != nil {
 			return fmt.Errorf("failed to get repositories: %w", err)
 		}
 
 		// Find the repository
-		var repo common.Repository
 		var found bool
-		for _, r := range repos {
-			if r.Name == repoName {
-				repo = r
+		for _, repo := range repos {
+			if repo.Name == repoName {
 				found = true
 				break
 			}
@@ -54,8 +51,7 @@ Example:
 			return nil
 		}
 
-		// Delete the repository directory
-		if err := os.RemoveAll(repo.Path); err != nil {
+		if err := repository.Delete(cacheDir, repoName); err != nil {
 			return fmt.Errorf("failed to delete repository: %w", err)
 		}
 

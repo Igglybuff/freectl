@@ -74,12 +74,12 @@ function showTab(tabName) {
     document.querySelectorAll('#searchTab, #favoritesTab, #statsTab, #settingsTab').forEach(tab => {
         tab.style.display = 'none';
     });
-    
+
     // Remove active class from all tab buttons
     document.querySelectorAll('.tab-button').forEach(btn => {
         btn.classList.remove('active');
     });
-    
+
     // Show selected tab content
     document.getElementById(tabName + 'Tab').style.display = 'block';
     
@@ -94,6 +94,9 @@ function showTab(tabName) {
         loadRepositories();
     } else if (tabName === 'favorites') {
         loadFavorites();
+    } else if (tabName === 'settings') {
+        loadSettings();
+        loadRepositoryList();
     }
 }
 
@@ -324,18 +327,25 @@ function validateSearchInput(input) {
 
 // Load repositories into the filter dropdown
 function loadRepositoryFilter() {
-    fetch('/list')
+    fetch('/repositories/list')
         .then(response => {
             if (!response.ok) {
                 throw new Error('Failed to load repositories');
             }
             return response.json();
         })
-        .then(repos => {
+        .then(data => {
+            if (!data.success) {
+                throw new Error(data.error || 'Failed to load repositories');
+            }
+
             const searchFilter = document.getElementById('repoFilter');
             const favoritesFilter = document.getElementById('favoriteRepoFilter');
             const options = '<option value="">All repositories</option>' +
-                repos.map(repo => `<option value="${repo.name}">${repo.name}</option>`).join('');
+                data.repositories
+                    .filter(repo => repo.enabled)
+                    .map(repo => `<option value="${repo.name}">${repo.name}</option>`)
+                    .join('');
             
             searchFilter.innerHTML = options;
             favoritesFilter.innerHTML = options;
@@ -894,54 +904,126 @@ function performSearch(page = 1) {
 
 // Add repository function
 function addRepository() {
-    const addButton = document.getElementById('addRepo');
-    const repoUrl = document.getElementById('repoUrl').value.trim();
-    const repoName = document.getElementById('repoName').value.trim();
+    const urlInput = document.getElementById('repoUrl');
+    const nameInput = document.getElementById('repoName');
+    const url = urlInput.value.trim();
+    const name = nameInput.value.trim();
 
-    if (!repoUrl) {
-        showToast('Please enter a repository URL', true);
+    if (!url) {
+        showToast('Repository URL is required', true);
         return;
     }
-
-    addButton.disabled = true;
-    addButton.textContent = 'Adding repository...';
 
     fetch('/repositories/add', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Accept': 'application/json'
         },
-        body: JSON.stringify({
-            url: repoUrl,
-            name: repoName
+        body: JSON.stringify({ url, name }),
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) {
+                throw new Error(data.error || 'Failed to add repository');
+            }
+            showToast('Repository added successfully');
+            urlInput.value = '';
+            nameInput.value = '';
+            loadRepositoryList();
+            loadRepositories(); // Refresh repository filters
         })
-    })
-    .then(async response => {
-        const data = await response.json();
-        if (!response.ok) {
-            throw new Error(data.error || 'Failed to add repository');
-        }
-        return data;
-    })
-    .then(data => {
-        showToast(data.message || 'Repository added successfully');
-        // Clear the input fields
-        document.getElementById('repoUrl').value = '';
-        document.getElementById('repoName').value = '';
-        // Reload repository lists
-        loadRepositoryFilter();
-        loadRepositories();
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showToast(error.message || 'Failed to add repository', true);
-    })
-    .finally(() => {
-        addButton.disabled = false;
-        addButton.textContent = 'Add Repository';
-    });
+        .catch(error => {
+            console.error('Error:', error);
+            showToast(`Failed to add repository: ${error.message}`, true);
+        });
 }
 
 // Add event listener for add repository button
-document.getElementById('addRepo').addEventListener('click', addRepository); 
+document.getElementById('addRepo').addEventListener('click', addRepository);
+
+function loadRepositoryList() {
+    const repoList = document.getElementById('repoList');
+    repoList.innerHTML = 'Loading repositories...';
+
+    fetch('/repositories/list')
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) {
+                throw new Error(data.error || 'Failed to load repositories');
+            }
+
+            if (data.repositories.length === 0) {
+                repoList.innerHTML = '<div class="no-results">No repositories found</div>';
+                return;
+            }
+
+            repoList.innerHTML = data.repositories.map(repo => `
+                <div class="repo-item">
+                    <div class="repo-info">
+                        <div class="repo-name">${repo.name}</div>
+                        <div class="repo-path">${repo.path}</div>
+                    </div>
+                    <div class="repo-actions">
+                        <button class="repo-button toggle ${repo.enabled ? '' : 'disabled'}" onclick="toggleRepository('${repo.name}')">
+                            ${repo.enabled ? 'Disable' : 'Enable'}
+                        </button>
+                        <button class="repo-button delete" onclick="deleteRepository('${repo.name}')">Delete</button>
+                    </div>
+                </div>
+            `).join('');
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            repoList.innerHTML = `<div class="error-message">Failed to load repositories: ${error.message}</div>`;
+        });
+}
+
+function deleteRepository(name) {
+    if (!confirm(`Are you sure you want to delete repository '${name}'? This cannot be undone.`)) {
+        return;
+    }
+
+    fetch('/repositories/delete', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name }),
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) {
+                throw new Error(data.error || 'Failed to delete repository');
+            }
+            showToast('Repository deleted successfully');
+            loadRepositoryList();
+            loadRepositories(); // Refresh repository filters
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast(`Failed to delete repository: ${error.message}`, true);
+        });
+}
+
+function toggleRepository(name) {
+    fetch('/repositories/toggle', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (!data.success) {
+            throw new Error(data.error || 'Failed to toggle repository');
+        }
+        showToast(data.message);
+        loadRepositoryList();
+        loadRepositories(); // Refresh repository filters
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast(`Failed to toggle repository: ${error.message}`, true);
+    });
+} 

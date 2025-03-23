@@ -12,6 +12,7 @@ import (
 	"sync"
 
 	"freectl/internal/common"
+	"freectl/internal/repository"
 	"freectl/internal/search"
 	"freectl/internal/settings"
 	"freectl/internal/stats"
@@ -53,6 +54,9 @@ func startServer() error {
 	http.HandleFunc("/list", handleList)
 	http.HandleFunc("/settings", handleSettings)
 	http.HandleFunc("/repositories/add", handleAddRepository)
+	http.HandleFunc("/repositories/list", handleListRepositories)
+	http.HandleFunc("/repositories/delete", handleDeleteRepository)
+	http.HandleFunc("/repositories/toggle", handleToggleRepository)
 
 	log.Infof("Starting server at http://localhost:%d", port)
 	return http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
@@ -438,7 +442,10 @@ func handleAddRepository(w http.ResponseWriter, r *http.Request) {
 		"content_type", r.Header.Get("Content-Type"),
 		"accept", r.Header.Get("Accept"))
 
-	var req search.AddRepositoryRequest
+	var req struct {
+		URL  string `json:"url"`
+		Name string `json:"name"`
+	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		log.Error("Failed to decode request body", "error", err)
 		w.Header().Set("Content-Type", "application/json")
@@ -449,8 +456,6 @@ func handleAddRepository(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-
-	log.Info("Adding repository", "url", req.URL, "name", req.Name)
 
 	// Get cache directory from environment or use default
 	cacheDir := os.Getenv("CACHE_DIR")
@@ -469,7 +474,7 @@ func handleAddRepository(w http.ResponseWriter, r *http.Request) {
 		cacheDir = filepath.Join(homeDir, ".local", "cache", "freectl")
 	}
 
-	if err := search.AddRepository(cacheDir, req.URL, req.Name); err != nil {
+	if err := repository.Add(cacheDir, req.URL, req.Name); err != nil {
 		log.Error("Failed to add repository", "error", err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
@@ -485,6 +490,195 @@ func handleAddRepository(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
 		"message": "Repository added successfully",
+	})
+}
+
+func handleListRepositories(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"error":   "Method not allowed",
+		})
+		return
+	}
+
+	// Get cache directory from environment or use default
+	cacheDir := os.Getenv("CACHE_DIR")
+	if cacheDir == "" {
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			log.Error("Failed to get home directory", "error", err)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success": false,
+				"error":   fmt.Sprintf("Failed to get home directory: %s", err.Error()),
+			})
+			return
+		}
+		cacheDir = filepath.Join(homeDir, ".local", "cache", "freectl")
+	}
+
+	repos, err := repository.List(cacheDir)
+	if err != nil {
+		log.Error("Failed to list repositories", "error", err)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success":      true,
+		"repositories": repos,
+	})
+}
+
+func handleDeleteRepository(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"error":   "Method not allowed",
+		})
+		return
+	}
+
+	var req struct {
+		Name string `json:"name"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Error("Failed to decode request body", "error", err)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"error":   fmt.Sprintf("Invalid request: %s", err.Error()),
+		})
+		return
+	}
+
+	// Get cache directory from environment or use default
+	cacheDir := os.Getenv("CACHE_DIR")
+	if cacheDir == "" {
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			log.Error("Failed to get home directory", "error", err)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success": false,
+				"error":   fmt.Sprintf("Failed to get home directory: %s", err.Error()),
+			})
+			return
+		}
+		cacheDir = filepath.Join(homeDir, ".local", "cache", "freectl")
+	}
+
+	if err := repository.Delete(cacheDir, req.Name); err != nil {
+		log.Error("Failed to delete repository", "error", err)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"message": "Repository deleted successfully",
+	})
+}
+
+func handleToggleRepository(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"error":   "Method not allowed",
+		})
+		return
+	}
+
+	var req struct {
+		Name string `json:"name"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Error("Failed to decode request body", "error", err)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"error":   fmt.Sprintf("Invalid request: %s", err.Error()),
+		})
+		return
+	}
+
+	// Get cache directory from environment or use default
+	cacheDir := os.Getenv("CACHE_DIR")
+	if cacheDir == "" {
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			log.Error("Failed to get home directory", "error", err)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success": false,
+				"error":   fmt.Sprintf("Failed to get home directory: %s", err.Error()),
+			})
+			return
+		}
+		cacheDir = filepath.Join(homeDir, ".local", "cache", "freectl")
+	}
+
+	if err := repository.ToggleEnabled(cacheDir, req.Name); err != nil {
+		log.Error("Failed to toggle repository", "error", err)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	// Get the updated enabled status
+	enabled, err := repository.IsEnabled(cacheDir, req.Name)
+	if err != nil {
+		log.Error("Failed to get repository status", "error", err)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"error":   fmt.Sprintf("Failed to get repository status: %s", err.Error()),
+		})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	var status string
+	if enabled {
+		status = "enabled"
+	} else {
+		status = "disabled"
+	}
+
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"enabled": enabled,
+		"message": fmt.Sprintf("Repository %s successfully", status),
 	})
 }
 

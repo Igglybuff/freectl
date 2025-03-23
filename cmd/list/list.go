@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"freectl/internal/common"
+	"freectl/internal/repository"
 
 	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
@@ -24,6 +24,7 @@ For each repository, shows:
 - URL
 - Last update time
 - Size on disk
+- Enabled status
 
 Example:
   freectl list`,
@@ -31,7 +32,7 @@ Example:
 		cacheDir, _ := cmd.Flags().GetString("cache-dir")
 
 		// Get list of repositories
-		repos, err := common.ListRepositories(cacheDir)
+		repos, err := repository.List(cacheDir)
 		if err != nil {
 			return fmt.Errorf("failed to get repositories: %w", err)
 		}
@@ -46,6 +47,7 @@ Example:
 		maxURL := len("URL")
 		maxUpdate := len("LAST UPDATE")
 		maxSize := len("SIZE")
+		maxStatus := len("STATUS")
 
 		// Collect all data first to calculate widths
 		type repoData struct {
@@ -53,6 +55,7 @@ Example:
 			url        string
 			lastUpdate string
 			size       string
+			status     string
 		}
 		repoDataList := make([]repoData, 0, len(repos))
 
@@ -87,12 +90,19 @@ Example:
 				sizeStr = formatSize(size)
 			}
 
+			// Get status
+			status := "Enabled"
+			if !repo.Enabled {
+				status = "Disabled"
+			}
+
 			// Store data and update max widths
 			data := repoData{
 				name:       repo.Name,
 				url:        repo.URL,
 				lastUpdate: lastUpdate,
 				size:       sizeStr,
+				status:     status,
 			}
 			repoDataList = append(repoDataList, data)
 
@@ -108,6 +118,9 @@ Example:
 			if len(sizeStr) > maxSize {
 				maxSize = len(sizeStr)
 			}
+			if len(status) > maxStatus {
+				maxStatus = len(status)
+			}
 		}
 
 		// Add padding
@@ -115,17 +128,24 @@ Example:
 		maxURL += 3
 		maxUpdate += 3
 		maxSize += 3
+		maxStatus += 3
 
 		// Print table header
-		fmt.Printf("%-*s %-*s %-*s %-*s\n", maxName, "NAME", maxURL, "URL", maxUpdate, "LAST UPDATE", maxSize, "SIZE")
+		fmt.Printf("%-*s %-*s %-*s %-*s %-*s\n",
+			maxName, "NAME",
+			maxURL, "URL",
+			maxUpdate, "LAST UPDATE",
+			maxSize, "SIZE",
+			maxStatus, "STATUS")
 
 		// Print each repository
 		for _, data := range repoDataList {
-			fmt.Printf("%-*s %-*s %-*s %-*s\n",
+			fmt.Printf("%-*s %-*s %-*s %-*s %-*s\n",
 				maxName, data.name,
 				maxURL, data.url,
 				maxUpdate, data.lastUpdate,
-				maxSize, data.size)
+				maxSize, data.size,
+				maxStatus, data.status)
 		}
 
 		return nil
