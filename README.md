@@ -4,6 +4,7 @@ A command-line tool and web interface for searching the [Free Media Heck Yeah](h
 
 ## Features
 
+- 🏠 100% local after initial caching
 - 🔍 Fuzzy search through the FMHY repository
 - 🎯 Find relevant links and resources quickly
 - 📱 Interactive terminal user interface
@@ -18,7 +19,7 @@ A command-line tool and web interface for searching the [Free Media Heck Yeah](h
 ### From Source
 
 ```bash
-git clone https://github.com/yourusername/freectl.git
+git clone https://github.com/Igglybuff/freectl.git
 cd freectl
 go build
 chmod +x freectl
