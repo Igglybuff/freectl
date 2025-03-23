@@ -5,10 +5,16 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
+	"sync"
 
+	"freectl/internal/common"
 	"freectl/internal/search"
+	"freectl/internal/stats"
 
+	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
 )
 
@@ -34,8 +40,9 @@ func startServer() error {
 	http.HandleFunc("/favorites", handleFavorites)
 	http.HandleFunc("/favorites/add", handleAddFavorite)
 	http.HandleFunc("/favorites/remove", handleRemoveFavorite)
+	http.HandleFunc("/stats", handleStats)
 
-	fmt.Printf("Starting server at http://localhost:%d\n", port)
+	log.Infof("Starting server at http://localhost:%d", port)
 	return http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 }
 
@@ -163,6 +170,45 @@ func handleRemoveFavorite(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]bool{"success": true})
+}
+
+func handleStats(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	repoPath := common.GetRepoPath("~/.local/cache/freectl")
+	docsDir := filepath.Join(repoPath, "docs")
+	s := &stats.Stats{
+		DomainsCount:  make(map[string]int),
+		ProtocolStats: make(map[string]int),
+	}
+
+	var wg sync.WaitGroup
+	err := filepath.Walk(docsDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() && filepath.Ext(path) == ".md" {
+			wg.Add(1)
+			go func(p string) {
+				defer wg.Done()
+				s.ProcessFile(p)
+			}(path)
+		}
+		return nil
+	})
+
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error walking docs directory: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	wg.Wait()
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(s)
 }
 
 // Define a SearchResult struct for JSON encoding
