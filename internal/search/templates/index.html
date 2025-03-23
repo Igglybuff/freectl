@@ -1,12 +1,14 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>FMHY Search</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Repository Search</title>
     <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h1>FMHY Search</h1>
+        <h1>Repository Search</h1>
         <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode">
             <svg viewBox="0 0 24 24">
                 <path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-3.03 0-5.5-2.47-5.5-5.5 0-1.82.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/>
@@ -31,25 +33,43 @@
     </div>
     <div id="searchTab" class="active">
         <div class="search-container">
-            <input type="text" 
-                   id="searchInput" 
-                   class="search-box" 
-                   placeholder="Search FMHY..." 
-                   maxlength="1000"
-                   pattern="[^<>]*"
-                   title="Search query cannot contain < or > characters"
-                   required>
+            <div class="search-controls">
+                <input type="text" 
+                       id="searchInput" 
+                       class="search-box" 
+                       placeholder="Search repositories..." 
+                       maxlength="1000"
+                       pattern="[^<>]*"
+                       title="Search query cannot contain < or > characters"
+                       required>
+                <select id="repoFilter" class="repo-select">
+                    <option value="">All repositories</option>
+                </select>
+            </div>
             <div id="errorMessage" class="error-message"></div>
         </div>
         <div id="results" class="results"></div>
         <div id="pagination" class="pagination"></div>
     </div>
     <div id="favoritesTab">
-        <input type="text" class="search-box" id="favoritesSearchInput" placeholder="Search favorites...">
+        <div class="search-container">
+            <div class="search-controls">
+                <input type="text" class="search-box" id="favoritesSearchInput" placeholder="Search favorites...">
+                <select id="favoriteRepoFilter" class="repo-select">
+                    <option value="">All repositories</option>
+                </select>
+            </div>
+        </div>
         <div id="favorites" class="results"></div>
     </div>
     <div id="statsTab" class="tab">
         <div class="stats-container">
+            <div class="repo-selection">
+                <select id="statsRepo" class="repo-select">
+                    <option value="">Loading repositories...</option>
+                </select>
+            </div>
+
             <div class="stats-section">
                 <h2>General Stats</h2>
                 <div class="stats-grid">
@@ -105,7 +125,7 @@
                     <div class="setting-item">
                         <label for="cacheDir">Cache Directory:</label>
                         <input type="text" id="cacheDir" value="~/.local/cache/freectl">
-                        <span class="setting-description">Directory where the FMHY repository is cached</span>
+                        <span class="setting-description">Directory where repositories are cached</span>
                     </div>
                     <div class="setting-item checkbox-item">
                         <div class="checkbox-wrapper">
@@ -116,7 +136,7 @@
                     </div>
                 </div>
                 <div class="settings-buttons">
-                    <button id="updateRepo" class="settings-button">Update Repository</button>
+                    <button id="updateRepo" class="settings-button">Update repositories</button>
                 </div>
             </div>
 

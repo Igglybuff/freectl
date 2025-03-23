@@ -226,6 +226,9 @@ func Search(query string, cacheDir string, repoName string) ([]Result, error) {
 							description = url // Fallback to URL if no description found
 						}
 
+						// Clean the description
+						description = common.CleanDescription(description)
+
 						// Search in both the description and the full line
 						matches := fuzzy.Find(query, []string{description, cleanLine})
 						if len(matches) > 0 {

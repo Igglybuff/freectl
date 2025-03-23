@@ -45,6 +45,7 @@ func startServer() error {
 	http.HandleFunc("/favorites/remove", handleRemoveFavorite)
 	http.HandleFunc("/stats", handleStats)
 	http.HandleFunc("/update", handleUpdate)
+	http.HandleFunc("/list", handleList)
 
 	log.Infof("Starting server at http://localhost:%d", port)
 	return http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
@@ -227,7 +228,15 @@ func handleAddFavorite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	// Return the updated list of favorites
+	favorites, err := search.LoadFavorites()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(favorites)
 }
 
 func handleRemoveFavorite(w http.ResponseWriter, r *http.Request) {
@@ -253,7 +262,15 @@ func handleRemoveFavorite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	// Return the updated list of favorites
+	favorites, err := search.LoadFavorites()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(favorites)
 }
 
 func handleStats(w http.ResponseWriter, r *http.Request) {
@@ -262,7 +279,14 @@ func handleStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repoPath := common.GetRepoPath("~/.local/cache/freectl")
+	// Get repository name from query parameters
+	repoName := r.URL.Query().Get("repo")
+	if repoName == "" {
+		http.Error(w, "Repository name is required", http.StatusBadRequest)
+		return
+	}
+
+	repoPath := common.GetRepoPath("~/.local/cache/freectl", repoName)
 	docsDir := filepath.Join(repoPath, "docs")
 	s := &stats.Stats{
 		DomainsCount:  make(map[string]int),
@@ -323,6 +347,22 @@ func handleUpdate(w http.ResponseWriter, r *http.Request) {
 		"success":  true,
 		"duration": duration.String(),
 	})
+}
+
+func handleList(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	repos, err := common.ListRepositories("~/.local/cache/freectl")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(repos)
 }
 
 // Define a SearchResult struct for JSON encoding

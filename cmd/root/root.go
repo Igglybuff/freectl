@@ -56,10 +56,7 @@ Examples:
   freectl serve
   
   # Update all repositories
-  freectl update
-
-Environment:
-  CACHE_DIR  - Directory to store cached repositories (default: ~/.local/cache/freectl)`,
+  freectl update`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return cmd.Help()
 	},

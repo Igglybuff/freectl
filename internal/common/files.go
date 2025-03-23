@@ -8,8 +8,8 @@ import (
 	"github.com/charmbracelet/log"
 )
 
-// GetRepoPath returns the path to the FMHY repository
-func GetRepoPath(cacheDir string) string {
+// GetRepoPath returns the path to a repository
+func GetRepoPath(cacheDir, repoName string) string {
 	// Expand the ~ to the user's home directory
 	if cacheDir[:2] == "~/" {
 		home, err := os.UserHomeDir()
@@ -19,7 +19,7 @@ func GetRepoPath(cacheDir string) string {
 		cacheDir = filepath.Join(home, cacheDir[2:])
 	}
 
-	repoPath := filepath.Join(cacheDir, "FMHY")
+	repoPath := filepath.Join(cacheDir, repoName)
 	if _, err := os.Stat(repoPath); os.IsNotExist(err) {
 		log.Fatal("Repository not found. Please run 'freectl update' first")
 	}
@@ -65,8 +65,22 @@ func ExtractDomain(url string) string {
 	return url
 }
 
-// CleanCategory removes unusual Unicode characters while keeping basic ASCII characters
+// CleanCategory removes unusual Unicode characters and unwanted formatting from category names
 func CleanCategory(category string) string {
+	// First trim any whitespace
+	category = strings.TrimSpace(category)
+
+	// Remove leading dashes, hyphens, and spaces
+	category = strings.TrimLeft(category, "- ")
+
+	// Remove trailing punctuation and spaces
+	category = strings.TrimRight(category, "/.,;:- ")
+
+	// Handle any remaining slashes with spaces around them
+	category = strings.ReplaceAll(category, " / ", " ")
+	category = strings.ReplaceAll(category, "/ ", " ")
+	category = strings.ReplaceAll(category, " /", " ")
+
 	var result strings.Builder
 	for _, char := range category {
 		// Keep ASCII characters (including spaces and basic punctuation)
@@ -74,7 +88,27 @@ func CleanCategory(category string) string {
 			result.WriteRune(char)
 		}
 	}
-	return result.String()
+
+	// Clean up any double spaces and trim again
+	cleaned := strings.Join(strings.Fields(result.String()), " ")
+
+	// One final trim to catch any edge cases
+	return strings.TrimRight(cleaned, "/.,;:- ")
+}
+
+// CleanDescription removes unwanted formatting from link descriptions
+func CleanDescription(description string) string {
+	// First trim any whitespace
+	description = strings.TrimSpace(description)
+
+	// Remove leading dashes, hyphens, and spaces
+	description = strings.TrimLeft(description, "- ")
+
+	// Remove trailing punctuation and spaces
+	description = strings.TrimRight(description, ".,:;/ ")
+
+	// Clean up any double spaces
+	return strings.Join(strings.Fields(description), " ")
 }
 
 // CleanMarkdown removes markdown formatting from a line

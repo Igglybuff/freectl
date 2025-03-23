@@ -17,22 +17,16 @@ import (
 
 var StatsCmd = &cobra.Command{
 	Use:   "stats",
-	Short: "Show statistics about the FMHY repository",
-	Long: `Display statistics about the FMHY repository content.
-Shows information like:
-- Total number of files
-- Total number of links
-- Size of the repository
-- Links per category
-- Most common domains
-- Protocol usage (http vs https)
-
-Example:
-  freectl stats
-  freectl stats --cache-dir /path/to/cache`,
-	Run: func(cmd *cobra.Command, args []string) {
+	Short: "Show statistics about cached repositories",
+	Long: `Display statistics about the cached repositories content.
+This includes information about categories, links, and other metadata.`,
+	RunE: func(cmd *cobra.Command, args []string) error {
 		cacheDir, _ := cmd.Flags().GetString("cache-dir")
-		repoPath := common.GetRepoPath(cacheDir)
+		repoName, _ := cmd.Flags().GetString("repo")
+		if repoName == "" {
+			return fmt.Errorf("repository name is required")
+		}
+		repoPath := common.GetRepoPath(cacheDir, repoName)
 		docsPath := filepath.Join(repoPath, "docs")
 
 		s := &internalStats.Stats{
@@ -64,6 +58,7 @@ Example:
 
 		wg.Wait()
 		sortAndPrintStats(s)
+		return nil
 	},
 }
 
@@ -87,7 +82,7 @@ func sortAndPrintStats(s *internalStats.Stats) {
 	})
 
 	// Print statistics
-	fmt.Printf("\n📊 FMHY Repository Statistics\n")
+	fmt.Printf("\n📊 Repository Statistics\n")
 	fmt.Printf("===========================\n\n")
 
 	fmt.Printf("📁 General Stats:\n")

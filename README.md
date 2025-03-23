@@ -1,16 +1,15 @@
 # freectl
 
-A command-line tool and web interface for searching the [Free Media Heck Yeah](https://www.reddit.com/r/FREEMEDIAHECKYEAH/wiki/index) repository.
+A command-line tool for managing and searching through cached Git repositories.
 
 ## Features
 
-- 🏠 100% local after initial caching
-- 🔍 Fuzzy search through the FMHY repository
-- 🎯 Find relevant links and resources quickly
-- 📱 Interactive terminal user interface
-- 🌐 Web interface with favorites support
+- 🔍 Fuzzy search through cached repositories
+- 📦 Cache and update Git repositories locally
+- 📊 Generate statistics about repository content
+- 🌐 Web interface for searching
+- 🎨 Beautiful TUI interface
 - 🔄 Automatic repository updates
-- 🎨 Beautiful and intuitive interface
 - 🌓 Toggleable dark theme
 - 🐳 Docker support
 
@@ -48,7 +47,7 @@ docker run -d \
 ```
 
 The Docker container exposes port 8080 and mounts two volumes:
-- `~/.local/cache/freectl` for the FMHY repository cache
+- `~/.local/cache/freectl` for repository caches
 - `~/.config/freectl` for storing favorites
 
 ### Using Docker Compose
@@ -83,50 +82,66 @@ docker compose down
 
 ## Usage
 
-### Basic Commands
+### Search
 
 ```bash
-# Update the FMHY repository cache
-freectl update
+# Search in all cached repositories
+freectl search "query"
 
-# Search for resources
-freectl search "torrent"
-freectl s "torrent"  # Short alias
-
-# Search with custom limit
-freectl search --limit 20 "streaming"
-
-# Search in a custom cache directory
-freectl search --cache-dir /path/to/cache "torrent"
-
-# Start the web interface
-freectl serve
-freectl serve --port 8080  # Use a custom port
+# Search in a specific repository
+freectl search "query" --repo repository-name
 ```
 
-### Search Interface Controls
+### Update
 
-- `↑/↓` - Navigate through results
-- `enter` - Select a result
-- `?` - Toggle help menu
-- `q` - Quit
+```bash
+# Update all cached repositories
+freectl update
 
-### Web Interface Features
+# Update a specific repository
+freectl update --repo repository-name
+```
 
-- 🔍 Real-time fuzzy search
-- ❤️ Save favorite resources
-- 🔍 Search through your favorites
-- 📱 Responsive design
-- 🎨 Modern and clean interface
-- 🌓 Toggleable dark theme with system preference detection
+### Stats
+
+```bash
+# Show stats for a specific repository
+freectl stats --repo repository-name
+```
+
+### Web Interface
+
+```bash
+# Start the web interface
+freectl web
+```
 
 The web interface is available at `http://localhost:8080` by default. You can change the port using the `--port` flag.
 
-Favorites are stored in `~/.config/freectl/favourites.json`.
-
 ## Configuration
 
-By default, freectl stores its cache in `~/.local/cache/freectl`. You can change this location using the `--cache-dir` flag.
+The tool uses the following default paths:
+- `~/.local/cache/freectl` for repository caches
+- `~/.config/freectl/config.json` for configuration
+
+## Development
+
+### Prerequisites
+
+- Go 1.16 or later
+- Git
+
+### Building
+
+```bash
+go build
+```
+
+### Testing
+
+```bash
+go test ./...
+```
 
 ## Author
 
@@ -140,4 +155,4 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-This project is licensed under the Unlicense License - see the LICENSE file for details.
+MIT License - see LICENSE file for details
