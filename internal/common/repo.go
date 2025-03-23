@@ -60,7 +60,7 @@ func ListRepositories(cacheDir string) ([]Repository, error) {
 		}
 
 		// Try to get the remote URL
-		if url, err := getGitRemoteURL(repoPath); err == nil {
+		if url, err := GetGitRemoteURL(repoPath); err == nil {
 			repo.URL = url
 		}
 
@@ -70,8 +70,8 @@ func ListRepositories(cacheDir string) ([]Repository, error) {
 	return repos, nil
 }
 
-// getGitRemoteURL gets the remote URL of a Git repository
-func getGitRemoteURL(repoPath string) (string, error) {
+// GetGitRemoteURL gets the remote URL of a Git repository
+func GetGitRemoteURL(repoPath string) (string, error) {
 	cmd := exec.Command("git", "-C", repoPath, "remote", "get-url", "origin")
 	output, err := cmd.Output()
 	if err != nil {

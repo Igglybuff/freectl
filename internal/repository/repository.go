@@ -35,10 +35,20 @@ func List(cacheDir string) ([]Repository, error) {
 			log.Error("Failed to check repository status", "name", repo.Name, "error", err)
 			enabled = true // Default to enabled if we can't check
 		}
+
+		// Get the remote URL
+		url := repo.URL
+		if url == "" {
+			url, err = common.GetGitRemoteURL(repo.Path)
+			if err != nil {
+				log.Error("Failed to get repository URL", "name", repo.Name, "error", err)
+			}
+		}
+
 		result[i] = Repository{
 			Name:    repo.Name,
 			Path:    repo.Path,
-			URL:     "", // TODO: Get from git remote
+			URL:     url,
 			Enabled: enabled,
 		}
 	}
