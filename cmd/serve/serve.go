@@ -3,7 +3,6 @@ package serve
 import (
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"io"
 	"net/http"
 
@@ -40,8 +39,13 @@ func startServer() error {
 }
 
 func handleHome(w http.ResponseWriter, r *http.Request) {
-	tmpl := template.Must(template.ParseFiles("templates/index.html"))
-	tmpl.Execute(w, nil)
+	content, err := search.TemplateFS.ReadFile("templates/index.html")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html")
+	w.Write(content)
 }
 
 func handleSearch(w http.ResponseWriter, r *http.Request) {

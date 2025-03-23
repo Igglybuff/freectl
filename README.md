@@ -49,6 +49,36 @@ The Docker container exposes port 8080 and mounts two volumes:
 - `~/.local/cache/freectl` for the FMHY repository cache
 - `~/.config/freectl` for storing favorites
 
+### Using Docker Compose
+
+Create a `docker-compose.yml` file:
+
+```yaml
+version: '3.8'
+services:
+  freectl:
+    build: .
+    container_name: freectl
+    ports:
+      - "8080:8080"
+    volumes:
+      - ~/.local/cache/freectl:/root/.local/cache/freectl
+      - ~/.config/freectl:/root/.config/freectl
+    restart: unless-stopped
+```
+
+Then run:
+```bash
+# Start the service
+docker compose up -d
+
+# View logs
+docker compose logs -f
+
+# Stop the service
+docker compose down
+```
+
 ## Usage
 
 ### Basic Commands

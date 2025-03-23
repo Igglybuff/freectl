@@ -22,7 +22,6 @@ WORKDIR /app
 
 # Copy the binary from builder
 COPY --from=builder /app/freectl .
-COPY --from=builder /app/templates/index.html ./templates/index.html
 
 # Create necessary directories
 RUN mkdir -p /root/.local/cache/freectl /root/.config/freectl

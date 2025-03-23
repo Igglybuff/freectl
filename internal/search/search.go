@@ -2,6 +2,7 @@ package search
 
 import (
 	"bufio"
+	"embed"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -20,6 +21,9 @@ import (
 	"github.com/charmbracelet/log"
 	"github.com/sahilm/fuzzy"
 )
+
+//go:embed templates/index.html
+var TemplateFS embed.FS
 
 type Result struct {
 	URL         string `json:"url"`
@@ -190,7 +194,13 @@ func Search(query string, cacheDir string) ([]Result, error) {
 func StartWebServer(port int, cacheDir string) error {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/" {
-			http.ServeFile(w, r, "templates/index.html")
+			content, err := TemplateFS.ReadFile("templates/index.html")
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			w.Header().Set("Content-Type", "text/html")
+			w.Write(content)
 			return
 		}
 
