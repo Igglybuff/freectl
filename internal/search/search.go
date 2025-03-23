@@ -78,12 +78,7 @@ func Search(query string, cacheDir string) ([]Result, error) {
 		cacheDir = filepath.Join(home, cacheDir[2:])
 	}
 
-	repoPath := filepath.Join(cacheDir, "FMHY")
-	if _, err := os.Stat(repoPath); os.IsNotExist(err) {
-		log.Warn("Repository not found, returning empty results", "path", repoPath)
-		return []Result{}, nil
-	}
-
+	repoPath := common.GetRepoPath(cacheDir)
 	docsPath := filepath.Join(repoPath, "docs")
 	log.Info("Searching in docs directory", "path", docsPath)
 
