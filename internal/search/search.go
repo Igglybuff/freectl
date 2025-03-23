@@ -25,6 +25,9 @@ import (
 //go:embed templates/index.html
 var TemplateFS embed.FS
 
+//go:embed static/*
+var StaticFS embed.FS
+
 type Result struct {
 	URL         string `json:"url"`
 	Description string `json:"description"`
@@ -85,7 +88,8 @@ func Search(query string, cacheDir string) ([]Result, error) {
 
 	repoPath := filepath.Join(cacheDir, "FMHY")
 	if _, err := os.Stat(repoPath); os.IsNotExist(err) {
-		return nil, fmt.Errorf("repository not found. Please run 'freectl update' first")
+		log.Warn("Repository not found, returning empty results", "path", repoPath)
+		return []Result{}, nil
 	}
 
 	docsPath := filepath.Join(repoPath, "docs")

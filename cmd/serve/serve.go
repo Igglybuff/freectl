@@ -37,6 +37,7 @@ func init() {
 func startServer() error {
 	// Serve static files and templates
 	http.HandleFunc("/", handleHome)
+	http.HandleFunc("/static/", handleStatic)
 	http.HandleFunc("/search", handleSearch)
 	http.HandleFunc("/favorites", handleFavorites)
 	http.HandleFunc("/favorites/add", handleAddFavorite)
@@ -54,6 +55,30 @@ func handleHome(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "text/html")
+	w.Write(content)
+}
+
+func handleStatic(w http.ResponseWriter, r *http.Request) {
+	// Remove the /static/ prefix from the path
+	path := strings.TrimPrefix(r.URL.Path, "/static/")
+
+	// Read the file from the embedded filesystem
+	content, err := search.StaticFS.ReadFile("static/" + path)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	// Set the appropriate content type based on file extension
+	switch {
+	case strings.HasSuffix(path, ".css"):
+		w.Header().Set("Content-Type", "text/css")
+	case strings.HasSuffix(path, ".js"):
+		w.Header().Set("Content-Type", "application/javascript")
+	default:
+		w.Header().Set("Content-Type", "application/octet-stream")
+	}
+
 	w.Write(content)
 }
 
@@ -95,8 +120,12 @@ func handleSearch(w http.ResponseWriter, r *http.Request) {
 
 	results, err := search.Search(query, "~/.local/cache/freectl")
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		// Only return error for actual errors, not for missing repository
+		if !strings.Contains(err.Error(), "repository not found") {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		results = []search.Result{}
 	}
 
 	// Deduplicate results based on URL
@@ -116,18 +145,24 @@ func handleSearch(w http.ResponseWriter, r *http.Request) {
 
 	// Calculate pagination
 	totalResults := len(uniqueResults)
-	totalPages := (totalResults + perPage - 1) / perPage
+	totalPages := 1 // Default to 1 page even with no results
+	if totalResults > 0 {
+		totalPages = (totalResults + perPage - 1) / perPage
+	}
 	if page > totalPages {
 		page = totalPages
 	}
 
-	start := (page - 1) * perPage
-	end := start + perPage
-	if end > totalResults {
-		end = totalResults
+	// Handle pagination for empty results
+	var paginatedResults []SearchResult
+	if totalResults > 0 {
+		start := (page - 1) * perPage
+		end := start + perPage
+		if end > totalResults {
+			end = totalResults
+		}
+		paginatedResults = uniqueResults[start:end]
 	}
-
-	paginatedResults := uniqueResults[start:end]
 
 	response := struct {
 		Results      []SearchResult `json:"results"`

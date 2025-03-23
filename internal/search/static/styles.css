@@ -1,0 +1,545 @@
+:root {
+    --bg-color: #ffffff;
+    --text-color: #333;
+    --border-color: #eee;
+    --link-color: #007bff;
+    --secondary-text: #6c757d;
+    --hover-bg: rgba(0,0,0,0.1);
+    --shadow-color: rgba(0,0,0,0.1);
+    --category-bg: #e9ecef;
+    --category-text: #495057;
+    --toast-bg: #333;
+    --toast-text: white;
+    --tab-color: #666;
+    --tab-active-color: #007bff;
+    --tab-border-color: transparent;
+    --tab-active-border-color: #007bff;
+    --bg-secondary: #f8f9fa;
+    --bg-hover: #e9ecef;
+    --accent-color: #007bff;
+    --text-secondary: #6c757d;
+}
+
+[data-theme="dark"] {
+    --bg-color: #1a1a1a;
+    --text-color: #e0e0e0;
+    --border-color: #333;
+    --link-color: #66b0ff;
+    --secondary-text: #a0a0a0;
+    --hover-bg: rgba(255,255,255,0.1);
+    --shadow-color: rgba(0,0,0,0.3);
+    --category-bg: #333;
+    --category-text: #e0e0e0;
+    --toast-bg: #333;
+    --toast-text: white;
+    --tab-color: #a0a0a0;
+    --tab-active-color: #66b0ff;
+    --tab-border-color: transparent;
+    --tab-active-border-color: #66b0ff;
+    --bg-secondary: #2d2d2d;
+    --bg-hover: #3d3d3d;
+    --accent-color: #66b0ff;
+    --text-secondary: #a0a0a0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    max-width: 800px;
+    margin: 40px auto;
+    padding: 0 20px;
+    line-height: 1.6;
+    color: var(--text-color);
+    background-color: var(--bg-color);
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.search-container {
+    margin-bottom: 20px;
+    position: relative;
+}
+
+.search-box {
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+    border: 2px solid var(--border-color);
+    border-radius: 6px;
+    transition: border-color 0.2s;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    box-sizing: border-box;
+}
+
+.search-box:focus {
+    outline: none;
+    border-color: var(--link-color);
+}
+
+.search-box.error {
+    border-color: #dc3545;
+}
+
+.error-message {
+    color: #dc3545;
+    font-size: 14px;
+    margin-top: 8px;
+    margin-bottom: 0;
+    display: none;
+}
+
+.results {
+    margin-top: 20px;
+}
+
+.result-item {
+    margin-bottom: 20px;
+    padding: 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    transition: box-shadow 0.2s;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    background-color: var(--bg-color);
+    box-sizing: border-box;
+    width: 100%;
+}
+
+.result-item:hover {
+    box-shadow: 0 2px 8px var(--shadow-color);
+}
+
+.result-content {
+    flex: 1;
+    margin-right: 15px;
+}
+
+.category-tag {
+    display: inline-block;
+    padding: 4px 8px;
+    background-color: var(--category-bg);
+    color: var(--category-text);
+    border-radius: 4px;
+    font-size: 14px;
+    white-space: nowrap;
+}
+
+.result-link {
+    color: var(--link-color);
+    text-decoration: none;
+    font-size: 16px;
+    display: inline-block;
+    margin-bottom: 4px;
+}
+
+.result-link:hover {
+    text-decoration: underline;
+}
+
+.result-domain {
+    color: var(--secondary-text);
+    font-size: 14px;
+    display: inline-block;
+    margin-left: 8px;
+}
+
+.result-score {
+    color: var(--secondary-text);
+    font-size: 12px;
+    margin-top: 2px;
+}
+
+.no-results {
+    text-align: center;
+    color: var(--secondary-text);
+    padding: 40px;
+}
+
+.loading {
+    text-align: center;
+    color: var(--secondary-text);
+    padding: 20px;
+}
+
+.favorite-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    margin-left: 10px;
+    color: var(--secondary-text);
+    transition: all 0.2s;
+    position: relative;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.favorite-btn svg {
+    width: 28px;
+    height: 28px;
+    fill: currentColor;
+}
+
+.favorite-btn:hover {
+    color: #ff6b6b;
+    transform: scale(1.1);
+}
+
+.favorite-btn.active {
+    color: #ff6b6b;
+}
+
+.favorite-btn.loading {
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+.favorite-btn::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(255, 107, 107, 0.2);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.2s, height 0.2s;
+}
+
+.favorite-btn:active::after {
+    width: 40px;
+    height: 40px;
+}
+
+.toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: var(--toast-bg);
+    color: var(--toast-text);
+    padding: 12px 24px;
+    border-radius: 4px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    z-index: 1000;
+}
+
+.toast.show {
+    opacity: 1;
+}
+
+.favorites-section {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+}
+
+.favorites-section h2 {
+    display: none;
+}
+
+.tab-buttons {
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.tab-left {
+    display: flex;
+    gap: 20px;
+}
+
+.tab-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.tab-button {
+    padding: 8px 16px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 16px;
+    color: var(--tab-color);
+    border-bottom: 2px solid var(--tab-border-color);
+}
+
+.tab-button.active {
+    color: var(--tab-active-color);
+    border-bottom-color: var(--tab-active-border-color);
+}
+
+#searchTab, #favoritesTab, #statsTab, #settingsTab {
+    display: none;
+}
+
+#searchTab.active, #favoritesTab.active, #statsTab.active, #settingsTab.active {
+    display: block;
+}
+
+.theme-toggle {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    color: var(--secondary-text);
+    transition: color 0.2s;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.theme-toggle svg {
+    width: 32px;
+    height: 32px;
+    fill: currentColor;
+}
+
+.theme-toggle:hover {
+    color: var(--link-color);
+}
+
+.github-link {
+    color: var(--secondary-text);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: color 0.2s;
+}
+
+.github-link:hover {
+    color: var(--link-color);
+}
+
+.github-link svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
+}
+
+.stats-container {
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.stats-section {
+    margin-bottom: 30px;
+}
+
+.stats-section h2 {
+    margin-bottom: 15px;
+    color: var(--text-color);
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+}
+
+.stat-card {
+    background: var(--bg-secondary);
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+    transition: transform 0.2s;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+}
+
+.stat-value {
+    font-size: 24px;
+    font-weight: bold;
+    color: var(--accent-color);
+    margin-bottom: 8px;
+}
+
+.stat-label {
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+.stats-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.stats-list-item {
+    background: var(--bg-secondary);
+    padding: 15px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.stats-list-item:hover {
+    background: var(--bg-hover);
+}
+
+.stats-list-label {
+    color: var(--text-color);
+}
+
+.stats-list-value {
+    color: var(--accent-color);
+    font-weight: bold;
+}
+
+@media (max-width: 768px) {
+    .stats-row {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+}
+
+/* Settings Page Styles */
+.settings-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.settings-section {
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.settings-section h2 {
+    margin: 0 0 20px 0;
+    color: var(--text-color);
+    font-size: 1.2em;
+}
+
+.settings-grid {
+    display: grid;
+    gap: 20px;
+}
+
+.setting-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.setting-item label {
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.setting-item input[type="text"],
+.setting-item input[type="number"] {
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--bg-color);
+    color: var(--text-color);
+    font-size: 14px;
+}
+
+.setting-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin: 4px 0;
+}
+
+.setting-description {
+    font-size: 14px;
+    color: var(--secondary-text);
+}
+
+.settings-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
+.settings-button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.settings-button:not(.secondary) {
+    background: var(--accent-color);
+    color: white;
+}
+
+.settings-button.secondary {
+    background: var(--bg-secondary);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+}
+
+.settings-button:hover {
+    opacity: 0.9;
+}
+
+.settings-button:active {
+    transform: translateY(1px);
+}
+
+/* Pagination Styles */
+.pagination {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    margin-top: 20px;
+}
+
+.pagination-buttons {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pagination-button {
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--bg-color);
+    color: var(--text-color);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.pagination-button:hover:not(:disabled) {
+    background: var(--bg-hover);
+}
+
+.pagination-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pagination-button.active {
+    background: var(--accent-color);
+    color: white;
+    border-color: var(--accent-color);
+}
+
+.pagination-info {
+    color: var(--secondary-text);
+    font-size: 14px;
+    margin-top: 8px;
+} 
