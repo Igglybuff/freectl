@@ -1,6 +1,6 @@
 # freectl
 
-A command-line tool for searching and browsing the [Free Media Heck Yeah](https://www.reddit.com/r/FREEMEDIAHECKYEAH/wiki/index) repository.
+A command-line tool and web interface for searching the [Free Media Heck Yeah](https://www.reddit.com/r/FREEMEDIAHECKYEAH/wiki/index) repository.
 
 ## Features
 
