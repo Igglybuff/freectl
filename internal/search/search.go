@@ -66,11 +66,41 @@ func PromptForUpdate() bool {
 	return response == "" || response == "y" || response == "yes"
 }
 
+// isLinkHeavyReadme checks if a README.md file contains a significant number of links
+func isLinkHeavyReadme(path string) bool {
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return false
+	}
+
+	lines := strings.Split(string(content), "\n")
+	totalLines := 0
+	linkLines := 0
+
+	for _, line := range lines {
+		if strings.TrimSpace(line) != "" {
+			totalLines++
+			if strings.Contains(line, "http") || strings.Contains(line, "www.") {
+				linkLines++
+			}
+		}
+	}
+
+	// Consider it link-heavy if:
+	// 1. It has at least 10 links AND
+	// 2. At least 20% of non-empty lines contain links
+	return linkLines >= 10 && float64(linkLines)/float64(totalLines) >= 0.2
+}
+
 // isContentFile returns true if the file is likely to contain content links
 func isContentFile(path string) bool {
+	// Special handling for README.md files
+	if strings.HasSuffix(path, "README.md") {
+		return isLinkHeavyReadme(path)
+	}
+
 	// List of common non-content files to ignore
 	ignoreFiles := []string{
-		"README.md",
 		"CONTRIBUTING.md",
 		"LICENSE.md",
 		"CHANGELOG.md",
@@ -89,7 +119,6 @@ func isContentFile(path string) bool {
 		"ISSUE_TEMPLATE.md",
 		"CODEOWNERS",
 		".github/",
-		"docs/README.md",
 		"docs/CONTRIBUTING.md",
 		"docs/LICENSE.md",
 	}
@@ -272,8 +301,112 @@ func Search(query string, cacheDir string, repoName string) ([]Result, error) {
 	return allResults, nil
 }
 
+// Settings represents the user settings
+type Settings struct {
+	MinQueryLength int    `json:"minQueryLength"`
+	MaxQueryLength int    `json:"maxQueryLength"`
+	SearchDelay    int    `json:"searchDelay"`
+	ShowScores     bool   `json:"showScores"`
+	ResultsPerPage int    `json:"resultsPerPage"`
+	CacheDir       string `json:"cacheDir"`
+	AutoUpdate     bool   `json:"autoUpdate"`
+	TruncateTitles bool   `json:"truncateTitles"`
+	MaxTitleLength int    `json:"maxTitleLength"`
+}
+
+// DefaultSettings returns the default settings
+func DefaultSettings() Settings {
+	return Settings{
+		MinQueryLength: 2,
+		MaxQueryLength: 1000,
+		SearchDelay:    300,
+		ShowScores:     true,
+		ResultsPerPage: 10,
+		CacheDir:       "~/.local/cache/freectl",
+		AutoUpdate:     true,
+		TruncateTitles: true,
+		MaxTitleLength: 100,
+	}
+}
+
+// GetSettingsPath returns the path to the settings file
+func GetSettingsPath() (string, error) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		log.Error("Failed to get home directory", "error", err)
+		return "", fmt.Errorf("failed to get home directory: %w", err)
+	}
+
+	configDir := filepath.Join(homeDir, ".config", "freectl")
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		log.Error("Failed to create config directory", "path", configDir, "error", err)
+		return "", fmt.Errorf("failed to create config directory: %w", err)
+	}
+
+	return filepath.Join(configDir, "config.json"), nil
+}
+
+// LoadSettings loads settings from the config file
+func LoadSettings() (Settings, error) {
+	path, err := GetSettingsPath()
+	if err != nil {
+		log.Error("Failed to get settings path", "error", err)
+		return DefaultSettings(), nil
+	}
+
+	content, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			// If file doesn't exist, create it with default settings
+			defaultSettings := DefaultSettings()
+			if err := SaveSettings(defaultSettings); err != nil {
+				log.Error("Failed to create default settings file", "error", err)
+				return defaultSettings, nil
+			}
+			return defaultSettings, nil
+		}
+		// For any other error, return default settings but log the error
+		log.Error("Failed to read settings file", "path", path, "error", err)
+		return DefaultSettings(), nil
+	}
+
+	var settings Settings
+	if err := json.Unmarshal(content, &settings); err != nil {
+		// If JSON parsing fails, return default settings but log the error
+		log.Error("Failed to parse settings file", "error", err)
+		return DefaultSettings(), nil
+	}
+
+	return settings, nil
+}
+
+// SaveSettings saves settings to the config file
+func SaveSettings(settings Settings) error {
+	path, err := GetSettingsPath()
+	if err != nil {
+		log.Error("Failed to get settings path", "error", err)
+		return err
+	}
+
+	content, err := json.MarshalIndent(settings, "", "    ")
+	if err != nil {
+		log.Error("Failed to marshal settings", "error", err)
+		return fmt.Errorf("failed to marshal settings: %w", err)
+	}
+
+	if err := os.WriteFile(path, content, 0644); err != nil {
+		log.Error("Failed to write settings file", "path", path, "error", err)
+		return fmt.Errorf("failed to write settings file: %w", err)
+	}
+
+	return nil
+}
+
 // StartWebServer starts the web server
 func StartWebServer(port int, cacheDir string) error {
+	// Serve static files
+	http.Handle("/static/", http.FileServer(http.FS(StaticFS)))
+
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/" {
 			content, err := TemplateFS.ReadFile("templates/index.html")
@@ -373,6 +506,55 @@ func StartWebServer(port int, cacheDir string) error {
 				}
 
 				w.WriteHeader(http.StatusOK)
+				return
+			}
+		}
+
+		if r.URL.Path == "/settings" {
+			w.Header().Set("Content-Type", "application/json")
+
+			if r.Method == "GET" {
+				settings, err := LoadSettings()
+				if err != nil {
+					log.Error("Failed to load settings", "error", err)
+					http.Error(w, fmt.Sprintf(`{"error": "%s"}`, err.Error()), http.StatusInternalServerError)
+					return
+				}
+
+				if err := json.NewEncoder(w).Encode(settings); err != nil {
+					log.Error("Failed to encode settings", "error", err)
+					http.Error(w, fmt.Sprintf(`{"error": "Failed to encode settings: %s"}`, err.Error()), http.StatusInternalServerError)
+					return
+				}
+				return
+			}
+
+			if r.Method == "POST" {
+				var settings Settings
+				if err := json.NewDecoder(r.Body).Decode(&settings); err != nil {
+					log.Error("Failed to decode settings from request", "error", err)
+					http.Error(w, fmt.Sprintf(`{"error": "Failed to decode settings: %s"}`, err.Error()), http.StatusBadRequest)
+					return
+				}
+
+				if err := SaveSettings(settings); err != nil {
+					log.Error("Failed to save settings", "error", err)
+					http.Error(w, fmt.Sprintf(`{"error": "Failed to save settings: %s"}`, err.Error()), http.StatusInternalServerError)
+					return
+				}
+
+				// Return the saved settings as confirmation
+				if err := json.NewEncoder(w).Encode(settings); err != nil {
+					log.Error("Failed to encode response", "error", err)
+					http.Error(w, fmt.Sprintf(`{"error": "Failed to encode response: %s"}`, err.Error()), http.StatusInternalServerError)
+					return
+				}
+				return
+			}
+
+			// Method not allowed
+			if r.Method != "GET" && r.Method != "POST" {
+				http.Error(w, `{"error": "Method not allowed"}`, http.StatusMethodNotAllowed)
 				return
 			}
 		}

@@ -36,6 +36,10 @@ func init() {
 }
 
 func startServer() error {
+	// Configure logger
+	log.SetOutput(os.Stdout)
+	log.SetFormatter(log.TextFormatter)
+
 	// Serve static files and templates
 	http.HandleFunc("/", handleHome)
 	http.HandleFunc("/static/", handleStatic)
@@ -46,6 +50,7 @@ func startServer() error {
 	http.HandleFunc("/stats", handleStats)
 	http.HandleFunc("/update", handleUpdate)
 	http.HandleFunc("/list", handleList)
+	http.HandleFunc("/settings", handleSettings)
 
 	log.Infof("Starting server at http://localhost:%d", port)
 	return http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
@@ -121,8 +126,9 @@ func handleSearch(w http.ResponseWriter, r *http.Request) {
 		perPage = 10
 	}
 
-	// Get repository filter from query parameters
+	// Get repository and category filters from query parameters
 	repoName := r.URL.Query().Get("repo")
+	category := r.URL.Query().Get("category")
 
 	results, err := search.Search(query, "~/.local/cache/freectl", repoName)
 	if err != nil {
@@ -134,11 +140,11 @@ func handleSearch(w http.ResponseWriter, r *http.Request) {
 		results = []search.Result{}
 	}
 
-	// Deduplicate results based on URL
+	// Deduplicate results based on URL and filter by category if specified
 	seen := make(map[string]bool)
 	uniqueResults := make([]SearchResult, 0, len(results))
 	for _, r := range results {
-		if !seen[r.URL] {
+		if !seen[r.URL] && (category == "" || r.Category == category) {
 			seen[r.URL] = true
 			uniqueResults = append(uniqueResults, SearchResult{
 				Title:       r.Category,
@@ -363,6 +369,55 @@ func handleList(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(repos)
+}
+
+func handleSettings(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method == "GET" {
+		settings, err := search.LoadSettings()
+		if err != nil {
+			log.Error("Failed to load settings", "error", err)
+			http.Error(w, fmt.Sprintf(`{"error": "%s"}`, err.Error()), http.StatusInternalServerError)
+			return
+		}
+
+		if err := json.NewEncoder(w).Encode(settings); err != nil {
+			log.Error("Failed to encode settings", "error", err)
+			http.Error(w, fmt.Sprintf(`{"error": "Failed to encode settings: %s"}`, err.Error()), http.StatusInternalServerError)
+			return
+		}
+		return
+	}
+
+	if r.Method == "POST" {
+		var settings search.Settings
+		if err := json.NewDecoder(r.Body).Decode(&settings); err != nil {
+			log.Error("Failed to decode settings from request", "error", err)
+			http.Error(w, fmt.Sprintf(`{"error": "Failed to decode settings: %s"}`, err.Error()), http.StatusBadRequest)
+			return
+		}
+
+		if err := search.SaveSettings(settings); err != nil {
+			log.Error("Failed to save settings", "error", err)
+			http.Error(w, fmt.Sprintf(`{"error": "Failed to save settings: %s"}`, err.Error()), http.StatusInternalServerError)
+			return
+		}
+
+		// Return the saved settings as confirmation
+		if err := json.NewEncoder(w).Encode(settings); err != nil {
+			log.Error("Failed to encode response", "error", err)
+			http.Error(w, fmt.Sprintf(`{"error": "Failed to encode response: %s"}`, err.Error()), http.StatusInternalServerError)
+			return
+		}
+		return
+	}
+
+	// Method not allowed
+	if r.Method != "GET" && r.Method != "POST" {
+		http.Error(w, `{"error": "Method not allowed"}`, http.StatusMethodNotAllowed)
+		return
+	}
 }
 
 // Define a SearchResult struct for JSON encoding

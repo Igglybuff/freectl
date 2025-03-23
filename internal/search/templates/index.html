@@ -42,9 +42,14 @@
                        pattern="[^<>]*"
                        title="Search query cannot contain < or > characters"
                        required>
-                <select id="repoFilter" class="repo-select">
-                    <option value="">All repositories</option>
-                </select>
+                <div class="filter-group">
+                    <select id="repoFilter" class="filter-select">
+                        <option value="">All repositories</option>
+                    </select>
+                    <select id="categoryFilter" class="filter-select">
+                        <option value="">All categories</option>
+                    </select>
+                </div>
             </div>
             <div id="errorMessage" class="error-message"></div>
         </div>
@@ -55,9 +60,14 @@
         <div class="search-container">
             <div class="search-controls">
                 <input type="text" class="search-box" id="favoritesSearchInput" placeholder="Search favorites...">
-                <select id="favoriteRepoFilter" class="repo-select">
-                    <option value="">All repositories</option>
-                </select>
+                <div class="filter-group">
+                    <select id="favoriteRepoFilter" class="filter-select">
+                        <option value="">All repositories</option>
+                    </select>
+                    <select id="favoriteCategoryFilter" class="filter-select">
+                        <option value="">All categories</option>
+                    </select>
+                </div>
             </div>
         </div>
         <div id="favorites" class="results"></div>
@@ -120,28 +130,7 @@
     <div id="settingsTab" class="tab">
         <div class="settings-container">
             <div class="settings-section">
-                <h3>Repository Settings</h3>
-                <div class="settings-grid">
-                    <div class="setting-item">
-                        <label for="cacheDir">Cache Directory:</label>
-                        <input type="text" id="cacheDir" value="~/.local/cache/freectl">
-                        <span class="setting-description">Directory where repositories are cached</span>
-                    </div>
-                    <div class="setting-item checkbox-item">
-                        <div class="checkbox-wrapper">
-                            <input type="checkbox" id="autoUpdate" checked>
-                            <label for="autoUpdate">Auto Update</label>
-                        </div>
-                        <span class="setting-description">Automatically update the cache when it's older than a week</span>
-                    </div>
-                </div>
-                <div class="settings-buttons">
-                    <button id="updateRepo" class="settings-button">Update repositories</button>
-                </div>
-            </div>
-
-            <div class="settings-section">
-                <h3>Search Settings</h3>
+                <h3>Search Behavior</h3>
                 <div class="settings-grid">
                     <div class="setting-item">
                         <label for="minQueryLength">Minimum Query Length:</label>
@@ -163,6 +152,12 @@
                         <input type="number" id="resultsPerPage" value="10" min="5" max="50" step="5">
                         <span class="setting-description">Number of search results to display per page</span>
                     </div>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <h3>Display Options</h3>
+                <div class="settings-grid">
                     <div class="setting-item checkbox-item">
                         <div class="checkbox-wrapper">
                             <input type="checkbox" id="showScores" checked>
@@ -170,7 +165,43 @@
                         </div>
                         <span class="setting-description">Display relevance scores for search results</span>
                     </div>
+                    <div class="setting-item checkbox-item">
+                        <div class="checkbox-wrapper">
+                            <input type="checkbox" id="truncateTitles" checked>
+                            <label for="truncateTitles">Truncate Long Titles</label>
+                        </div>
+                        <span class="setting-description">Truncate long link titles to improve readability</span>
+                    </div>
+                    <div class="setting-item">
+                        <label for="maxTitleLength">Maximum Title Length:</label>
+                        <input type="number" id="maxTitleLength" value="100" min="20" max="500" step="10">
+                        <span class="setting-description">Maximum number of characters to show in link titles</span>
+                    </div>
                 </div>
+            </div>
+
+            <div class="settings-section">
+                <h3>Repository Settings</h3>
+                <div class="settings-grid">
+                    <div class="setting-item">
+                        <label for="cacheDir">Cache Directory:</label>
+                        <input type="text" id="cacheDir" value="~/.local/cache/freectl">
+                        <span class="setting-description">Directory where repositories are cached</span>
+                    </div>
+                    <div class="setting-item checkbox-item">
+                        <div class="checkbox-wrapper">
+                            <input type="checkbox" id="autoUpdate" checked>
+                            <label for="autoUpdate">Auto Update</label>
+                        </div>
+                        <span class="setting-description">Automatically update the cache when it's older than a week</span>
+                    </div>
+                </div>
+                <div class="settings-buttons">
+                    <button id="updateRepo" class="settings-button">Update repositories</button>
+                </div>
+            </div>
+
+            <div class="settings-section">
                 <div class="settings-buttons">
                     <button id="saveSettings" class="settings-button">Save Settings</button>
                     <button id="resetSettings" class="settings-button secondary">Reset to Defaults</button>

@@ -44,6 +44,9 @@ let currentPage = 1;
 let totalPages = 1;
 let totalResults = 0;
 let currentQuery = '';
+let currentResults = [];
+let currentCategories = new Set();
+let favoriteCategories = new Set();
 
 // Add repository color mapping
 let repositoryColors = new Map();
@@ -166,24 +169,50 @@ function updateFavoriteButtons() {
     });
 }
 
+// Settings functionality
+const defaultSettings = {
+    minQueryLength: 2,
+    maxQueryLength: 1000,
+    searchDelay: 300,
+    showScores: true,
+    resultsPerPage: 10,
+    cacheDir: '~/.local/cache/freectl',
+    autoUpdate: true,
+    truncateTitles: true,
+    maxTitleLength: 100
+};
+
+// Initialize current settings with defaults
+let currentSettings = { ...defaultSettings };
+
 function createResultHTML(result, showScore = true) {
     const isFavorite = currentFavorites.has(result.url);
     const repoColor = getRepositoryColor(result.repository);
+    
+    // Truncate description if enabled
+    let description = result.description;
+    if (currentSettings && currentSettings.truncateTitles && description.length > currentSettings.maxTitleLength) {
+        description = description.substring(0, currentSettings.maxTitleLength) + '...';
+    }
+    
+    // Use placeholder for empty category
+    const categoryText = result.title || 'n/a';
+    
     return `
         <div class="result-item">
             <div class="result-content">
                 <div>
-                    <a href="${result.url}" class="result-link" target="_blank">${result.description}</a>
+                    <a href="${result.url}" class="result-link" target="_blank" title="${result.description}">${description}</a>
                     <span class="result-domain">${getDisplayText(result.url)}</span>
                 </div>
-                ${showScore ? `<div class="result-score">Score: ${result.score}</div>` : ''}
+                ${showScore && currentSettings.showScores ? `<div class="result-score">Score: ${result.score}</div>` : ''}
             </div>
             <div style="display: flex; align-items: center; gap: 8px;">
-                <div class="category-tag">${result.title}</div>
+                <div class="category-tag">${categoryText}</div>
                 <div class="repo-tag" style="background-color: ${repoColor}">${result.repository}</div>
                 <button class="favorite-btn ${isFavorite ? 'active' : ''}" 
                         data-link="${result.url}"
-                        onclick="toggleFavorite('${result.url}', '${result.description.replace(/'/g, "\\'")}', '${result.title.replace(/'/g, "\\'")}', '${result.repository.replace(/'/g, "\\'")}')"
+                        onclick="toggleFavorite('${result.url}', '${result.description.replace(/'/g, "\\'")}', '${result.title || ''}', '${result.repository.replace(/'/g, "\\'")}')"
                         >
                     <svg viewBox="0 0 24 24">
                         <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
@@ -196,6 +225,7 @@ function createResultHTML(result, showScore = true) {
 
 function filterFavorites(query) {
     const selectedRepo = document.getElementById('favoriteRepoFilter').value;
+    const selectedCategory = document.getElementById('favoriteCategoryFilter').value;
     query = query ? query.toLowerCase() : '';
     
     return allFavorites.filter(f => {
@@ -205,8 +235,9 @@ function filterFavorites(query) {
             f.link.toLowerCase().includes(query);
             
         const matchesRepo = !selectedRepo || f.repository === selectedRepo;
+        const matchesCategory = !selectedCategory || f.category === selectedCategory;
         
-        return matchesQuery && matchesRepo;
+        return matchesQuery && matchesRepo && matchesCategory;
     });
 }
 
@@ -320,6 +351,7 @@ function performSearch(page = 1) {
 
     const settings = JSON.parse(localStorage.getItem('settings')) || defaultSettings;
     const selectedRepo = repoFilter.value;
+    const selectedCategory = categoryFilter.value;
     currentQuery = query;
     currentPage = page;
     
@@ -329,6 +361,9 @@ function performSearch(page = 1) {
     let url = `/search?q=${encodeURIComponent(query)}&page=${page}&per_page=${settings.resultsPerPage}`;
     if (selectedRepo) {
         url += `&repo=${encodeURIComponent(selectedRepo)}`;
+    }
+    if (selectedCategory) {
+        url += `&category=${encodeURIComponent(selectedCategory)}`;
     }
     
     fetch(url)
@@ -344,7 +379,12 @@ function performSearch(page = 1) {
                 return;
             }
 
-            resultsDiv.innerHTML = data.results.map(result => createResultHTML(result, true)).join('');
+            // Store current results and update category filter
+            currentResults = data.results;
+            updateCategoryFilter(data.results, selectedCategory);
+
+            // Display results
+            resultsDiv.innerHTML = currentResults.map(result => createResultHTML(result, true)).join('');
             updateFavoriteButtons();
 
             // Update pagination info
@@ -356,6 +396,48 @@ function performSearch(page = 1) {
             console.error('Error:', error);
             resultsDiv.innerHTML = '<div class="error">Failed to fetch results. Please try again.</div>';
         });
+}
+
+function updateCategoryFilter(results, selectedCategory = '') {
+    const categoryFilter = document.getElementById('categoryFilter');
+    const categories = new Set();
+    
+    // Add categories from results, using placeholder for empty ones
+    results.forEach(result => {
+        categories.add(result.title || 'n/a');
+    });
+    
+    currentCategories = categories;
+
+    const options = ['<option value="">All categories</option>'];
+    Array.from(categories).sort().forEach(category => {
+        const value = category === 'n/a' ? '' : category;
+        // Only mark as selected if it exactly matches the selectedCategory
+        const selected = category === selectedCategory;
+        options.push(`<option value="${value}"${selected ? ' selected' : ''}>${category}</option>`);
+    });
+    
+    categoryFilter.innerHTML = options.join('');
+}
+
+function updateFavoriteCategoryFilter() {
+    const favoriteCategoryFilter = document.getElementById('favoriteCategoryFilter');
+    const categories = new Set();
+    
+    // Add categories from favorites, using placeholder for empty ones
+    allFavorites.forEach(f => {
+        categories.add(f.category || 'n/a');
+    });
+    
+    favoriteCategories = categories;
+
+    const options = ['<option value="">All categories</option>'];
+    Array.from(categories).sort().forEach(category => {
+        const value = category === 'n/a' ? '' : category;
+        options.push(`<option value="${value}">${category}</option>`);
+    });
+    
+    favoriteCategoryFilter.innerHTML = options.join('');
 }
 
 // Add event listeners
@@ -380,6 +462,17 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // Add event listener for Enter key in search input
+    searchInput.addEventListener('keypress', function(event) {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            clearTimeout(searchTimeout);
+            if (validateSearchInput(this)) {
+                performSearch(1);
+            }
+        }
+    });
+
     // Add event listener for favorites search input
     favoritesSearchInput.addEventListener('input', function() {
         updateFavoritesDisplay();
@@ -393,6 +486,45 @@ document.addEventListener('DOMContentLoaded', function() {
     if (hash) {
         showTab(hash);
     }
+
+    // Load settings when the page loads
+    loadSettings();
+
+    // Add event listeners for settings buttons
+    document.getElementById('saveSettings').addEventListener('click', saveSettings);
+    document.getElementById('resetSettings').addEventListener('click', resetSettings);
+
+    // Add event listener for truncate titles checkbox
+    const truncateTitlesCheckbox = document.getElementById('truncateTitles');
+    const maxTitleLengthInput = document.getElementById('maxTitleLength');
+    
+    truncateTitlesCheckbox.addEventListener('change', function() {
+        maxTitleLengthInput.disabled = !this.checked;
+        // Immediately apply the setting change
+        currentSettings.truncateTitles = this.checked;
+        // Re-render current results with new setting
+        if (currentQuery) {
+            performSearch(currentPage);
+        }
+    });
+
+    // Add event listener for max title length changes
+    maxTitleLengthInput.addEventListener('change', function() {
+        currentSettings.maxTitleLength = parseInt(this.value);
+        // Re-render current results with new setting
+        if (currentQuery) {
+            performSearch(currentPage);
+        }
+    });
+
+    // Add event listener for category filter changes
+    document.getElementById('categoryFilter').addEventListener('change', function() {
+        performSearch(1);
+    });
+
+    document.getElementById('favoriteCategoryFilter').addEventListener('change', function() {
+        updateFavoritesDisplay();
+    });
 });
 
 function formatBytes(bytes) {
@@ -490,32 +622,47 @@ function loadStats() {
 // Add event listener for repository selection
 document.getElementById('statsRepo').addEventListener('change', loadStats);
 
-// Settings functionality
-const defaultSettings = {
-    minQueryLength: 2,
-    maxQueryLength: 1000,
-    searchDelay: 300,
-    showScores: true,
-    resultsPerPage: 10,
-    cacheDir: '~/.local/cache/freectl',
-    autoUpdate: true
-};
-
 function loadSettings() {
-    const savedSettings = localStorage.getItem('settings');
-    if (savedSettings) {
-        const settings = JSON.parse(savedSettings);
-        Object.keys(settings).forEach(key => {
-            const element = document.getElementById(key);
-            if (element) {
-                if (element.type === 'checkbox') {
-                    element.checked = settings[key];
-                } else {
-                    element.value = settings[key];
-                }
+    fetch('/settings')
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => {
+                    throw new Error(err.error || 'Failed to load settings');
+                });
             }
+            return response.json();
+        })
+        .then(settings => {
+            // Update current settings
+            currentSettings = settings;
+            
+            // Update UI with loaded settings
+            updateSettingsUI(settings);
+        })
+        .catch(error => {
+            console.error('Error loading settings:', error);
+            showToast('Failed to load settings: ' + error.message, true);
+            
+            // Fall back to default settings
+            currentSettings = { ...defaultSettings };
+            updateSettingsUI(defaultSettings);
         });
-    }
+}
+
+// Helper function to update UI with settings
+function updateSettingsUI(settings) {
+    document.getElementById('minQueryLength').value = settings.minQueryLength;
+    document.getElementById('maxQueryLength').value = settings.maxQueryLength;
+    document.getElementById('searchDelay').value = settings.searchDelay;
+    document.getElementById('showScores').checked = settings.showScores;
+    document.getElementById('resultsPerPage').value = settings.resultsPerPage;
+    document.getElementById('cacheDir').value = settings.cacheDir;
+    document.getElementById('autoUpdate').checked = settings.autoUpdate;
+    document.getElementById('truncateTitles').checked = settings.truncateTitles;
+    document.getElementById('maxTitleLength').value = settings.maxTitleLength;
+    // Update max title length input state based on truncate setting
+    const maxTitleInput = document.getElementById('maxTitleLength');
+    maxTitleInput.disabled = !settings.truncateTitles;
 }
 
 function saveSettings() {
@@ -526,94 +673,59 @@ function saveSettings() {
         showScores: document.getElementById('showScores').checked,
         resultsPerPage: parseInt(document.getElementById('resultsPerPage').value),
         cacheDir: document.getElementById('cacheDir').value,
-        autoUpdate: document.getElementById('autoUpdate').checked
+        autoUpdate: document.getElementById('autoUpdate').checked,
+        truncateTitles: document.getElementById('truncateTitles').checked,
+        maxTitleLength: parseInt(document.getElementById('maxTitleLength').value)
     };
 
-    localStorage.setItem('settings', JSON.stringify(settings));
-    showToast('Settings saved successfully');
+    fetch('/settings', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(settings)
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => {
+                throw new Error(err.error || 'Failed to save settings');
+            });
+        }
+        return response.json();
+    })
+    .then(savedSettings => {
+        currentSettings = savedSettings;
+        showToast('Settings saved successfully');
+    })
+    .catch(error => {
+        console.error('Error saving settings:', error);
+        showToast('Failed to save settings: ' + error.message, true);
+    });
 }
 
 function resetSettings() {
-    Object.keys(defaultSettings).forEach(key => {
-        const element = document.getElementById(key);
-        if (element) {
-            if (element.type === 'checkbox') {
-                element.checked = defaultSettings[key];
-            } else {
-                element.value = defaultSettings[key];
-            }
-        }
-    });
-    localStorage.removeItem('settings');
-    showToast('Settings reset to defaults');
+    // Update UI with default settings
+    document.getElementById('minQueryLength').value = defaultSettings.minQueryLength;
+    document.getElementById('maxQueryLength').value = defaultSettings.maxQueryLength;
+    document.getElementById('searchDelay').value = defaultSettings.searchDelay;
+    document.getElementById('showScores').checked = defaultSettings.showScores;
+    document.getElementById('resultsPerPage').value = defaultSettings.resultsPerPage;
+    document.getElementById('cacheDir').value = defaultSettings.cacheDir;
+    document.getElementById('autoUpdate').checked = defaultSettings.autoUpdate;
+    document.getElementById('truncateTitles').checked = defaultSettings.truncateTitles;
+    document.getElementById('maxTitleLength').value = defaultSettings.maxTitleLength;
+
+    // Save default settings to server
+    saveSettings();
 }
-
-// Add event listeners for settings
-document.getElementById('saveSettings').addEventListener('click', saveSettings);
-document.getElementById('resetSettings').addEventListener('click', resetSettings);
-
-// Load settings when the page loads
-loadSettings();
-
-// Update search functionality to use settings
-const originalValidateSearchInput = validateSearchInput;
-validateSearchInput = function(input) {
-    const settings = JSON.parse(localStorage.getItem('settings')) || defaultSettings;
-    const value = input.value.trim();
-    
-    // Check for empty input
-    if (value === '') {
-        input.classList.add('error');
-        errorMessage.textContent = 'Please enter a search query';
-        errorMessage.style.display = 'block';
-        return false;
-    }
-
-    // Check for minimum length
-    if (value.length < settings.minQueryLength) {
-        input.classList.add('error');
-        errorMessage.textContent = `Search query must be at least ${settings.minQueryLength} characters long`;
-        errorMessage.style.display = 'block';
-        return false;
-    }
-
-    // Check for maximum length
-    if (value.length > settings.maxQueryLength) {
-        input.classList.add('error');
-        errorMessage.textContent = 'Search query is too long';
-        errorMessage.style.display = 'block';
-        return false;
-    }
-
-    // Check for invalid characters
-    if (/[<>]/.test(value)) {
-        input.classList.add('error');
-        errorMessage.textContent = 'Search query contains invalid characters';
-        errorMessage.style.display = 'block';
-        return false;
-    }
-
-    // Clear error state
-    input.classList.remove('error');
-    errorMessage.style.display = 'none';
-    return true;
-};
 
 // Update search delay based on settings
 searchInput.addEventListener('input', function() {
-    const settings = JSON.parse(localStorage.getItem('settings')) || defaultSettings;
     clearTimeout(searchTimeout);
     if (validateSearchInput(this)) {
-        searchTimeout = setTimeout(() => performSearch(1), settings.searchDelay);
+        searchTimeout = setTimeout(() => performSearch(1), currentSettings.searchDelay);
     }
 });
-
-// Update result display to respect showScores setting
-const originalCreateResultHTML = createResultHTML;
-createResultHTML = function(result, showScore = true) {
-    const settings = JSON.parse(localStorage.getItem('settings')) || defaultSettings;
-    return originalCreateResultHTML(result, showScore && settings.showScores);
-};
 
 function updateRepository() {
     const updateButton = document.getElementById('updateRepo');
