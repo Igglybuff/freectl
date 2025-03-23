@@ -275,15 +275,25 @@ func Search(query string, cacheDir string, repoName string) ([]Result, error) {
 							// Extract description - everything after the URL and dash
 							parts := strings.SplitN(cleanLine, "-", 2)
 							description := url // Default to URL if no description
+
+							// First try to get the link text [text](url)
+							start := strings.Index(line, "[")
+							end := strings.Index(line, "]")
+							linkText := ""
+							if start != -1 && end != -1 && start < end {
+								linkText = line[start+1 : end]
+							}
+
 							if len(parts) > 1 {
-								description = strings.TrimSpace(parts[1])
-							} else {
-								// If no dash, try to extract the link text [text](url)
-								start := strings.Index(line, "[")
-								end := strings.Index(line, "]")
-								if start != -1 && end != -1 && start < end {
-									description = line[start+1 : end]
+								// If we have both link text and description, combine them
+								if linkText != "" {
+									description = linkText + " - " + strings.TrimSpace(parts[1])
+								} else {
+									description = strings.TrimSpace(parts[1])
 								}
+							} else if linkText != "" {
+								// If we only have link text, use that
+								description = linkText
 							}
 
 							// Clean the description
