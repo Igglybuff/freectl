@@ -100,61 +100,61 @@
     <div id="settingsTab" class="tab">
         <div class="settings-container">
             <div class="settings-section">
-                <h2>Search Settings</h2>
+                <h3>Repository Settings</h3>
                 <div class="settings-grid">
                     <div class="setting-item">
-                        <label for="minQueryLength">Minimum Query Length</label>
-                        <input type="number" id="minQueryLength" min="1" max="10" value="2">
-                        <span class="setting-description">Minimum number of characters required for a search query</span>
-                    </div>
-                    <div class="setting-item">
-                        <label for="maxQueryLength">Maximum Query Length</label>
-                        <input type="number" id="maxQueryLength" min="100" max="2000" value="1000">
-                        <span class="setting-description">Maximum number of characters allowed in a search query</span>
-                    </div>
-                    <div class="setting-item">
-                        <label for="searchDelay">Search Delay (ms)</label>
-                        <input type="number" id="searchDelay" min="100" max="1000" value="300">
-                        <span class="setting-description">Delay before performing search after typing</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="settings-section">
-                <h2>Display Settings</h2>
-                <div class="settings-grid">
-                    <div class="setting-item">
-                        <label for="showScores">Show Search Scores</label>
-                        <input type="checkbox" id="showScores" checked>
-                        <span class="setting-description">Display relevance scores for search results</span>
-                    </div>
-                    <div class="setting-item">
-                        <label for="resultsPerPage">Results Per Page</label>
-                        <input type="number" id="resultsPerPage" min="5" max="50" value="10">
-                        <span class="setting-description">Number of results to display per page</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="settings-section">
-                <h2>Cache Settings</h2>
-                <div class="settings-grid">
-                    <div class="setting-item">
-                        <label for="cacheDir">Cache Directory</label>
+                        <label for="cacheDir">Cache Directory:</label>
                         <input type="text" id="cacheDir" value="~/.local/cache/freectl">
                         <span class="setting-description">Directory where the FMHY repository is cached</span>
                     </div>
-                    <div class="setting-item">
-                        <label for="autoUpdate">Auto Update Cache</label>
-                        <input type="checkbox" id="autoUpdate" checked>
+                    <div class="setting-item checkbox-item">
+                        <div class="checkbox-wrapper">
+                            <input type="checkbox" id="autoUpdate" checked>
+                            <label for="autoUpdate">Auto Update</label>
+                        </div>
                         <span class="setting-description">Automatically update the cache when it's older than a week</span>
                     </div>
                 </div>
+                <div class="settings-buttons">
+                    <button id="updateRepo" class="settings-button">Update Repository</button>
+                </div>
             </div>
 
-            <div class="settings-actions">
-                <button id="saveSettings" class="settings-button">Save Settings</button>
-                <button id="resetSettings" class="settings-button secondary">Reset to Defaults</button>
+            <div class="settings-section">
+                <h3>Search Settings</h3>
+                <div class="settings-grid">
+                    <div class="setting-item">
+                        <label for="minQueryLength">Minimum Query Length:</label>
+                        <input type="number" id="minQueryLength" value="2" min="1" max="10">
+                        <span class="setting-description">Minimum number of characters required for a search query</span>
+                    </div>
+                    <div class="setting-item">
+                        <label for="maxQueryLength">Maximum Query Length:</label>
+                        <input type="number" id="maxQueryLength" value="1000" min="100" max="2000">
+                        <span class="setting-description">Maximum number of characters allowed in a search query</span>
+                    </div>
+                    <div class="setting-item">
+                        <label for="searchDelay">Search Delay (ms):</label>
+                        <input type="number" id="searchDelay" value="300" min="100" max="1000" step="100">
+                        <span class="setting-description">Delay before performing search after typing</span>
+                    </div>
+                    <div class="setting-item">
+                        <label for="resultsPerPage">Results Per Page:</label>
+                        <input type="number" id="resultsPerPage" value="10" min="5" max="50" step="5">
+                        <span class="setting-description">Number of search results to display per page</span>
+                    </div>
+                    <div class="setting-item checkbox-item">
+                        <div class="checkbox-wrapper">
+                            <input type="checkbox" id="showScores" checked>
+                            <label for="showScores">Show Scores</label>
+                        </div>
+                        <span class="setting-description">Display relevance scores for search results</span>
+                    </div>
+                </div>
+                <div class="settings-buttons">
+                    <button id="saveSettings" class="settings-button">Save Settings</button>
+                    <button id="resetSettings" class="settings-button secondary">Reset to Defaults</button>
+                </div>
             </div>
         </div>
     </div>

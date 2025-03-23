@@ -569,4 +569,38 @@ const originalCreateResultHTML = createResultHTML;
 createResultHTML = function(result, showScore = true) {
     const settings = JSON.parse(localStorage.getItem('settings')) || defaultSettings;
     return originalCreateResultHTML(result, showScore && settings.showScores);
-}; 
+};
+
+function updateRepository() {
+    const updateButton = document.getElementById('updateRepo');
+    updateButton.disabled = true;
+    updateButton.textContent = 'Updating...';
+    
+    fetch('/update', {
+        method: 'POST',
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Failed to update repository');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            showToast(`Repository updated successfully in ${data.duration}`);
+            // Reload stats to show updated information
+            loadStats();
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('Failed to update repository', true);
+    })
+    .finally(() => {
+        updateButton.disabled = false;
+        updateButton.textContent = 'Update Repository';
+    });
+}
+
+// Add event listener for update button
+document.getElementById('updateRepo').addEventListener('click', updateRepository); 

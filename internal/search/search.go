@@ -66,14 +66,6 @@ func PromptForUpdate() bool {
 	return response == "" || response == "y" || response == "yes"
 }
 
-// UpdateRepo pulls the latest changes from the repository
-func UpdateRepo(repoPath string) error {
-	cmd := exec.Command("git", "-C", repoPath, "pull")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
-}
-
 // Search performs the actual search operation
 func Search(query string, cacheDir string) ([]Result, error) {
 	log.Info("Starting search", "query", query, "cacheDir", cacheDir)

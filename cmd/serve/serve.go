@@ -14,6 +14,7 @@ import (
 	"freectl/internal/common"
 	"freectl/internal/search"
 	"freectl/internal/stats"
+	"freectl/internal/update"
 
 	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
@@ -43,6 +44,7 @@ func startServer() error {
 	http.HandleFunc("/favorites/add", handleAddFavorite)
 	http.HandleFunc("/favorites/remove", handleRemoveFavorite)
 	http.HandleFunc("/stats", handleStats)
+	http.HandleFunc("/update", handleUpdate)
 
 	log.Infof("Starting server at http://localhost:%d", port)
 	return http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
@@ -289,6 +291,36 @@ func handleStats(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(s)
+}
+
+func handleUpdate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Get cache directory from environment or use default
+	cacheDir := os.Getenv("CACHE_DIR")
+	if cacheDir == "" {
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Failed to get home directory: %v", err), http.StatusInternalServerError)
+			return
+		}
+		cacheDir = filepath.Join(homeDir, ".local", "cache", "freectl")
+	}
+
+	duration, err := update.UpdateRepo(cacheDir)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to update repository: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success":  true,
+		"duration": duration.String(),
+	})
 }
 
 // Define a SearchResult struct for JSON encoding
