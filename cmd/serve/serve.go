@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -81,25 +82,69 @@ func handleSearch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Get pagination parameters
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	if page < 1 {
+		page = 1
+	}
+
+	perPage, _ := strconv.Atoi(r.URL.Query().Get("per_page"))
+	if perPage < 1 {
+		perPage = 10
+	}
+
 	results, err := search.Search(query, "~/.local/cache/freectl")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// Convert to web-friendly format
-	webResults := make([]SearchResult, len(results))
-	for i, r := range results {
-		webResults[i] = SearchResult{
-			Title:       r.Category,
-			Description: r.Description,
-			URL:         r.URL,
-			Score:       r.Score,
+	// Deduplicate results based on URL
+	seen := make(map[string]bool)
+	uniqueResults := make([]SearchResult, 0, len(results))
+	for _, r := range results {
+		if !seen[r.URL] {
+			seen[r.URL] = true
+			uniqueResults = append(uniqueResults, SearchResult{
+				Title:       r.Category,
+				Description: r.Description,
+				URL:         r.URL,
+				Score:       r.Score,
+			})
 		}
 	}
 
+	// Calculate pagination
+	totalResults := len(uniqueResults)
+	totalPages := (totalResults + perPage - 1) / perPage
+	if page > totalPages {
+		page = totalPages
+	}
+
+	start := (page - 1) * perPage
+	end := start + perPage
+	if end > totalResults {
+		end = totalResults
+	}
+
+	paginatedResults := uniqueResults[start:end]
+
+	response := struct {
+		Results      []SearchResult `json:"results"`
+		TotalResults int            `json:"total_results"`
+		TotalPages   int            `json:"total_pages"`
+		CurrentPage  int            `json:"current_page"`
+		PerPage      int            `json:"per_page"`
+	}{
+		Results:      paginatedResults,
+		TotalResults: totalResults,
+		TotalPages:   totalPages,
+		CurrentPage:  page,
+		PerPage:      perPage,
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(webResults)
+	json.NewEncoder(w).Encode(response)
 }
 
 func handleFavorites(w http.ResponseWriter, r *http.Request) {
