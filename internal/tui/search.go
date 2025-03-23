@@ -28,17 +28,13 @@ var (
 type SearchResult struct {
 	Category string
 	Link     string
+	Text     string
 	Line     string
 	Score    int
 }
 
 func (i SearchResult) Title() string {
-	// Extract the first part of the line (before the URL) as the title
-	parts := strings.Split(i.Line, "http")
-	if len(parts) > 1 {
-		return strings.TrimSpace(parts[0])
-	}
-	return i.Line
+	return i.Text
 }
 
 func (i SearchResult) Description() string {
@@ -92,19 +88,6 @@ func NewModel(results []SearchResult) model {
 	l.SetShowHelp(false)
 	l.SetShowPagination(true)
 	l.SetShowTitle(true)
-	l.SetShowStatusBar(false)
-	l.SetShowFilter(false)
-	l.SetShowHelp(false)
-	l.SetShowPagination(true)
-	l.SetShowTitle(true)
-	l.SetShowStatusBar(false)
-	l.SetShowFilter(false)
-	l.SetShowHelp(false)
-	l.SetShowPagination(true)
-	l.SetShowTitle(true)
-	l.SetShowStatusBar(false)
-	l.SetShowFilter(false)
-	l.SetShowHelp(false)
 
 	return model{
 		list:    l,

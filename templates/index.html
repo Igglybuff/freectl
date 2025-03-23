@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>FMHY Search</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 0 20px;
+            line-height: 1.6;
+            color: #333;
+        }
+        .search-box {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            margin-bottom: 20px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            transition: border-color 0.2s;
+        }
+        .search-box:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+        .results {
+            margin-top: 20px;
+        }
+        .result-item {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            transition: box-shadow 0.2s;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+        }
+        .result-item:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .result-content {
+            flex: 1;
+            margin-right: 15px;
+        }
+        .category-tag {
+            display: inline-block;
+            padding: 4px 8px;
+            background-color: #e9ecef;
+            color: #495057;
+            border-radius: 4px;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+        .result-link {
+            color: #007bff;
+            text-decoration: none;
+            font-size: 16px;
+            display: inline-block;
+            margin-bottom: 4px;
+        }
+        .result-link:hover {
+            text-decoration: underline;
+        }
+        .result-domain {
+            color: #6c757d;
+            font-size: 14px;
+            display: inline-block;
+            margin-left: 8px;
+        }
+        .result-score {
+            color: #6c757d;
+            font-size: 12px;
+            margin-top: 2px;
+        }
+        .no-results {
+            text-align: center;
+            color: #6c757d;
+            padding: 40px;
+        }
+        .loading {
+            text-align: center;
+            color: #6c757d;
+            padding: 20px;
+        }
+        .favorite-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+            margin-left: 10px;
+            font-size: 20px;
+            color: #ccc;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .favorite-btn:hover {
+            color: #ff6b6b;
+            transform: scale(1.1);
+        }
+        .favorite-btn.active {
+            color: #ff6b6b;
+        }
+        .favorite-btn.loading {
+            pointer-events: none;
+            opacity: 0.7;
+        }
+        .favorite-btn::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 107, 107, 0.2);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.2s, height 0.2s;
+        }
+        .favorite-btn:active::after {
+            width: 40px;
+            height: 40px;
+        }
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #333;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 4px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 1000;
+        }
+        .toast.show {
+            opacity: 1;
+        }
+        .favorites-section {
+            margin-top: 0;
+            padding-top: 0;
+            border-top: none;
+        }
+        .favorites-section h2 {
+            display: none;
+        }
+        .tab-buttons {
+            margin-bottom: 20px;
+        }
+        .tab-button {
+            padding: 8px 16px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 16px;
+            color: #666;
+            border-bottom: 2px solid transparent;
+        }
+        .tab-button.active {
+            color: #007bff;
+            border-bottom-color: #007bff;
+        }
+        #searchTab, #favoritesTab {
+            display: none;
+        }
+        #searchTab.active, #favoritesTab.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <h1>FMHY Search</h1>
+    <div class="tab-buttons">
+        <button class="tab-button active" onclick="showTab('search')">Search</button>
+        <button class="tab-button" onclick="showTab('favorites')">Favorites</button>
+    </div>
+    <div id="searchTab" class="active">
+        <input type="text" class="search-box" id="searchInput" placeholder="Search FMHY resources...">
+        <div id="results" class="results"></div>
+    </div>
+    <div id="favoritesTab">
+        <input type="text" class="search-box" id="favoritesSearchInput" placeholder="Search through favorites...">
+        <div id="favorites" class="results"></div>
+    </div>
+    <div id="toast" class="toast"></div>
+
+    <script>
+        const searchInput = document.getElementById('searchInput');
+        const favoritesSearchInput = document.getElementById('favoritesSearchInput');
+        const resultsDiv = document.getElementById('results');
+        const favoritesDiv = document.getElementById('favorites');
+        let currentFavorites = new Set();
+        let allFavorites = [];
+
+        function showTab(tabName) {
+            document.getElementById('searchTab').classList.toggle('active', tabName === 'search');
+            document.getElementById('favoritesTab').classList.toggle('active', tabName === 'favorites');
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.toggle('active', btn.textContent.toLowerCase() === tabName);
+            });
+            if (tabName === 'favorites') {
+                loadFavorites();
+            }
+        }
+
+        function getDisplayText(url) {
+            try {
+                const urlObj = new URL(url);
+                return urlObj.hostname.replace('www.', '');
+            } catch {
+                return url;
+            }
+        }
+
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.style.background = isError ? '#dc3545' : '#333';
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        function toggleFavorite(link, description, category) {
+            const isFavorite = currentFavorites.has(link);
+            const endpoint = isFavorite ? '/favorites/remove' : '/favorites/add';
+            const btn = document.querySelector(`.favorite-btn[data-link="${link}"]`);
+            
+            // Add loading state
+            btn.classList.add('loading');
+            
+            fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ link, description, category }),
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to update favorite');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    if (isFavorite) {
+                        currentFavorites.delete(link);
+                        showToast('Removed from favorites');
+                    } else {
+                        currentFavorites.add(link);
+                        showToast('Added to favorites');
+                    }
+                    updateFavoriteButtons();
+                    if (document.getElementById('favoritesTab').style.display !== 'none') {
+                        loadFavorites();
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Failed to update favorite', true);
+            })
+            .finally(() => {
+                // Remove loading state
+                btn.classList.remove('loading');
+            });
+        }
+
+        function updateFavoriteButtons() {
+            document.querySelectorAll('.favorite-btn').forEach(btn => {
+                const link = btn.getAttribute('data-link');
+                btn.classList.toggle('active', currentFavorites.has(link));
+            });
+        }
+
+        function createResultHTML(result, showScore = true) {
+            const isFavorite = currentFavorites.has(result.url);
+            return `
+                <div class="result-item">
+                    <div class="result-content">
+                        <div>
+                            <a href="${result.url}" class="result-link" target="_blank">${result.description}</a>
+                            <span class="result-domain">${getDisplayText(result.url)}</span>
+                        </div>
+                        ${showScore ? `<div class="result-score">Score: ${result.score}</div>` : ''}
+                    </div>
+                    <div style="display: flex; align-items: center;">
+                        <div class="category-tag">${result.title}</div>
+                        <button class="favorite-btn ${isFavorite ? 'active' : ''}" 
+                                data-link="${result.url}"
+                                onclick="toggleFavorite('${result.url}', '${result.description.replace(/'/g, "\\'")}', '${result.title.replace(/'/g, "\\'")}')">
+                            ❤
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function filterFavorites(query) {
+            if (!query) {
+                return allFavorites;
+            }
+            query = query.toLowerCase();
+            return allFavorites.filter(f => 
+                f.description.toLowerCase().includes(query) ||
+                f.category.toLowerCase().includes(query) ||
+                f.link.toLowerCase().includes(query)
+            );
+        }
+
+        function updateFavoritesDisplay() {
+            const query = favoritesSearchInput.value.trim();
+            const filteredFavorites = filterFavorites(query);
+            
+            if (filteredFavorites.length === 0) {
+                favoritesDiv.innerHTML = '<div class="no-results">No favorites found</div>';
+                return;
+            }
+
+            favoritesDiv.innerHTML = filteredFavorites.map(f => createResultHTML({
+                url: f.link,
+                description: f.description,
+                title: f.category,
+                score: f.score
+            }, false)).join('');
+            updateFavoriteButtons();
+        }
+
+        function loadFavorites() {
+            fetch('/favorites')
+                .then(response => response.json())
+                .then(favorites => {
+                    allFavorites = favorites;
+                    currentFavorites = new Set(favorites.map(f => f.link));
+                    updateFavoritesDisplay();
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        // Add event listener for favorites search
+        favoritesSearchInput.addEventListener('input', function() {
+            updateFavoritesDisplay();
+        });
+
+        let debounceTimeout;
+        searchInput.addEventListener('input', function() {
+            const query = searchInput.value.trim();
+            if (!query) {
+                resultsDiv.innerHTML = '';
+                return;
+            }
+
+            resultsDiv.innerHTML = '<div class="loading">Searching...</div>';
+            
+            clearTimeout(debounceTimeout);
+            debounceTimeout = setTimeout(() => {
+                fetch(`/search?q=${encodeURIComponent(query)}`)
+                    .then(response => response.json())
+                    .then(results => {
+                        if (results.length === 0) {
+                            resultsDiv.innerHTML = '<div class="no-results">No results found</div>';
+                            return;
+                        }
+                        resultsDiv.innerHTML = results.map(result => createResultHTML(result, true)).join('');
+                        updateFavoriteButtons();
+                    })
+                    .catch(error => {
+                        resultsDiv.innerHTML = `<div class="no-results">Error: ${error.message}</div>`;
+                    });
+            }, 300);
+        });
+
+        // Load initial favorites
+        loadFavorites();
+    </script>
+</body>
+</html> 
