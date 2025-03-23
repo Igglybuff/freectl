@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"freectl/internal/search"
 
@@ -52,6 +53,24 @@ func handleSearch(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("q")
 	if query == "" {
 		http.Error(w, "Missing search query", http.StatusBadRequest)
+		return
+	}
+
+	// Validate query length
+	if len(query) > 1000 {
+		http.Error(w, "Search query too long", http.StatusBadRequest)
+		return
+	}
+
+	// Validate minimum length
+	if len(strings.TrimSpace(query)) < 2 {
+		http.Error(w, "Search query too short", http.StatusBadRequest)
+		return
+	}
+
+	// Validate for potentially dangerous characters
+	if strings.ContainsAny(query, "<>") {
+		http.Error(w, "Invalid characters in search query", http.StatusBadRequest)
 		return
 	}
 
