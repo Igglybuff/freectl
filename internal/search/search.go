@@ -230,6 +230,7 @@ func Search(query string, cacheDir string, repoName string) ([]Result, error) {
 			lines := strings.Split(string(content), "\n")
 			var lastHeading string
 			for _, line := range lines {
+				// Track headings for categories
 				if strings.HasPrefix(line, "# ") {
 					lastHeading = common.CleanCategory(strings.TrimSpace(strings.TrimPrefix(line, "# ")))
 					continue
@@ -239,46 +240,62 @@ func Search(query string, cacheDir string, repoName string) ([]Result, error) {
 					continue
 				}
 
+				// Skip empty lines or heading lines
 				if line == "" || strings.HasPrefix(line, "#") {
 					continue
 				}
 
-				if strings.Contains(line, "http") || strings.Contains(line, "www.") {
-					cleanLine := common.CleanMarkdown(line)
-					url := common.ExtractURL(cleanLine)
-					if url != "" {
-						// Extract description by removing the URL and any surrounding brackets/parentheses
-						description := cleanLine
-						description = strings.ReplaceAll(description, url, "")
-						description = strings.Trim(description, "[]() ")
-						if description == "" {
-							description = url // Fallback to URL if no description found
-						}
+				// Look for bullet points with links
+				if strings.HasPrefix(strings.TrimSpace(line), "*") || strings.HasPrefix(strings.TrimSpace(line), "-") {
+					line = strings.TrimSpace(line)
+					line = strings.TrimPrefix(line, "*")
+					line = strings.TrimPrefix(line, "-")
+					line = strings.TrimSpace(line)
 
-						// Clean the description
-						description = common.CleanDescription(description)
+					// Look for markdown link pattern: [text](url)
+					if strings.Contains(line, "](http") || strings.Contains(line, "](https") || strings.Contains(line, "](www.") {
+						cleanLine := common.CleanMarkdown(line)
+						url := common.ExtractURL(cleanLine)
+						if url != "" {
+							// Extract description - everything after the URL and dash
+							parts := strings.SplitN(cleanLine, "-", 2)
+							description := url // Default to URL if no description
+							if len(parts) > 1 {
+								description = strings.TrimSpace(parts[1])
+							} else {
+								// If no dash, try to extract the link text [text](url)
+								start := strings.Index(line, "[")
+								end := strings.Index(line, "]")
+								if start != -1 && end != -1 && start < end {
+									description = line[start+1 : end]
+								}
+							}
 
-						// Search in both the description and the full line
-						matches := fuzzy.Find(query, []string{description, cleanLine})
-						if len(matches) > 0 {
-							log.Debug("Found match",
-								"score", matches[0].Score,
-								"description", description,
-								"line", cleanLine,
-								"category", lastHeading,
-								"repository", repo.Name)
+							// Clean the description
+							description = common.CleanDescription(description)
 
-							if matches[0].Score >= -200 {
-								mu.Lock()
-								allResults = append(allResults, Result{
-									URL:         url,
-									Description: description,
-									Line:        cleanLine,
-									Score:       matches[0].Score,
-									Category:    lastHeading,
-									Repository:  repo.Name,
-								})
-								mu.Unlock()
+							// Search in both the description and the full line
+							matches := fuzzy.Find(query, []string{description, cleanLine})
+							if len(matches) > 0 {
+								log.Debug("Found match",
+									"score", matches[0].Score,
+									"description", description,
+									"line", cleanLine,
+									"category", lastHeading,
+									"repository", repo.Name)
+
+								if matches[0].Score >= -200 {
+									mu.Lock()
+									allResults = append(allResults, Result{
+										URL:         url,
+										Description: description,
+										Line:        cleanLine,
+										Score:       matches[0].Score,
+										Category:    lastHeading,
+										Repository:  repo.Name,
+									})
+									mu.Unlock()
+								}
 							}
 						}
 					}
