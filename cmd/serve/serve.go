@@ -24,8 +24,8 @@ var port int
 
 var ServeCmd = &cobra.Command{
 	Use:   "serve",
-	Short: "Start a web interface for searching FMHY content",
-	Long:  `Starts an HTTP server that provides a web interface for searching FMHY content at http://localhost:8080`,
+	Short: "Start a web interface for searching cached repositories",
+	Long:  `Starts an HTTP server that provides a web interface for searching cached repositories at http://localhost:8080`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return startServer()
 	},
@@ -120,7 +120,10 @@ func handleSearch(w http.ResponseWriter, r *http.Request) {
 		perPage = 10
 	}
 
-	results, err := search.Search(query, "~/.local/cache/freectl")
+	// Get repository filter from query parameters
+	repoName := r.URL.Query().Get("repo")
+
+	results, err := search.Search(query, "~/.local/cache/freectl", repoName)
 	if err != nil {
 		// Only return error for actual errors, not for missing repository
 		if !strings.Contains(err.Error(), "repository not found") {
@@ -141,6 +144,7 @@ func handleSearch(w http.ResponseWriter, r *http.Request) {
 				Description: r.Description,
 				URL:         r.URL,
 				Score:       r.Score,
+				Repository:  r.Repository,
 			})
 		}
 	}
@@ -218,13 +222,12 @@ func handleAddFavorite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := search.AddFavorite(favorite.Link, favorite.Description, favorite.Category); err != nil {
+	if err := search.AddFavorite(favorite); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]bool{"success": true})
+	w.WriteHeader(http.StatusOK)
 }
 
 func handleRemoveFavorite(w http.ResponseWriter, r *http.Request) {
@@ -245,13 +248,12 @@ func handleRemoveFavorite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := search.RemoveFavorite(favorite.Link); err != nil {
+	if err := search.RemoveFavorite(favorite); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]bool{"success": true})
+	w.WriteHeader(http.StatusOK)
 }
 
 func handleStats(w http.ResponseWriter, r *http.Request) {
@@ -312,7 +314,7 @@ func handleUpdate(w http.ResponseWriter, r *http.Request) {
 
 	duration, err := update.UpdateRepo(cacheDir)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to update repository: %v", err), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Failed to update repositories: %v", err), http.StatusInternalServerError)
 		return
 	}
 
@@ -329,4 +331,5 @@ type SearchResult struct {
 	Description string `json:"description"`
 	URL         string `json:"url"`
 	Score       int    `json:"score"`
+	Repository  string `json:"repository"`
 }

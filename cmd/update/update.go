@@ -9,14 +9,14 @@ import (
 
 var UpdateCmd = &cobra.Command{
 	Use:   "update",
-	Short: "Update the local FMHY repository cache",
-	Long: `Update downloads the FMHY repository to the local cache directory or updates it if it already exists.
-The repository is stored in ~/.local/cache/freectl by default.
+	Short: "Update all cached repositories",
+	Long: `Update pulls the latest changes from all cached repositories.
+The repositories are stored in ~/.local/cache/freectl by default.
 
 This command will:
-1. Create the cache directory if it doesn't exist
-2. Clone the repository if it's not already present
-3. Pull the latest changes if the repository exists
+1. Find all repositories in the cache directory
+2. Pull the latest changes from each repository
+3. Skip any repositories that fail to update
 
 Examples:
   # Update using default cache directory
@@ -28,7 +28,7 @@ Examples:
 		cacheDir, _ := cmd.Flags().GetString("cache-dir")
 		duration, err := update.UpdateRepo(cacheDir)
 		if err != nil {
-			log.Fatal("Failed to update repository", "error", err)
+			log.Fatal("Failed to update repositories", "error", err)
 		}
 		log.Info("Update completed", "duration", duration)
 	},

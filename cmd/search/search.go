@@ -1,6 +1,7 @@
 package search
 
 import (
+	"fmt"
 	"strings"
 
 	"freectl/internal/search"
@@ -11,23 +12,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type SearchResult struct {
-	Link        string
-	Description string
-	Line        string
-	Score       int
-	Category    string
-}
+var repoName string
 
 var SearchCmd = &cobra.Command{
-	Use:     "search [query]",
-	Aliases: []string{"s"},
-	Short:   "Search for links in the FMHY repository",
-	Long: `Search through the FMHY repository for links matching the given query.
-The search uses fuzzy matching to find relevant results, so you don't need to type exact matches.
+	Use:   "search [query]",
+	Short: "Search through all cached repositories",
+	Long: `Search through all cached repositories for resources.
+If no repository is specified with --repo, searches across all repositories.
 
 The search will:
-1. Look through all markdown files in the repository
+1. Look through all markdown files in each repository
 2. Find lines containing URLs (http://, https://, or www.)
 3. Use fuzzy matching to find relevant results
 4. Sort results by relevance score
@@ -42,34 +36,31 @@ Controls:
   enter - Select result
 
 Examples:
-  # Search for torrent sites (shows top 10 results)
+  # Search across all repositories
   freectl search "torrent"
-  freectl s "torrent"
-
-  # Search for streaming services with 20 results
-  freectl search --limit 20 "streaming"
-
-  # Search with multiple words
-  freectl search "free movies streaming"
-
+  
+  # Search in a specific repository
+  freectl search "kanban" --repo "awesome-selfhosted"
+  
+  # Search with multiple words and limit results
+  freectl search --limit 20 "free movies streaming"
+  
   # Search in a custom cache directory
   freectl search --cache-dir /path/to/cache "torrent"`,
-	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) < 1 {
-			log.Fatal("Please provide a search query")
-		}
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
 		query := strings.Join(args, " ")
 		limit, _ := cmd.Flags().GetInt("limit")
 		cacheDir, _ := cmd.Flags().GetString("cache-dir")
 
-		results, err := search.Search(query, cacheDir)
+		results, err := search.Search(query, cacheDir, repoName)
 		if err != nil {
-			log.Fatal("Search failed", "error", err)
+			return fmt.Errorf("search failed: %w", err)
 		}
 
 		if len(results) == 0 {
 			log.Info("No results found")
-			return
+			return nil
 		}
 
 		// Limit results
@@ -83,22 +74,26 @@ Examples:
 		tuiResults := make([]tui.SearchResult, len(results))
 		for i, r := range results {
 			tuiResults[i] = tui.SearchResult{
-				Category: r.Category,
-				Link:     r.URL,
-				Text:     r.Description,
-				Line:     r.Line,
-				Score:    r.Score,
+				Category:   r.Category,
+				Link:       r.URL,
+				Text:       r.Description,
+				Line:       r.Line,
+				Score:      r.Score,
+				Repository: r.Repository,
 			}
 		}
 
 		// Create and run the TUI
 		p := tea.NewProgram(tui.NewModel(tuiResults))
 		if _, err := p.Run(); err != nil {
-			log.Fatal("Error running TUI", "error", err)
+			return fmt.Errorf("error running TUI: %w", err)
 		}
+
+		return nil
 	},
 }
 
 func init() {
+	SearchCmd.Flags().StringVarP(&repoName, "repo", "r", "", "Search in a specific repository")
 	SearchCmd.Flags().IntP("limit", "l", 0, "Maximum number of results to show (default: 10)")
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"freectl/cmd/add"
 	"freectl/cmd/root"
 	"freectl/cmd/search"
 	"freectl/cmd/serve"
@@ -14,5 +15,6 @@ func main() {
 	rootCmd.AddCommand(search.SearchCmd)
 	rootCmd.AddCommand(stats.StatsCmd)
 	rootCmd.AddCommand(serve.ServeCmd)
+	rootCmd.AddCommand(add.AddCmd)
 	root.Execute()
 }

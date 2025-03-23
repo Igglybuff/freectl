@@ -26,11 +26,12 @@ var (
 )
 
 type SearchResult struct {
-	Category string
-	Link     string
-	Text     string
-	Line     string
-	Score    int
+	Category   string
+	Link       string
+	Text       string
+	Line       string
+	Score      int
+	Repository string
 }
 
 func (i SearchResult) Title() string {
@@ -38,7 +39,7 @@ func (i SearchResult) Title() string {
 }
 
 func (i SearchResult) Description() string {
-	return fmt.Sprintf("Category: %s | URL: %s | Score: %d", i.Category, i.Link, i.Score)
+	return fmt.Sprintf("Category: %s | Repository: %s | URL: %s | Score: %d", i.Category, i.Repository, i.Link, i.Score)
 }
 
 func (i SearchResult) FilterValue() string {

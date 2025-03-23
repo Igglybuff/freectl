@@ -11,6 +11,7 @@ type Favorite struct {
 	Link        string `json:"link"`
 	Description string `json:"description"`
 	Category    string `json:"category"`
+	Repository  string `json:"repository"`
 }
 
 func getFavoritesPath() (string, error) {
@@ -65,7 +66,7 @@ func SaveFavorites(favorites []Favorite) error {
 	return nil
 }
 
-func AddFavorite(link, description, category string) error {
+func AddFavorite(favorite Favorite) error {
 	favorites, err := LoadFavorites()
 	if err != nil {
 		return err
@@ -73,21 +74,16 @@ func AddFavorite(link, description, category string) error {
 
 	// Check if already exists
 	for _, f := range favorites {
-		if f.Link == link {
+		if f.Link == favorite.Link {
 			return nil // Already exists
 		}
 	}
 
-	favorites = append(favorites, Favorite{
-		Link:        link,
-		Description: description,
-		Category:    category,
-	})
-
+	favorites = append(favorites, favorite)
 	return SaveFavorites(favorites)
 }
 
-func RemoveFavorite(link string) error {
+func RemoveFavorite(favorite Favorite) error {
 	favorites, err := LoadFavorites()
 	if err != nil {
 		return err
@@ -95,7 +91,7 @@ func RemoveFavorite(link string) error {
 
 	// Remove the favorite
 	for i, f := range favorites {
-		if f.Link == link {
+		if f.Link == favorite.Link {
 			favorites = append(favorites[:i], favorites[i+1:]...)
 			break
 		}
