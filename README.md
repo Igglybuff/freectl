@@ -10,6 +10,7 @@ A command-line tool for searching and browsing the [Free Media Heck Yeah](https:
 - 🌐 Web interface with favorites support
 - 🔄 Automatic repository updates
 - 🎨 Beautiful and intuitive interface
+- 🌓 Toggleable dark theme
 - 🐳 Docker support
 
 ## Installation
@@ -116,6 +117,7 @@ freectl serve --port 8080  # Use a custom port
 - 🔍 Search through your favorites
 - 📱 Responsive design
 - 🎨 Modern and clean interface
+- 🌓 Toggleable dark theme with system preference detection
 
 The web interface is available at `http://localhost:8080` by default. You can change the port using the `--port` flag.
 
@@ -124,6 +126,12 @@ Favorites are stored in `~/.config/freectl/favourites.json`.
 ## Configuration
 
 By default, freectl stores its cache in `~/.local/cache/freectl`. You can change this location using the `--cache-dir` flag.
+
+## Author
+
+- Website: [iggly.xyz](https://iggly.xyz/)
+- Mastodon: [@Igglybuff](https://mastodon.social/@Igglybuff)
+- Reddit: [u/Wiggly_Poop](https://old.reddit.com/u/Wiggly_Poop)
 
 ## Contributing
 
