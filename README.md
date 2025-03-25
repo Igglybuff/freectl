@@ -1,13 +1,15 @@
 # freectl
 
-A command-line tool for managing and searching through cached Git repositories.
+A command-line tool and web UI for finding cool stuff in Git repositories.
+
+**This tool is still in development and should probably not be exposed on the public internet**
 
 ## Features
 
-- 🔍 Fuzzy search through cached repositories
+- 🔍 Fuzzy search through cached Git repositories
 - 📦 Cache and update Git repositories locally
 - 📊 Generate statistics about repository content
-- 🌐 Web interface for searching
+- 🌐 Web interface for searching \[WIP\]
 - 🎨 Beautiful TUI interface
 - 🔄 Automatic repository updates
 - 🌓 Toggleable dark theme
@@ -82,14 +84,11 @@ docker compose down
 
 ## Usage
 
-### Search
+### Add
 
 ```bash
-# Search in all cached repositories
-freectl search "query"
-
-# Search in a specific repository
-freectl search "query" --repo repository-name
+# Add a Git repository
+freectl add https://github.com/Igglybuff/awesome-piracy --name awesome-piracy
 ```
 
 ### Update
@@ -102,18 +101,30 @@ freectl update
 freectl update --repo repository-name
 ```
 
+### Search
+
+```bash
+# Search in all cached repositories
+freectl search "query"
+
+# Search in a specific repository
+freectl search "query" --repo repository-name
+```
+
 ### Stats
+
+This feature is still a work in progress.
 
 ```bash
 # Show stats for a specific repository
 freectl stats --repo repository-name
 ```
 
-### Web Interface
+### Web interface
 
 ```bash
-# Start the web interface
-freectl web
+# Start the web interface on port 8080
+freectl serve --port 8080
 ```
 
 The web interface is available at `http://localhost:8080` by default. You can change the port using the `--port` flag.
@@ -128,19 +139,13 @@ The tool uses the following default paths:
 
 ### Prerequisites
 
-- Go 1.16 or later
+- Go 1.24
 - Git
 
 ### Building
 
 ```bash
 go build
-```
-
-### Testing
-
-```bash
-go test ./...
 ```
 
 ## Author
