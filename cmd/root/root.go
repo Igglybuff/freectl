@@ -11,11 +11,48 @@ import (
 	"freectl/cmd/search"
 	"freectl/cmd/serve"
 	"freectl/cmd/update"
+	"freectl/internal/config"
 
+	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
 )
 
-var cacheDir string
+func init() {
+	// Configure logging
+	log.SetOutput(os.Stdout)
+	log.SetFormatter(log.TextFormatter)
+
+	// Set log level from environment or default to info
+	if os.Getenv("LOG_LEVEL") == "debug" {
+		log.SetLevel(log.DebugLevel)
+	} else {
+		log.SetLevel(log.InfoLevel)
+	}
+
+	log.Debug("Initializing root command")
+
+	// Add commands
+	RootCmd.AddCommand(add.AddCmd)
+	RootCmd.AddCommand(delete.DeleteCmd)
+	RootCmd.AddCommand(list.ListCmd)
+	RootCmd.AddCommand(search.SearchCmd)
+	RootCmd.AddCommand(serve.ServeCmd)
+	RootCmd.AddCommand(update.UpdateCmd)
+
+	// Set default cache directory
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		log.Error("Failed to get home directory", "error", err)
+		fmt.Printf("Error getting home directory: %v\n", err)
+		os.Exit(1)
+	}
+	defaultCacheDir := filepath.Join(homeDir, ".local", "cache", "freectl")
+	log.Debug("Setting default cache directory", "path", defaultCacheDir)
+
+	// Add persistent flags
+	RootCmd.PersistentFlags().StringVar(&config.CacheDir, "cache-dir", defaultCacheDir, "Directory to store cached repositories")
+	log.Debug("Root command initialization complete")
+}
 
 var RootCmd = &cobra.Command{
 	Use:   "freectl",
@@ -58,38 +95,17 @@ Examples:
   # Update all repositories
   freectl update`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		log.Debug("Root command executed")
 		return cmd.Help()
 	},
 }
 
-func init() {
-	// Add commands
-	RootCmd.AddCommand(add.AddCmd)
-	RootCmd.AddCommand(delete.DeleteCmd)
-	RootCmd.AddCommand(list.ListCmd)
-	RootCmd.AddCommand(search.SearchCmd)
-	RootCmd.AddCommand(serve.ServeCmd)
-	RootCmd.AddCommand(update.UpdateCmd)
-
-	// Add persistent flags
-	RootCmd.PersistentFlags().StringVar(&cacheDir, "cache-dir", "", "Directory to store cached repositories")
-}
-
 func Execute() {
+	log.Debug("Starting command execution")
 	if err := RootCmd.Execute(); err != nil {
+		log.Error("Command execution failed", "error", err)
 		fmt.Println(err)
 		os.Exit(1)
 	}
-}
-
-func init() {
-	// Set default cache directory if not provided
-	if cacheDir == "" {
-		homeDir, err := os.UserHomeDir()
-		if err != nil {
-			fmt.Printf("Error getting home directory: %v\n", err)
-			os.Exit(1)
-		}
-		cacheDir = filepath.Join(homeDir, ".local", "cache", "freectl")
-	}
+	log.Debug("Command execution completed successfully")
 }

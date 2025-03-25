@@ -1,6 +1,11 @@
 package update
 
 import (
+	"fmt"
+	"time"
+
+	"freectl/internal/config"
+	"freectl/internal/repository"
 	"freectl/internal/update"
 
 	"github.com/charmbracelet/log"
@@ -10,27 +15,59 @@ import (
 var UpdateCmd = &cobra.Command{
 	Use:   "update",
 	Short: "Update all cached repositories",
-	Long: `Update pulls the latest changes from all cached repositories.
-The repositories are stored in ~/.local/cache/freectl by default.
+	Long:  `Updates all repositories that are currently cached locally by pulling the latest changes from their remote sources.`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		log.Debug("Starting update command")
+		log.Debug("Using cache directory", "path", config.CacheDir)
 
-This command will:
-1. Find all repositories in the cache directory
-2. Pull the latest changes from each repository
-3. Skip any repositories that fail to update
-
-Examples:
-  # Update using default cache directory
-  freectl update
-
-  # Update using a custom cache directory
-  freectl update --cache-dir /path/to/cache`,
-	Run: func(cmd *cobra.Command, args []string) {
-		cacheDir, _ := cmd.Flags().GetString("cache-dir")
-		duration, err := update.UpdateRepo(cacheDir)
+		// Get list of repositories
+		repos, err := repository.List(config.CacheDir)
 		if err != nil {
-			log.Fatal("Failed to update repositories", "error", err)
+			log.Error("Failed to list repositories", "error", err)
+			return fmt.Errorf("failed to get repositories: %w", err)
 		}
-		log.Info("Update completed", "duration", duration)
+
+		log.Debug("Found repositories to update", "count", len(repos))
+
+		if len(repos) == 0 {
+			fmt.Println("No repositories found to update.")
+			return nil
+		}
+
+		start := time.Now()
+		updated := 0
+		failed := 0
+
+		for _, repo := range repos {
+			if !repo.Enabled {
+				log.Debug("Skipping disabled repository", "name", repo.Name)
+				continue
+			}
+
+			log.Debug("Updating repository", "name", repo.Name)
+			duration, err := update.UpdateRepo(repo.Path)
+			if err != nil {
+				log.Error("Failed to update repository", "name", repo.Name, "error", err)
+				fmt.Printf("Failed to update %s: %v\n", repo.Name, err)
+				failed++
+				continue
+			}
+			log.Debug("Successfully updated repository", "name", repo.Name, "duration", duration)
+			updated++
+		}
+
+		duration := time.Since(start)
+		log.Debug("Update command completed",
+			"duration", duration,
+			"updated", updated,
+			"failed", failed)
+
+		if failed > 0 {
+			return fmt.Errorf("failed to update %d repositories", failed)
+		}
+
+		fmt.Printf("Updated %d repositories in %s\n", updated, duration)
+		return nil
 	},
 }
 

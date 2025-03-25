@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"freectl/internal/repository"
+	"freectl/internal/search"
 
 	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
@@ -35,7 +36,7 @@ Examples:
 			name = repository.DeriveNameFromURL(url)
 		}
 
-		if err := repository.Add(cacheDir, url, name); err != nil {
+		if err := search.AddRepository(cacheDir, url, name); err != nil {
 			return fmt.Errorf("failed to add repository: %w", err)
 		}
 

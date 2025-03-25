@@ -5,7 +5,7 @@ import (
 	"os/exec"
 	"time"
 
-	"freectl/internal/common"
+	"freectl/internal/repository"
 
 	"github.com/charmbracelet/log"
 )
@@ -16,7 +16,7 @@ func UpdateRepo(cacheDir string) (time.Duration, error) {
 	startTime := time.Now()
 
 	// Get list of repositories
-	repos, err := common.ListRepositories(cacheDir)
+	repos, err := repository.List(cacheDir)
 	if err != nil {
 		return 0, err
 	}

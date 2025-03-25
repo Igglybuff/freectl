@@ -12,6 +12,7 @@ import (
 	"sync"
 
 	"freectl/internal/common"
+	"freectl/internal/config"
 	"freectl/internal/repository"
 	"freectl/internal/search"
 	"freectl/internal/settings"
@@ -136,7 +137,7 @@ func handleSearch(w http.ResponseWriter, r *http.Request) {
 	repoName := r.URL.Query().Get("repo")
 	category := r.URL.Query().Get("category")
 
-	results, err := search.Search(query, "~/.local/cache/freectl", repoName)
+	results, err := search.Search(query, config.CacheDir, repoName)
 	if err != nil {
 		// Only return error for actual errors, not for missing repository
 		if !strings.Contains(err.Error(), "repository not found") {
@@ -298,7 +299,7 @@ func handleStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repoPath := common.GetRepoPath("~/.local/cache/freectl", repoName)
+	repoPath := common.GetRepoPath(config.CacheDir, repoName)
 	docsDir := filepath.Join(repoPath, "docs")
 	s := &stats.Stats{
 		DomainsCount:  make(map[string]int),
@@ -337,18 +338,7 @@ func handleUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get cache directory from environment or use default
-	cacheDir := os.Getenv("CACHE_DIR")
-	if cacheDir == "" {
-		homeDir, err := os.UserHomeDir()
-		if err != nil {
-			http.Error(w, fmt.Sprintf("Failed to get home directory: %v", err), http.StatusInternalServerError)
-			return
-		}
-		cacheDir = filepath.Join(homeDir, ".local", "cache", "freectl")
-	}
-
-	duration, err := update.UpdateRepo(cacheDir)
+	duration, err := update.UpdateRepo(config.CacheDir)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to update repositories: %v", err), http.StatusInternalServerError)
 		return
@@ -367,7 +357,7 @@ func handleList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repos, err := common.ListRepositories("~/.local/cache/freectl")
+	repos, err := repository.List(config.CacheDir)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -457,24 +447,7 @@ func handleAddRepository(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get cache directory from environment or use default
-	cacheDir := os.Getenv("CACHE_DIR")
-	if cacheDir == "" {
-		homeDir, err := os.UserHomeDir()
-		if err != nil {
-			log.Error("Failed to get home directory", "error", err)
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(map[string]interface{}{
-				"success": false,
-				"error":   fmt.Sprintf("Failed to get home directory: %s", err.Error()),
-			})
-			return
-		}
-		cacheDir = filepath.Join(homeDir, ".local", "cache", "freectl")
-	}
-
-	if err := repository.Add(cacheDir, req.URL, req.Name); err != nil {
+	if err := search.AddRepository(config.CacheDir, req.URL, req.Name); err != nil {
 		log.Error("Failed to add repository", "error", err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
@@ -504,24 +477,7 @@ func handleListRepositories(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get cache directory from environment or use default
-	cacheDir := os.Getenv("CACHE_DIR")
-	if cacheDir == "" {
-		homeDir, err := os.UserHomeDir()
-		if err != nil {
-			log.Error("Failed to get home directory", "error", err)
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(map[string]interface{}{
-				"success": false,
-				"error":   fmt.Sprintf("Failed to get home directory: %s", err.Error()),
-			})
-			return
-		}
-		cacheDir = filepath.Join(homeDir, ".local", "cache", "freectl")
-	}
-
-	repos, err := repository.List(cacheDir)
+	repos, err := repository.List(config.CacheDir)
 	if err != nil {
 		log.Error("Failed to list repositories", "error", err)
 		w.Header().Set("Content-Type", "application/json")
@@ -565,24 +521,7 @@ func handleDeleteRepository(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get cache directory from environment or use default
-	cacheDir := os.Getenv("CACHE_DIR")
-	if cacheDir == "" {
-		homeDir, err := os.UserHomeDir()
-		if err != nil {
-			log.Error("Failed to get home directory", "error", err)
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(map[string]interface{}{
-				"success": false,
-				"error":   fmt.Sprintf("Failed to get home directory: %s", err.Error()),
-			})
-			return
-		}
-		cacheDir = filepath.Join(homeDir, ".local", "cache", "freectl")
-	}
-
-	if err := repository.Delete(cacheDir, req.Name); err != nil {
+	if err := repository.Delete(config.CacheDir, req.Name); err != nil {
 		log.Error("Failed to delete repository", "error", err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
@@ -625,24 +564,7 @@ func handleToggleRepository(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get cache directory from environment or use default
-	cacheDir := os.Getenv("CACHE_DIR")
-	if cacheDir == "" {
-		homeDir, err := os.UserHomeDir()
-		if err != nil {
-			log.Error("Failed to get home directory", "error", err)
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(map[string]interface{}{
-				"success": false,
-				"error":   fmt.Sprintf("Failed to get home directory: %s", err.Error()),
-			})
-			return
-		}
-		cacheDir = filepath.Join(homeDir, ".local", "cache", "freectl")
-	}
-
-	if err := repository.ToggleEnabled(cacheDir, req.Name); err != nil {
+	if err := repository.ToggleEnabled(config.CacheDir, req.Name); err != nil {
 		log.Error("Failed to toggle repository", "error", err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
@@ -654,7 +576,7 @@ func handleToggleRepository(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get the updated enabled status
-	enabled, err := repository.IsEnabled(cacheDir, req.Name)
+	enabled, err := repository.IsEnabled(config.CacheDir, req.Name)
 	if err != nil {
 		log.Error("Failed to get repository status", "error", err)
 		w.Header().Set("Content-Type", "application/json")

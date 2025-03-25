@@ -17,8 +17,8 @@ type Repository struct {
 	Path string `json:"path"`
 }
 
-// GetReposPath returns the path to the repositories directory
-func GetReposPath(cacheDir string) string {
+// GetRepoPath returns the path to a repository
+func GetRepoPath(cacheDir, repoName string) string {
 	// Expand the ~ to the user's home directory
 	if cacheDir[:2] == "~/" {
 		home, err := os.UserHomeDir()
@@ -28,61 +28,27 @@ func GetReposPath(cacheDir string) string {
 		cacheDir = filepath.Join(home, cacheDir[2:])
 	}
 
-	return cacheDir
-}
-
-// GetRepositoryPath returns the path to a specific repository
-func GetRepositoryPath(cacheDir, name string) string {
-	return filepath.Join(GetReposPath(cacheDir), name)
-}
-
-// ListRepositories returns a list of all cached repositories
-func ListRepositories(cacheDir string) ([]Repository, error) {
-	reposPath := GetReposPath(cacheDir)
-	entries, err := os.ReadDir(reposPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return []Repository{}, nil
-		}
-		return nil, fmt.Errorf("failed to read repositories directory: %w", err)
+	repoPath := filepath.Join(cacheDir, repoName)
+	if _, err := os.Stat(repoPath); os.IsNotExist(err) {
+		log.Fatal("Repository not found. Please run 'freectl update' first")
 	}
 
-	var repos []Repository
-	for _, entry := range entries {
-		if !entry.IsDir() {
-			continue
-		}
-
-		repoPath := filepath.Join(reposPath, entry.Name())
-		repo := Repository{
-			Name: entry.Name(),
-			Path: repoPath,
-		}
-
-		// Try to get the remote URL
-		if url, err := GetGitRemoteURL(repoPath); err == nil {
-			repo.URL = url
-		}
-
-		repos = append(repos, repo)
-	}
-
-	return repos, nil
+	return repoPath
 }
 
-// GetGitRemoteURL gets the remote URL of a Git repository
+// GetGitRemoteURL returns the remote URL of a Git repository
 func GetGitRemoteURL(repoPath string) (string, error) {
 	cmd := exec.Command("git", "-C", repoPath, "remote", "get-url", "origin")
-	output, err := cmd.Output()
+	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to get remote URL: %s", string(output))
 	}
 	return strings.TrimSpace(string(output)), nil
 }
 
 // ValidateRepository checks if a repository exists and is valid
 func ValidateRepository(cacheDir, name string) error {
-	repoPath := GetRepositoryPath(cacheDir, name)
+	repoPath := filepath.Join(cacheDir, name)
 	if _, err := os.Stat(repoPath); os.IsNotExist(err) {
 		return fmt.Errorf("repository %s not found", name)
 	}

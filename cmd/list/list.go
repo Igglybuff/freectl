@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"freectl/internal/config"
 	"freectl/internal/repository"
 
 	"github.com/charmbracelet/log"
@@ -29,13 +30,16 @@ For each repository, shows:
 Example:
   freectl list`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cacheDir, _ := cmd.Flags().GetString("cache-dir")
+		log.Debug("Starting list command")
+		log.Debug("Using cache directory", "path", config.CacheDir)
 
-		// Get list of repositories
-		repos, err := repository.List(cacheDir)
+		repos, err := repository.List(config.CacheDir)
 		if err != nil {
-			return fmt.Errorf("failed to get repositories: %w", err)
+			log.Error("Failed to list repositories", "error", err)
+			return fmt.Errorf("failed to list repositories: %w", err)
 		}
+
+		log.Debug("Successfully retrieved repositories", "count", len(repos))
 
 		if len(repos) == 0 {
 			fmt.Println("No repositories found. Add one using 'freectl add'")
@@ -148,6 +152,7 @@ Example:
 				maxStatus, data.status)
 		}
 
+		log.Debug("List command completed successfully")
 		return nil
 	},
 }

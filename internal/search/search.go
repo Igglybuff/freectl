@@ -173,7 +173,7 @@ func isContentFile(path string) bool {
 // Search performs a fuzzy search across all markdown files in the repository
 func Search(query string, cacheDir string, repoName string) ([]Result, error) {
 	// Get list of repositories
-	repos, err := common.ListRepositories(cacheDir)
+	repos, err := repository.List(cacheDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get repositories: %w", err)
 	}
@@ -182,23 +182,23 @@ func Search(query string, cacheDir string, repoName string) ([]Result, error) {
 		return nil, fmt.Errorf("no repositories found in %s", cacheDir)
 	}
 
-	// Filter repositories if a specific one is requested
+	// Filter by repository name if specified
 	if repoName != "" {
-		var found bool
+		var filteredRepos []repository.Repository
 		for _, repo := range repos {
 			if repo.Name == repoName {
-				repos = []common.Repository{repo}
-				found = true
+				filteredRepos = append(filteredRepos, repo)
 				break
 			}
 		}
-		if !found {
+		if len(filteredRepos) == 0 {
 			return nil, fmt.Errorf("repository '%s' not found", repoName)
 		}
+		repos = filteredRepos
 	}
 
 	// Filter out disabled repositories
-	var enabledRepos []common.Repository
+	var enabledRepos []repository.Repository
 	for _, repo := range repos {
 		enabled, err := repository.IsEnabled(cacheDir, repo.Name)
 		if err != nil {
@@ -363,7 +363,7 @@ func AddRepository(cacheDir string, url string, name string) error {
 	}
 
 	// Get the repository path using the common function
-	repoPath := common.GetRepositoryPath(cacheDir, name)
+	repoPath := filepath.Join(cacheDir, name)
 
 	// Check if repository already exists
 	if _, err := os.Stat(repoPath); !os.IsNotExist(err) {

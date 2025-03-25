@@ -1,31 +1,8 @@
 package common
 
 import (
-	"os"
-	"path/filepath"
 	"strings"
-
-	"github.com/charmbracelet/log"
 )
-
-// GetRepoPath returns the path to a repository
-func GetRepoPath(cacheDir, repoName string) string {
-	// Expand the ~ to the user's home directory
-	if cacheDir[:2] == "~/" {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			log.Fatal("Failed to get home directory", "error", err)
-		}
-		cacheDir = filepath.Join(home, cacheDir[2:])
-	}
-
-	repoPath := filepath.Join(cacheDir, repoName)
-	if _, err := os.Stat(repoPath); os.IsNotExist(err) {
-		log.Fatal("Repository not found. Please run 'freectl update' first")
-	}
-
-	return repoPath
-}
 
 // ExtractURL finds the first URL in a line
 func ExtractURL(line string) string {

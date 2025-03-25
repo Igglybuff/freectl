@@ -6,21 +6,32 @@ import (
 	"os"
 	"path/filepath"
 
+	"freectl/internal/config"
+
 	"github.com/charmbracelet/log"
 )
 
+// RepositoryState represents the state of a cached repository
+type RepositoryState struct {
+	Name    string `json:"name"`
+	Path    string `json:"path"`
+	URL     string `json:"url"`
+	Enabled bool   `json:"enabled"`
+}
+
 // Settings represents the user settings
 type Settings struct {
-	MinQueryLength int    `json:"minQueryLength"`
-	MaxQueryLength int    `json:"maxQueryLength"`
-	SearchDelay    int    `json:"searchDelay"`
-	ShowScores     bool   `json:"showScores"`
-	ResultsPerPage int    `json:"resultsPerPage"`
-	CacheDir       string `json:"cacheDir"`
-	AutoUpdate     bool   `json:"autoUpdate"`
-	TruncateTitles bool   `json:"truncateTitles"`
-	MaxTitleLength int    `json:"maxTitleLength"`
-	CustomHeader   string `json:"customHeader"`
+	MinQueryLength int               `json:"minQueryLength"`
+	MaxQueryLength int               `json:"maxQueryLength"`
+	SearchDelay    int               `json:"searchDelay"`
+	ShowScores     bool              `json:"showScores"`
+	ResultsPerPage int               `json:"resultsPerPage"`
+	CacheDir       string            `json:"cache_dir"`
+	AutoUpdate     bool              `json:"auto_update"`
+	TruncateTitles bool              `json:"truncateTitles"`
+	MaxTitleLength int               `json:"maxTitleLength"`
+	CustomHeader   string            `json:"customHeader"`
+	Repositories   []RepositoryState `json:"repositories"`
 }
 
 // DefaultSettings returns the default settings
@@ -31,11 +42,12 @@ func DefaultSettings() Settings {
 		SearchDelay:    300,
 		ShowScores:     true,
 		ResultsPerPage: 10,
-		CacheDir:       "~/.local/cache/freectl",
+		CacheDir:       config.CacheDir,
 		AutoUpdate:     true,
 		TruncateTitles: true,
 		MaxTitleLength: 100,
 		CustomHeader:   "Repository Search",
+		Repositories:   []RepositoryState{},
 	}
 }
 

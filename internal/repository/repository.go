@@ -3,11 +3,11 @@ package repository
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
 	"freectl/internal/common"
+	"freectl/internal/settings"
 
 	"github.com/charmbracelet/log"
 )
@@ -22,179 +22,177 @@ type Repository struct {
 
 // List returns all repositories in the cache directory
 func List(cacheDir string) ([]Repository, error) {
-	repos, err := common.ListRepositories(cacheDir)
+	log.Debug("Starting repository.List", "cacheDir", cacheDir)
+
+	// Load settings to get repository states
+	s, err := settings.LoadSettings()
 	if err != nil {
-		return nil, fmt.Errorf("failed to list repositories: %w", err)
+		log.Error("Failed to load settings", "error", err)
+		return nil, fmt.Errorf("failed to load settings: %w", err)
 	}
 
-	// Convert to our repository type with additional fields
-	result := make([]Repository, len(repos))
-	for i, repo := range repos {
-		enabled, err := IsEnabled(cacheDir, repo.Name)
-		if err != nil {
-			log.Error("Failed to check repository status", "name", repo.Name, "error", err)
-			enabled = true // Default to enabled if we can't check
+	// The cache directory is already the repos directory
+	entries, err := os.ReadDir(cacheDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			log.Debug("Repos directory does not exist, returning empty list")
+			return []Repository{}, nil
+		}
+		log.Error("Failed to read repositories directory", "error", err)
+		return nil, fmt.Errorf("failed to read repositories directory: %w", err)
+	}
+	log.Debug("Read directory entries", "count", len(entries))
+
+	var repos []Repository
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			log.Debug("Skipping non-directory entry", "name", entry.Name())
+			continue
 		}
 
+		repoPath := filepath.Join(cacheDir, entry.Name())
+		log.Debug("Processing repository", "name", entry.Name(), "path", repoPath)
+
 		// Get the remote URL
-		url := repo.URL
-		if url == "" {
-			url, err = common.GetGitRemoteURL(repo.Path)
-			if err != nil {
-				log.Error("Failed to get repository URL", "name", repo.Name, "error", err)
+		url, err := common.GetGitRemoteURL(repoPath)
+		if err != nil {
+			log.Error("Failed to get repository URL", "name", entry.Name(), "error", err)
+		}
+		log.Debug("Got repository URL", "name", entry.Name(), "url", url)
+
+		// Check if we have state for this repository in settings
+		enabled := true // Default to enabled
+		for _, repoState := range s.Repositories {
+			if repoState.Name == entry.Name() {
+				enabled = repoState.Enabled
+				break
 			}
 		}
 
-		result[i] = Repository{
-			Name:    repo.Name,
-			Path:    repo.Path,
+		repos = append(repos, Repository{
+			Name:    entry.Name(),
+			Path:    repoPath,
 			URL:     url,
 			Enabled: enabled,
-		}
+		})
+		log.Debug("Added repository to list", "name", entry.Name())
 	}
 
-	return result, nil
+	log.Debug("Completed repository listing", "total", len(repos))
+	return repos, nil
 }
 
 // Delete removes a repository from the cache
 func Delete(cacheDir string, name string) error {
-	// Get list of repositories
-	repos, err := common.ListRepositories(cacheDir)
+	// Load settings
+	s, err := settings.LoadSettings()
 	if err != nil {
-		return fmt.Errorf("failed to get repositories: %w", err)
+		return fmt.Errorf("failed to load settings: %w", err)
 	}
 
-	// Find the repository
-	var repo common.Repository
-	var found bool
-	for _, r := range repos {
-		if r.Name == name {
-			repo = r
-			found = true
-			break
-		}
-	}
-
-	if !found {
+	// Find the repository path
+	repoPath := filepath.Join(cacheDir, name)
+	if _, err := os.Stat(repoPath); os.IsNotExist(err) {
 		return fmt.Errorf("repository '%s' not found", name)
 	}
 
 	// Delete the repository directory
-	if err := os.RemoveAll(repo.Path); err != nil {
+	if err := os.RemoveAll(repoPath); err != nil {
 		return fmt.Errorf("failed to delete repository: %w", err)
+	}
+
+	// Remove from settings
+	newRepos := make([]settings.RepositoryState, 0)
+	for _, repo := range s.Repositories {
+		if repo.Name != name {
+			newRepos = append(newRepos, repo)
+		}
+	}
+	s.Repositories = newRepos
+
+	// Save updated settings
+	if err := settings.SaveSettings(s); err != nil {
+		log.Error("Failed to save settings after repository deletion", "error", err)
 	}
 
 	log.Info("Repository deleted successfully", "name", name)
 	return nil
 }
 
-// Add adds a new repository to the cache
-func Add(cacheDir string, url string, name string) error {
-	if url == "" {
-		return fmt.Errorf("repository URL is required")
-	}
-
-	// If no name is provided, derive it from the URL
-	if name == "" {
-		name = filepath.Base(url)
-		// Remove .git extension if present
-		name = strings.TrimSuffix(name, ".git")
-	}
-
-	// Get the repository path using the common function
-	repoPath := common.GetRepositoryPath(cacheDir, name)
-
-	// Check if repository already exists
-	if _, err := os.Stat(repoPath); !os.IsNotExist(err) {
-		return fmt.Errorf("repository %s already exists", name)
-	}
-
-	// Clone the repository
-	log.Info("Cloning repository", "url", url, "name", name)
-	cmd := exec.Command("git", "clone", "--depth", "1", url, repoPath)
-	if output, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("failed to clone repository: %s", string(output))
-	}
-
-	log.Info("Repository added successfully", "name", name)
-	return nil
-}
-
 // ToggleEnabled enables or disables a repository
 func ToggleEnabled(cacheDir string, name string) error {
-	// Get list of repositories
-	repos, err := common.ListRepositories(cacheDir)
+	// Load settings
+	s, err := settings.LoadSettings()
 	if err != nil {
-		return fmt.Errorf("failed to get repositories: %w", err)
+		return fmt.Errorf("failed to load settings: %w", err)
 	}
 
-	// Find the repository
-	var repo common.Repository
+	// Find the repository path
+	repoPath := filepath.Join(cacheDir, name)
+	if _, err := os.Stat(repoPath); os.IsNotExist(err) {
+		return fmt.Errorf("repository '%s' not found", name)
+	}
+
+	// Get the remote URL
+	url, err := common.GetGitRemoteURL(repoPath)
+	if err != nil {
+		log.Error("Failed to get repository URL", "name", name, "error", err)
+	}
+
+	// Find or create repository state
 	var found bool
-	for _, r := range repos {
-		if r.Name == name {
-			repo = r
+	for i := range s.Repositories {
+		if s.Repositories[i].Name == name {
+			s.Repositories[i].Enabled = !s.Repositories[i].Enabled
 			found = true
 			break
 		}
 	}
 
 	if !found {
-		return fmt.Errorf("repository '%s' not found", name)
+		s.Repositories = append(s.Repositories, settings.RepositoryState{
+			Name:    name,
+			Path:    repoPath,
+			URL:     url,
+			Enabled: false, // Toggle from default enabled state
+		})
 	}
 
-	// Create a .disabled file in the repository directory to mark it as disabled
-	disabledFile := filepath.Join(repo.Path, ".disabled")
-	if _, err := os.Stat(disabledFile); os.IsNotExist(err) {
-		// Create .disabled file to disable the repository
-		if err := os.WriteFile(disabledFile, []byte{}, 0644); err != nil {
-			return fmt.Errorf("failed to disable repository: %w", err)
-		}
-		log.Info("Repository disabled successfully", "name", name)
-	} else {
-		// Remove .disabled file to enable the repository
-		if err := os.Remove(disabledFile); err != nil {
-			return fmt.Errorf("failed to enable repository: %w", err)
-		}
-		log.Info("Repository enabled successfully", "name", name)
+	// Save updated settings
+	if err := settings.SaveSettings(s); err != nil {
+		return fmt.Errorf("failed to save settings: %w", err)
 	}
 
+	status := "enabled"
+	if !s.Repositories[len(s.Repositories)-1].Enabled {
+		status = "disabled"
+	}
+	log.Info("Repository "+status+" successfully", "name", name)
 	return nil
 }
 
 // IsEnabled checks if a repository is enabled
 func IsEnabled(cacheDir string, name string) (bool, error) {
-	// Get list of repositories
-	repos, err := common.ListRepositories(cacheDir)
+	log.Debug("Checking if repository is enabled", "name", name)
+
+	// Load settings
+	s, err := settings.LoadSettings()
 	if err != nil {
-		return false, fmt.Errorf("failed to get repositories: %w", err)
+		log.Error("Failed to load settings", "error", err)
+		return false, fmt.Errorf("failed to load settings: %w", err)
 	}
 
-	// Find the repository
-	var repo common.Repository
-	var found bool
-	for _, r := range repos {
-		if r.Name == name {
-			repo = r
-			found = true
-			break
+	// Check repository state in settings
+	for _, repo := range s.Repositories {
+		if repo.Name == name {
+			log.Debug("Found repository state in settings", "name", name, "enabled", repo.Enabled)
+			return repo.Enabled, nil
 		}
 	}
 
-	if !found {
-		return false, fmt.Errorf("repository '%s' not found", name)
-	}
-
-	// Check if .disabled file exists
-	disabledFile := filepath.Join(repo.Path, ".disabled")
-	_, err = os.Stat(disabledFile)
-	if err == nil {
-		return false, nil
-	}
-	if os.IsNotExist(err) {
-		return true, nil
-	}
-	return false, fmt.Errorf("failed to check repository status: %w", err)
+	// If not found in settings, default to enabled
+	log.Debug("Repository not found in settings, defaulting to enabled", "name", name)
+	return true, nil
 }
 
 // DeriveNameFromURL extracts a repository name from a Git URL
