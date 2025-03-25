@@ -1,19 +1,35 @@
+<p align="center"><img width="800" alt="image" src="https://github.com/user-attachments/assets/44223165-e762-427b-b9ee-f5b31228a32f" /></p>
+
 # freectl
 
-A command-line tool and web UI for finding cool stuff in Git repositories.
+Lightning-fast command-line tool and web UI for finding cool stuff in Git repositories.
 
-**This tool is still in development and should probably not be exposed on the public internet**
+**This tool is still in active development and should definitely not be exposed on the public internet.**
 
 ## Features
 
 - 🔍 Fuzzy search through cached Git repositories
 - 📦 Cache and update Git repositories locally
 - 📊 Generate statistics about repository content
-- 🌐 Web interface for searching \[WIP\]
+- 🌐 Web interface for searching
 - 🎨 Beautiful TUI interface
 - 🔄 Automatic repository updates
 - 🌓 Toggleable dark theme
 - 🐳 Docker support
+
+## What does this _actually do?_
+
+(Again, `freectl` is in active development. There **are** glaring bugs.)
+
+`freectl` is a handy tool for downloading Git repositories containing a lot of URLs (typically in the form of markdown lists, like awesome-lists) and making them searchable.
+
+It uses a very scrappy, home-grown markdown parser to extract URLs, titles/descriptions, and categories by looking for common patterns in markdown lists. This happens _while_ searching, so there is no indexing process - repositories are fuzzy-searched directly with a configurable query delay. This might not scale well if you add too many repositories!
+
+There is also a basic favouriting system. Favourites and settings are stored locally as JSON files in `~/.config/freectl/`.
+
+The "Stats" page is very broken right now, and to be honest is low down on the list of priorities for this project.
+
+The frontend is (in theory) embedded into the Go binary, so it should be pretty portable.
 
 ## Installation
 
@@ -148,6 +164,47 @@ The tool uses the following default paths:
 go build
 ```
 
+### To do list
+
+- [ ] max. results per page setting doesn't work
+- [ ] separate link names and descriptions into distinct fields and render them differently in the UI
+- [ ] after adding/removing repos from Settings, page needs to refresh before selecting categories from Search drop-down
+- [x] fix the readme, some of the info is just wrong
+- [ ] add setting to change min/max fuzzy match score
+- [ ] add support for bulk-adding repos, either with multi-line paste or by adding a list-of-lists
+- [ ] filter out items under misleading headings like "Contents"
+- [ ] this blogs list didn't parse at all: https://github.com/kilimchoi/engineering-blogs
+- [ ] add virustotal URL scanning https://github.com/VirusTotal/vt-go
+- [ ] add reachability check button to quickly see if a link is dead
+- [ ] add share button
+- [ ] fix stats page
+- [ ] make the web UI prettier because it's very boring
+- [ ] make the web UI mobile-compatible
+- [ ] rest API
+- [ ] add a --config arg to use a custom config file path
+- [ ] add a `set` command to add CLI support for changing settings like the web UI can
+- [x] update docker instructions with settings volume mapping
+- [ ] add viper to configure settings via environment variables
+- [ ] support for multiple users + trusted reverse proxies + transparent auth via http header
+- [ ] some way to integrate RSS support?
+- [ ] favicon
+- [ ] set up github actions CI pipeline with multi-arch release
+- [ ] create AUR pkg
+- [ ] implement configurable & shareable custom parsing rules for non-standard repos
+- [ ] SAST scan in CI
+- [ ] pre-commit hooks
+- [ ] website
+- [ ] post about this on reddit or whatever
+- [ ] get bored, give up, leave unmaintained for 3-5 years, and archive the repository
+
+### Technology
+
+- Go, JS, HTML, CSS
+- [charmbracelet/bubbletea](https://github.com/charmbracelet/bubbletea) and [charmbracelet/bubbles](https://github.com/charmbracelet/bubbles) for the TUI
+- [charmbracelet/lipgloss](https://github.com/charmbracelet/lipgloss) for logging
+- [sahilm/fuzzy](https://github.com/sahilm/fuzzy) for search
+- [sp13/cobra](https://github.com/spf13/cobra) for the CLI
+
 ## Author
 
 - Website: [iggly.xyz](https://iggly.xyz/)
@@ -160,4 +217,4 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-MIT License - see LICENSE file for details
+The Unlicense License - see LICENSE file for details.
