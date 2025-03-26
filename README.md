@@ -205,6 +205,12 @@ go build
 - [sahilm/fuzzy](https://github.com/sahilm/fuzzy) for search
 - [sp13/cobra](https://github.com/spf13/cobra) for the CLI
 
+### Similar projects
+
+- [mrkarezina/awesome-search](https://github.com/mrkarezina/awesome-search) - Closest thing I've found to this project
+- [sindresorhus/awesome](https://github.com/sindresorhus/awesome)
+- [rumca-js/Internet-Places-Database](https://github.com/rumca-js/Internet-Places-Database)
+
 ## Author
 
 - Website: [iggly.xyz](https://iggly.xyz/)
