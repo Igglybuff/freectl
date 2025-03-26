@@ -23,7 +23,8 @@ export function loadSettings() {
                 autoUpdate: true,
                 truncateTitles: true,
                 maxTitleLength: 100,
-                customHeader: 'Repository Search'
+                customHeader: 'Repository Search',
+                minFuzzyScore: 0
             };
 
             // Merge settings with defaults
@@ -40,6 +41,7 @@ export function loadSettings() {
             document.getElementById('truncateTitles').checked = settings.truncateTitles;
             document.getElementById('maxTitleLength').value = settings.maxTitleLength;
             document.getElementById('customHeader').value = settings.customHeader;
+            document.getElementById('minFuzzyScore').value = settings.minFuzzyScore;
             updateHeaderText(settings.customHeader);
             currentSettings = settings;
             return settings;
@@ -63,7 +65,8 @@ export function saveSettings() {
         autoUpdate: document.getElementById('autoUpdate').checked,
         truncateTitles: document.getElementById('truncateTitles').checked,
         maxTitleLength: parseInt(document.getElementById('maxTitleLength').value),
-        customHeader: document.getElementById('customHeader').value
+        customHeader: document.getElementById('customHeader').value,
+        minFuzzyScore: parseInt(document.getElementById('minFuzzyScore').value)
     };
 
     fetch('/settings', {
@@ -101,6 +104,7 @@ export function resetSettings() {
             document.getElementById('truncateTitles').checked = settings.truncateTitles;
             document.getElementById('maxTitleLength').value = settings.maxTitleLength;
             document.getElementById('customHeader').value = settings.customHeader;
+            document.getElementById('minFuzzyScore').value = settings.minFuzzyScore;
             updateHeaderText(settings.customHeader);
 
             // Save current settings
