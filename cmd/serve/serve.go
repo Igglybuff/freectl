@@ -43,6 +43,26 @@ func startServer() error {
 	log.SetOutput(os.Stdout)
 	log.SetFormatter(log.TextFormatter)
 
+	// Initialize settings with the correct cache directory
+	s, err := settings.LoadSettings()
+	if err != nil {
+		log.Error("Failed to load settings", "error", err)
+		return err
+	}
+
+	// Ensure cache directory is set from config
+	s.CacheDir = config.CacheDir
+	if err := settings.SaveSettings(s); err != nil {
+		log.Error("Failed to save settings", "error", err)
+		return err
+	}
+
+	// Create cache directory if it doesn't exist
+	if err := os.MkdirAll(config.CacheDir, 0755); err != nil {
+		log.Error("Failed to create cache directory", "error", err)
+		return err
+	}
+
 	// Serve static files and templates
 	http.HandleFunc("/", handleHome)
 	http.HandleFunc("/static/", handleStatic)

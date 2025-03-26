@@ -173,21 +173,131 @@ function updateFavoriteButtons() {
 }
 
 // Settings functionality
-const defaultSettings = {
-    minQueryLength: 2,
-    maxQueryLength: 1000,
-    searchDelay: 300,
-    showScores: true,
-    resultsPerPage: 10,
-    cacheDir: '~/.local/cache/freectl',
-    autoUpdate: true,
-    truncateTitles: true,
-    maxTitleLength: 100,
-    customHeader: 'Repository Search'
-};
+let currentSettings = null;
 
 // Initialize current settings with defaults
-let currentSettings = { ...defaultSettings };
+function loadSettings() {
+    return fetch('/settings')
+        .then(response => response.json())
+        .then(settings => {
+            // Ensure we have valid settings before updating the UI
+            if (!settings) {
+                throw new Error('No settings received from server');
+            }
+
+            // Set default values for any undefined settings
+            const defaults = {
+                minQueryLength: 2,
+                maxQueryLength: 1000,
+                searchDelay: 300,
+                showScores: true,
+                resultsPerPage: 10,
+                autoUpdate: true,
+                truncateTitles: true,
+                maxTitleLength: 100,
+                customHeader: 'Repository Search'
+            };
+
+            // Merge settings with defaults
+            settings = { ...defaults, ...settings };
+
+            // Update UI with settings
+            document.getElementById('minQueryLength').value = settings.minQueryLength;
+            document.getElementById('maxQueryLength').value = settings.maxQueryLength;
+            document.getElementById('searchDelay').value = settings.searchDelay;
+            document.getElementById('showScores').checked = settings.showScores;
+            document.getElementById('resultsPerPage').value = settings.resultsPerPage;
+            document.getElementById('cacheDir').value = settings.cache_dir;
+            document.getElementById('autoUpdate').checked = settings.autoUpdate;
+            document.getElementById('truncateTitles').checked = settings.truncateTitles;
+            document.getElementById('maxTitleLength').value = settings.maxTitleLength;
+            document.getElementById('customHeader').value = settings.customHeader;
+            updateHeaderText(settings.customHeader);
+            currentSettings = settings;
+            return settings;
+        })
+        .catch(error => {
+            console.error('Error loading settings:', error);
+            showToast('Failed to load settings', 'error');
+            throw error;
+        });
+}
+
+// Update saveSettings function to use the correct field name
+function saveSettings() {
+    const settings = {
+        minQueryLength: parseInt(document.getElementById('minQueryLength').value),
+        maxQueryLength: parseInt(document.getElementById('maxQueryLength').value),
+        searchDelay: parseInt(document.getElementById('searchDelay').value),
+        showScores: document.getElementById('showScores').checked,
+        resultsPerPage: parseInt(document.getElementById('resultsPerPage').value),
+        cache_dir: document.getElementById('cacheDir').value,
+        autoUpdate: document.getElementById('autoUpdate').checked,
+        truncateTitles: document.getElementById('truncateTitles').checked,
+        maxTitleLength: parseInt(document.getElementById('maxTitleLength').value),
+        customHeader: document.getElementById('customHeader').value
+    };
+
+    fetch('/settings', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(settings)
+    })
+    .then(response => response.json())
+    .then(savedSettings => {
+        currentSettings = savedSettings;
+        updateHeaderText(savedSettings.customHeader);
+        showToast('Settings saved successfully');
+    })
+    .catch(error => {
+        console.error('Error saving settings:', error);
+        showToast('Failed to save settings', 'error');
+    });
+}
+
+// Update resetSettings function to handle custom header
+function resetSettings() {
+    fetch('/settings')
+        .then(response => response.json())
+        .then(settings => {
+            // Update UI with current settings
+            document.getElementById('minQueryLength').value = settings.minQueryLength;
+            document.getElementById('maxQueryLength').value = settings.maxQueryLength;
+            document.getElementById('searchDelay').value = settings.searchDelay;
+            document.getElementById('showScores').checked = settings.showScores;
+            document.getElementById('resultsPerPage').value = settings.resultsPerPage;
+            document.getElementById('cacheDir').value = settings.cache_dir;
+            document.getElementById('autoUpdate').checked = settings.autoUpdate;
+            document.getElementById('truncateTitles').checked = settings.truncateTitles;
+            document.getElementById('maxTitleLength').value = settings.maxTitleLength;
+            document.getElementById('customHeader').value = settings.customHeader;
+            updateHeaderText(settings.customHeader);
+
+            // Save current settings
+            fetch('/settings', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(settings)
+            })
+            .then(response => response.json())
+            .then(savedSettings => {
+                currentSettings = savedSettings;
+                showToast('Settings reset to defaults');
+            })
+            .catch(error => {
+                console.error('Error saving default settings:', error);
+                showToast('Failed to save default settings', 'error');
+            });
+        })
+        .catch(error => {
+            console.error('Error resetting settings:', error);
+            showToast('Failed to reset settings', 'error');
+        });
+}
 
 function createResultHTML(result, showScore = true) {
     const isFavorite = currentFavorites.has(result.url);
@@ -404,88 +514,87 @@ function updateFavoriteCategoryFilter() {
 
 // Add event listeners
 document.addEventListener('DOMContentLoaded', function() {
-    loadRepositoryFilter();
-    
-    // Add event listener for repository filter changes
-    document.getElementById('repoFilter').addEventListener('change', function() {
-        performSearch(1);
-    });
+    // Load settings first
+    loadSettings().then(() => {
+        loadRepositoryFilter();
+        
+        // Add event listener for repository filter changes
+        document.getElementById('repoFilter').addEventListener('change', function() {
+            performSearch(1);
+        });
 
-    document.getElementById('favoriteRepoFilter').addEventListener('change', function() {
-        updateFavoritesDisplay();
-    });
+        document.getElementById('favoriteRepoFilter').addEventListener('change', function() {
+            updateFavoritesDisplay();
+        });
 
-    // Add event listener for search input
-    searchInput.addEventListener('input', function() {
-        const settings = JSON.parse(localStorage.getItem('settings')) || defaultSettings;
-        clearTimeout(searchTimeout);
-        if (validateSearchInput(this)) {
-            searchTimeout = setTimeout(() => performSearch(1), settings.searchDelay);
-        }
-    });
-
-    // Add event listener for Enter key in search input
-    searchInput.addEventListener('keypress', function(event) {
-        if (event.key === 'Enter') {
-            event.preventDefault();
+        // Add event listener for search input
+        searchInput.addEventListener('input', function() {
             clearTimeout(searchTimeout);
             if (validateSearchInput(this)) {
-                performSearch(1);
+                searchTimeout = setTimeout(() => performSearch(1), currentSettings ? currentSettings.searchDelay : 300);
             }
+        });
+
+        // Add event listener for Enter key in search input
+        searchInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                clearTimeout(searchTimeout);
+                if (validateSearchInput(this)) {
+                    performSearch(1);
+                }
+            }
+        });
+
+        // Add event listener for favorites search input
+        favoritesSearchInput.addEventListener('input', function() {
+            updateFavoritesDisplay();
+        });
+
+        // Load initial data
+        loadFavorites();
+        
+        // Check URL hash for initial tab
+        const hash = window.location.hash.slice(1);
+        if (hash) {
+            showTab(hash);
         }
-    });
 
-    // Add event listener for favorites search input
-    favoritesSearchInput.addEventListener('input', function() {
-        updateFavoritesDisplay();
-    });
+        // Add event listeners for settings buttons
+        document.getElementById('saveSettings').addEventListener('click', saveSettings);
+        document.getElementById('resetSettings').addEventListener('click', resetSettings);
 
-    // Load initial data
-    loadFavorites();
-    
-    // Check URL hash for initial tab
-    const hash = window.location.hash.slice(1);
-    if (hash) {
-        showTab(hash);
-    }
+        // Add event listener for truncate titles checkbox
+        const truncateTitlesCheckbox = document.getElementById('truncateTitles');
+        const maxTitleLengthInput = document.getElementById('maxTitleLength');
+        
+        truncateTitlesCheckbox.addEventListener('change', function() {
+            maxTitleLengthInput.disabled = !this.checked;
+            // Immediately apply the setting change
+            currentSettings.truncateTitles = this.checked;
+            // Re-render current results with new setting
+            if (currentQuery) {
+                performSearch(currentPage);
+            }
+        });
 
-    // Load settings when the page loads
-    loadSettings();
+        // Add event listener for max title length changes
+        maxTitleLengthInput.addEventListener('change', function() {
+            currentSettings.maxTitleLength = parseInt(this.value);
+            // Re-render current results with new setting
+            if (currentQuery) {
+                performSearch(currentPage);
+            }
+        });
 
-    // Add event listeners for settings buttons
-    document.getElementById('saveSettings').addEventListener('click', saveSettings);
-    document.getElementById('resetSettings').addEventListener('click', resetSettings);
+        // Add event listener for category filter changes
+        document.getElementById('categoryFilter').addEventListener('change', function() {
+            performSearch(1);
+        });
 
-    // Add event listener for truncate titles checkbox
-    const truncateTitlesCheckbox = document.getElementById('truncateTitles');
-    const maxTitleLengthInput = document.getElementById('maxTitleLength');
-    
-    truncateTitlesCheckbox.addEventListener('change', function() {
-        maxTitleLengthInput.disabled = !this.checked;
-        // Immediately apply the setting change
-        currentSettings.truncateTitles = this.checked;
-        // Re-render current results with new setting
-        if (currentQuery) {
-            performSearch(currentPage);
-        }
-    });
-
-    // Add event listener for max title length changes
-    maxTitleLengthInput.addEventListener('change', function() {
-        currentSettings.maxTitleLength = parseInt(this.value);
-        // Re-render current results with new setting
-        if (currentQuery) {
-            performSearch(currentPage);
-        }
-    });
-
-    // Add event listener for category filter changes
-    document.getElementById('categoryFilter').addEventListener('change', function() {
-        performSearch(1);
-    });
-
-    document.getElementById('favoriteCategoryFilter').addEventListener('change', function() {
-        updateFavoritesDisplay();
+        document.getElementById('favoriteCategoryFilter').addEventListener('change', function() {
+            updateFavoritesDisplay();
+        });
     });
 });
 
@@ -589,127 +698,6 @@ function updateHeaderText(text) {
     document.getElementById('mainHeader').textContent = text;
     document.getElementById('pageTitle').textContent = text;
 }
-
-// Update loadSettings function to handle custom header
-function loadSettings() {
-    fetch('/settings')
-        .then(response => response.json())
-        .then(settings => {
-            document.getElementById('minQueryLength').value = settings.minQueryLength;
-            document.getElementById('maxQueryLength').value = settings.maxQueryLength;
-            document.getElementById('searchDelay').value = settings.searchDelay;
-            document.getElementById('showScores').checked = settings.showScores;
-            document.getElementById('resultsPerPage').value = settings.resultsPerPage;
-            document.getElementById('cacheDir').value = settings.cacheDir;
-            document.getElementById('autoUpdate').checked = settings.autoUpdate;
-            document.getElementById('truncateTitles').checked = settings.truncateTitles;
-            document.getElementById('maxTitleLength').value = settings.maxTitleLength;
-            document.getElementById('customHeader').value = settings.customHeader;
-            updateHeaderText(settings.customHeader);
-            currentSettings = settings;
-        })
-        .catch(error => {
-            console.error('Error loading settings:', error);
-            showToast('Failed to load settings', 'error');
-        });
-}
-
-// Update saveSettings function to include custom header
-function saveSettings() {
-    const settings = {
-        minQueryLength: parseInt(document.getElementById('minQueryLength').value),
-        maxQueryLength: parseInt(document.getElementById('maxQueryLength').value),
-        searchDelay: parseInt(document.getElementById('searchDelay').value),
-        showScores: document.getElementById('showScores').checked,
-        resultsPerPage: parseInt(document.getElementById('resultsPerPage').value),
-        cacheDir: document.getElementById('cacheDir').value,
-        autoUpdate: document.getElementById('autoUpdate').checked,
-        truncateTitles: document.getElementById('truncateTitles').checked,
-        maxTitleLength: parseInt(document.getElementById('maxTitleLength').value),
-        customHeader: document.getElementById('customHeader').value
-    };
-
-    fetch('/settings', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(settings)
-    })
-    .then(response => response.json())
-    .then(savedSettings => {
-        currentSettings = savedSettings;
-        updateHeaderText(savedSettings.customHeader);
-        showToast('Settings saved successfully');
-    })
-    .catch(error => {
-        console.error('Error saving settings:', error);
-        showToast('Failed to save settings', 'error');
-    });
-}
-
-// Update resetSettings function to handle custom header
-function resetSettings() {
-    fetch('/settings')
-        .then(response => response.json())
-        .then(settings => {
-            const defaultSettings = {
-                minQueryLength: 2,
-                maxQueryLength: 1000,
-                searchDelay: 300,
-                showScores: true,
-                resultsPerPage: 10,
-                cacheDir: '~/.local/cache/freectl',
-                autoUpdate: true,
-                truncateTitles: true,
-                maxTitleLength: 100,
-                customHeader: 'Repository Search'
-            };
-
-            // Update UI with default values
-            document.getElementById('minQueryLength').value = defaultSettings.minQueryLength;
-            document.getElementById('maxQueryLength').value = defaultSettings.maxQueryLength;
-            document.getElementById('searchDelay').value = defaultSettings.searchDelay;
-            document.getElementById('showScores').checked = defaultSettings.showScores;
-            document.getElementById('resultsPerPage').value = defaultSettings.resultsPerPage;
-            document.getElementById('cacheDir').value = defaultSettings.cacheDir;
-            document.getElementById('autoUpdate').checked = defaultSettings.autoUpdate;
-            document.getElementById('truncateTitles').checked = defaultSettings.truncateTitles;
-            document.getElementById('maxTitleLength').value = defaultSettings.maxTitleLength;
-            document.getElementById('customHeader').value = defaultSettings.customHeader;
-            updateHeaderText(defaultSettings.customHeader);
-
-            // Save default settings
-            fetch('/settings', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(defaultSettings)
-            })
-            .then(response => response.json())
-            .then(savedSettings => {
-                currentSettings = savedSettings;
-                showToast('Settings reset to defaults');
-            })
-            .catch(error => {
-                console.error('Error saving default settings:', error);
-                showToast('Failed to save default settings', 'error');
-            });
-        })
-        .catch(error => {
-            console.error('Error resetting settings:', error);
-            showToast('Failed to reset settings', 'error');
-        });
-}
-
-// Update search delay based on settings
-searchInput.addEventListener('input', function() {
-    clearTimeout(searchTimeout);
-    if (validateSearchInput(this)) {
-        searchTimeout = setTimeout(() => performSearch(1), currentSettings.searchDelay);
-    }
-});
 
 function updateRepository() {
     const updateButton = document.getElementById('updateRepo');
@@ -843,7 +831,7 @@ function performSearch(page = 1) {
         return;
     }
 
-    const settings = JSON.parse(localStorage.getItem('settings')) || defaultSettings;
+    const resultsPerPage = currentSettings ? currentSettings.resultsPerPage : 10;
     const selectedRepo = repoFilter.value;
     const selectedCategory = categoryFilter.value;
     currentQuery = query;
@@ -852,7 +840,7 @@ function performSearch(page = 1) {
     resultsDiv.innerHTML = '<div class="loading">Searching...</div>';
     document.getElementById('pagination').innerHTML = '';
     
-    let url = `/search?q=${encodeURIComponent(query)}&page=${page}&per_page=${settings.resultsPerPage}`;
+    let url = `/search?q=${encodeURIComponent(query)}&page=${page}&per_page=${resultsPerPage}`;
     if (selectedRepo) {
         url += `&repo=${encodeURIComponent(selectedRepo)}`;
     }
@@ -1018,4 +1006,4 @@ function toggleRepository(name) {
         console.error('Error:', error);
         showToast(`Failed to toggle repository: ${error.message}`, true);
     });
-} 
+}
