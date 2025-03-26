@@ -11,13 +11,11 @@ import (
 	"strings"
 	"sync"
 
-	"freectl/internal/common"
 	"freectl/internal/config"
 	"freectl/internal/repository"
 	"freectl/internal/search"
 	"freectl/internal/settings"
 	"freectl/internal/stats"
-	"freectl/internal/update"
 
 	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
@@ -319,7 +317,7 @@ func handleStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repoPath := common.GetRepoPath(config.CacheDir, repoName)
+	repoPath := repository.GetRepoPath(config.CacheDir, repoName)
 	docsDir := filepath.Join(repoPath, "docs")
 	s := &stats.Stats{
 		DomainsCount:  make(map[string]int),
@@ -358,7 +356,7 @@ func handleUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	duration, err := update.UpdateRepo(config.CacheDir)
+	duration, err := repository.UpdateRepo(config.CacheDir)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to update repositories: %v", err), http.StatusInternalServerError)
 		return
@@ -467,7 +465,7 @@ func handleAddRepository(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := search.AddRepository(config.CacheDir, req.URL, req.Name); err != nil {
+	if err := repository.AddRepository(config.CacheDir, req.URL, req.Name); err != nil {
 		log.Error("Failed to add repository", "error", err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)

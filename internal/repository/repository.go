@@ -3,10 +3,11 @@ package repository
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
-	"freectl/internal/common"
 	"freectl/internal/settings"
 
 	"github.com/charmbracelet/log"
@@ -18,6 +19,88 @@ type Repository struct {
 	Path    string `json:"path"`
 	URL     string `json:"url"`
 	Enabled bool   `json:"enabled"`
+}
+
+// AddRepositoryRequest represents the request to add a new repository
+type AddRepositoryRequest struct {
+	URL  string `json:"url"`
+	Name string `json:"name"`
+}
+
+// GetRepoPath returns the path to a repository
+func GetRepoPath(cacheDir, repoName string) string {
+	// Expand the ~ to the user's home directory
+	if cacheDir[:2] == "~/" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			log.Fatal("Failed to get home directory", "error", err)
+		}
+		cacheDir = filepath.Join(home, cacheDir[2:])
+	}
+
+	repoPath := filepath.Join(cacheDir, repoName)
+	if _, err := os.Stat(repoPath); os.IsNotExist(err) {
+		log.Fatal("Repository not found. Please run 'freectl update' first")
+	}
+
+	return repoPath
+}
+
+// GetGitRemoteURL returns the remote URL of a Git repository
+func GetGitRemoteURL(repoPath string) (string, error) {
+	cmd := exec.Command("git", "-C", repoPath, "remote", "get-url", "origin")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("failed to get remote URL: %s", string(output))
+	}
+	return strings.TrimSpace(string(output)), nil
+}
+
+// ValidateRepository checks if a repository exists and is valid
+func ValidateRepository(cacheDir, name string) error {
+	repoPath := filepath.Join(cacheDir, name)
+	if _, err := os.Stat(repoPath); os.IsNotExist(err) {
+		return fmt.Errorf("repository %s not found", name)
+	}
+
+	// Check if it's a valid Git repository
+	if _, err := os.Stat(filepath.Join(repoPath, ".git")); os.IsNotExist(err) {
+		return fmt.Errorf("repository %s is not a valid Git repository", name)
+	}
+
+	return nil
+}
+
+// AddRepository adds a new repository to the cache
+func AddRepository(cacheDir string, url string, name string) error {
+	if url == "" {
+		return fmt.Errorf("repository URL is required")
+	}
+
+	// If no name is provided, derive it from the URL
+	if name == "" {
+		name = filepath.Base(url)
+		// Remove .git extension if present
+		name = strings.TrimSuffix(name, ".git")
+	}
+
+	// Get the repository path
+	repoPath := filepath.Join(cacheDir, name)
+
+	// Check if repository already exists
+	if _, err := os.Stat(repoPath); !os.IsNotExist(err) {
+		return fmt.Errorf("repository %s already exists", name)
+	}
+
+	// Clone the repository
+	log.Info("Cloning repository", "url", url, "name", name)
+	cmd := exec.Command("git", "clone", "--depth", "1", url, repoPath)
+	if output, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("failed to clone repository: %s", string(output))
+	}
+
+	log.Info("Repository added successfully", "name", name)
+	return nil
 }
 
 // List returns all repositories in the cache directory
@@ -54,7 +137,7 @@ func List(cacheDir string) ([]Repository, error) {
 		log.Debug("Processing repository", "name", entry.Name(), "path", repoPath)
 
 		// Get the remote URL
-		url, err := common.GetGitRemoteURL(repoPath)
+		url, err := GetGitRemoteURL(repoPath)
 		if err != nil {
 			log.Error("Failed to get repository URL", "name", entry.Name(), "error", err)
 		}
@@ -134,7 +217,7 @@ func ToggleEnabled(cacheDir string, name string) error {
 	}
 
 	// Get the remote URL
-	url, err := common.GetGitRemoteURL(repoPath)
+	url, err := GetGitRemoteURL(repoPath)
 	if err != nil {
 		log.Error("Failed to get repository URL", "name", name, "error", err)
 	}
@@ -210,4 +293,38 @@ func DeriveNameFromURL(url string) string {
 	}
 
 	return name
+}
+
+// UpdateRepo updates or clones all repositories in the specified cache directory.
+// It returns the duration of the operation and any error that occurred.
+func UpdateRepo(cacheDir string) (time.Duration, error) {
+	startTime := time.Now()
+
+	// Get list of repositories
+	repos, err := List(cacheDir)
+	if err != nil {
+		return 0, err
+	}
+
+	if len(repos) == 0 {
+		log.Info("No repositories found. Please add a repository using 'freectl add'")
+		return time.Since(startTime), nil
+	}
+
+	// Update each repository
+	for _, repo := range repos {
+		log.Info("Updating repository", "name", repo.Name)
+
+		// Update existing repository
+		cmd := exec.Command("git", "-C", repo.Path, "pull")
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			log.Error("Failed to update repository", "name", repo.Name, "error", err)
+			continue
+		}
+		log.Info("Repository updated successfully", "name", repo.Name)
+	}
+
+	return time.Since(startTime), nil
 }

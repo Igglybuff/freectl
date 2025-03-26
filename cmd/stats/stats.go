@@ -8,7 +8,7 @@ import (
 	"strings"
 	"sync"
 
-	"freectl/internal/common"
+	"freectl/internal/repository"
 	internalStats "freectl/internal/stats"
 
 	"github.com/charmbracelet/log"
@@ -26,7 +26,7 @@ This includes information about categories, links, and other metadata.`,
 		if repoName == "" {
 			return fmt.Errorf("repository name is required")
 		}
-		repoPath := common.GetRepoPath(cacheDir, repoName)
+		repoPath := repository.GetRepoPath(cacheDir, repoName)
 		docsPath := filepath.Join(repoPath, "docs")
 
 		s := &internalStats.Stats{
