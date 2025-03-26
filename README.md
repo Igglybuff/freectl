@@ -170,7 +170,7 @@ go build
 - [ ] separate link names and descriptions into distinct fields and render them differently in the UI
 - [ ] after adding/removing repos from Settings, page needs to refresh before selecting categories from Search drop-down
 - [x] fix the readme, some of the info is just wrong
-- [ ] add setting to change min/max fuzzy match score
+- [x] add setting to change max fuzzy match score
 - [ ] add support for bulk-adding repos, either with multi-line paste or by adding a list-of-lists
 - [ ] filter out items under misleading headings like "Contents"
 - [ ] this blogs list didn't parse at all: https://github.com/kilimchoi/engineering-blogs
