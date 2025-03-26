@@ -28,6 +28,7 @@ var StaticFS embed.FS
 
 type Result struct {
 	URL         string `json:"url"`
+	Name        string `json:"name"`
 	Description string `json:"description"`
 	Line        string `json:"-"`
 	Score       int    `json:"-"`
@@ -175,6 +176,7 @@ func Search(query string, cacheDir string, repoName string, settings settings.Se
 		return nil, fmt.Errorf("failed to get repositories: %w", err)
 	}
 
+	log.Info("Found repositories", "count", len(repos), "cacheDir", cacheDir)
 	if len(repos) == 0 {
 		return nil, fmt.Errorf("no repositories found in %s", cacheDir)
 	}
@@ -192,6 +194,7 @@ func Search(query string, cacheDir string, repoName string, settings settings.Se
 			return nil, fmt.Errorf("repository '%s' not found", repoName)
 		}
 		repos = filteredRepos
+		log.Info("Filtered repositories", "count", len(repos), "repoName", repoName)
 	}
 
 	// Filter out disabled repositories
@@ -204,8 +207,12 @@ func Search(query string, cacheDir string, repoName string, settings settings.Se
 		}
 		if enabled {
 			enabledRepos = append(enabledRepos, repo)
+			log.Debug("Repository enabled", "name", repo.Name)
+		} else {
+			log.Debug("Repository disabled", "name", repo.Name)
 		}
 	}
+	log.Info("Enabled repositories", "count", len(enabledRepos))
 
 	var allResults []Result
 	var mu sync.Mutex
@@ -233,6 +240,7 @@ func Search(query string, cacheDir string, repoName string, settings settings.Se
 				return nil
 			}
 
+			log.Debug("Processing markdown file", "path", path)
 			content, err := os.ReadFile(path)
 			if err != nil {
 				log.Error("Error reading file", "path", path, "error", err)
@@ -241,6 +249,7 @@ func Search(query string, cacheDir string, repoName string, settings settings.Se
 
 			lines := strings.Split(string(content), "\n")
 			var lastHeading string
+			linkCount := 0
 			for _, line := range lines {
 				// Track headings for categories
 				if strings.HasPrefix(line, "# ") {
@@ -266,9 +275,15 @@ func Search(query string, cacheDir string, repoName string, settings settings.Se
 
 					// Look for markdown link pattern: [text](url)
 					if strings.Contains(line, "](http") || strings.Contains(line, "](https") || strings.Contains(line, "](www.") {
+						linkCount++
 						cleanLine := common.CleanMarkdown(line)
 						url := common.ExtractURL(cleanLine)
 						if url != "" {
+							log.Debug("Found link in file",
+								"path", path,
+								"line", line,
+								"url", url)
+
 							// Extract description - everything after the URL and dash
 							parts := strings.SplitN(cleanLine, "-", 2)
 							description := url // Default to URL if no description
@@ -282,15 +297,7 @@ func Search(query string, cacheDir string, repoName string, settings settings.Se
 							}
 
 							if len(parts) > 1 {
-								// If we have both link text and description, combine them
-								if linkText != "" {
-									description = linkText + " - " + strings.TrimSpace(parts[1])
-								} else {
-									description = strings.TrimSpace(parts[1])
-								}
-							} else if linkText != "" {
-								// If we only have link text, use that
-								description = linkText
+								description = strings.TrimSpace(parts[1])
 							}
 
 							// Clean the description
@@ -301,16 +308,20 @@ func Search(query string, cacheDir string, repoName string, settings settings.Se
 							if len(matches) > 0 {
 								log.Debug("Found match",
 									"score", matches[0].Score,
+									"minScore", settings.MinFuzzyScore,
+									"name", linkText,
 									"description", description,
 									"line", cleanLine,
 									"category", lastHeading,
-									"repository", repo.Name)
+									"repository", repo.Name,
+									"allMatches", len(matches))
 
 								// Check if the score meets the minimum threshold
 								if matches[0].Score >= settings.MinFuzzyScore {
 									mu.Lock()
 									allResults = append(allResults, Result{
 										URL:         url,
+										Name:        linkText,
 										Description: description,
 										Line:        cleanLine,
 										Score:       matches[0].Score,
@@ -318,6 +329,15 @@ func Search(query string, cacheDir string, repoName string, settings settings.Se
 										Repository:  repo.Name,
 									})
 									mu.Unlock()
+									log.Debug("Added result to allResults",
+										"totalResults", len(allResults),
+										"score", matches[0].Score,
+										"name", linkText)
+								} else {
+									log.Debug("Result below minimum score threshold",
+										"score", matches[0].Score,
+										"minScore", settings.MinFuzzyScore,
+										"name", linkText)
 								}
 							}
 						}
@@ -333,6 +353,7 @@ func Search(query string, cacheDir string, repoName string, settings settings.Se
 		}
 	}
 
+	log.Info("Search completed", "totalResults", len(allResults))
 	// Sort results by score
 	sort.Slice(allResults, func(i, j int) bool {
 		return allResults[i].Score > allResults[j].Score

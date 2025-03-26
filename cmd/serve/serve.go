@@ -203,9 +203,10 @@ func handleSearch(w http.ResponseWriter, r *http.Request) {
 		if !seen[r.URL] && (category == "" || r.Category == category) {
 			seen[r.URL] = true
 			uniqueResults = append(uniqueResults, SearchResult{
-				Title:       r.Category,
+				Category:    r.Category,
 				Description: r.Description,
 				URL:         r.URL,
+				Name:        r.Name,
 				Score:       r.Score,
 				Repository:  r.Repository,
 			})
@@ -655,9 +656,10 @@ func handleToggleRepository(w http.ResponseWriter, r *http.Request) {
 
 // Define a SearchResult struct for JSON encoding
 type SearchResult struct {
-	Title       string `json:"title"`
+	Category    string `json:"category"`
 	Description string `json:"description"`
 	URL         string `json:"url"`
+	Name        string `json:"name"`
 	Score       int    `json:"score"`
 	Repository  string `json:"repository"`
 }

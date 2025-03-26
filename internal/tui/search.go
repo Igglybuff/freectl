@@ -32,7 +32,7 @@ var (
 type SearchResult struct {
 	Category   string
 	Link       string
-	Text       string
+	Name       string
 	Line       string
 	Score      int
 	Repository string
@@ -40,7 +40,7 @@ type SearchResult struct {
 }
 
 func (i SearchResult) Title() string {
-	text := i.Text
+	text := i.Name
 	if i.IsInvalid {
 		text = "⚠️ " + text
 		return invalidStyle.Render(text)
@@ -49,11 +49,11 @@ func (i SearchResult) Title() string {
 }
 
 func (i SearchResult) Description() string {
-	categoryText := "Invalid category"
+	categoryName := "Invalid category"
 	if !i.IsInvalid {
-		categoryText = i.Category
+		categoryName = i.Category
 	}
-	return fmt.Sprintf("Category: %s | Repository: %s | URL: %s | Score: %d", categoryText, i.Repository, i.Link, i.Score)
+	return fmt.Sprintf("Category: %s | Repository: %s | URL: %s | Score: %d", categoryName, i.Repository, i.Link, i.Score)
 }
 
 func (i SearchResult) FilterValue() string {

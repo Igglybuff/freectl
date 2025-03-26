@@ -66,8 +66,8 @@ export function updateCategoryFilter(results, selectedCategory = '') {
         // Add only valid categories from results
         results.forEach(result => {
             // Skip invalid categories (longer than 80 characters)
-            if (result.title && result.title.length <= 80) {
-                allSearchCategories.add(result.title || 'n/a');
+            if (result.category && result.category.length <= 80) {
+                allSearchCategories.add(result.category || 'n/a');
             }
         });
     }
@@ -189,24 +189,27 @@ function createResultHTML(result, showScore = true) {
     }
     
     // Check if category is invalid
-    const isInvalid = result.title.length > 80;
+    const isInvalid = result.category.length > 80;
     
     return `<div class="result-item ${isInvalid ? 'invalid-result' : ''}">
             <div class="result-content">
-                <a href="${result.url}" class="result-link" target="_blank" title="${result.description}">${description}</a>
+                <a href="${result.url}" class="result-link" target="_blank" title="${result.description}">
+                    ${result.name || description}
+                </a>
                 <span class="result-domain">${getDisplayText(result.url)}</span>
                 ${showScore && currentSettings.showScores ? `<div class="result-score">Score: ${result.score}</div>` : ''}
             </div>
             <div style="display: flex; align-items: center; gap: 8px;">
                 ${isInvalid ? 
                     `<div class="warning-tag">⚠️ Invalid category</div>` :
-                    `<div class="category-tag">${result.title || 'n/a'}</div>`
+                    `<div class="category-tag">${result.category || 'n/a'}</div>`
                 }
                 <div class="repo-tag" style="background-color: ${repoColor}">${result.repository}</div>
                 <button class="favorite-btn ${isFavorite ? 'active' : ''}" 
                         data-link="${result.url}"
+                        data-name="${result.name}"
                         data-description="${result.description}"
-                        data-category="${result.title || 'n/a'}"
+                        data-category="${result.category || 'n/a'}"
                         data-repository="${result.repository}">
                     <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
                 </button>
@@ -271,57 +274,3 @@ export function performSearch(page = 1) {
             resultsDiv.innerHTML = '<div class="error">Failed to fetch results. Please try again.</div>';
         });
 }
-
-function renderSearchResults(results, currentPage, totalPages) {
-    const resultsContainer = document.getElementById('searchResults');
-    const settings = getCurrentSettings();
-    
-    if (!results || results.length === 0) {
-        resultsContainer.innerHTML = '<p class="no-results">No results found</p>';
-        return;
-    }
-
-    let html = '';
-    results.forEach(result => {
-        const title = settings?.truncateTitles && result.title.length > settings.maxTitleLength
-            ? result.title.substring(0, settings.maxTitleLength) + '...'
-            : result.title;
-
-        html += `
-            <div class="result-item">
-                <div class="result-header">
-                    <h3><a href="${result.link}" target="_blank">${title}</a></h3>
-                    <button class="favorite-btn" 
-                            data-link="${result.link}"
-                            data-description="${result.description}"
-                            data-category="${result.category}"
-                            data-repository="${result.repository}">
-                        <i class="fas fa-star"></i>
-                    </button>
-                </div>
-                <p class="result-description">${result.description}</p>
-                <div class="result-meta">
-                    <span class="result-category">${result.category}</span>
-                    <span class="result-repository">${result.repository}</span>
-                </div>
-            </div>
-        `;
-    });
-
-    // Add pagination if there are multiple pages
-    if (totalPages > 1) {
-        html += `
-            <div class="pagination">
-                <button onclick="performSearch(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>
-                    Previous
-                </button>
-                <span>Page ${currentPage} of ${totalPages}</span>
-                <button onclick="performSearch(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>
-                    Next
-                </button>
-            </div>
-        `;
-    }
-
-    resultsContainer.innerHTML = html;
-} 
