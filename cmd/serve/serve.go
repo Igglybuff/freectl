@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"text/template"
 
 	"freectl/internal/config"
 	"freectl/internal/repository"
@@ -82,13 +83,34 @@ func startServer() error {
 }
 
 func handleHome(w http.ResponseWriter, r *http.Request) {
-	content, err := search.TemplateFS.ReadFile("templates/index.html")
+	// Load settings
+	s, err := settings.LoadSettings()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Error("Failed to load settings", "error", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
+
+	// Parse template
+	tmpl, err := template.ParseFS(search.TemplateFS, "templates/index.html")
+	if err != nil {
+		log.Error("Failed to parse template", "error", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	// Execute template with settings
 	w.Header().Set("Content-Type", "text/html")
-	w.Write(content)
+	data := struct {
+		Settings settings.Settings
+	}{
+		Settings: s,
+	}
+	if err := tmpl.Execute(w, data); err != nil {
+		log.Error("Failed to execute template", "error", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
 }
 
 func handleStatic(w http.ResponseWriter, r *http.Request) {
@@ -155,7 +177,16 @@ func handleSearch(w http.ResponseWriter, r *http.Request) {
 	repoName := r.URL.Query().Get("repo")
 	category := r.URL.Query().Get("category")
 
-	results, err := search.Search(query, config.CacheDir, repoName)
+	// Load settings
+	settings, err := settings.LoadSettings()
+	if err != nil {
+		log.Error("Failed to load settings", "error", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	// Perform search
+	results, err := search.Search(query, config.CacheDir, repoName, settings)
 	if err != nil {
 		// Only return error for actual errors, not for missing repository
 		if !strings.Contains(err.Error(), "repository not found") {

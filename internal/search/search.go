@@ -14,6 +14,7 @@ import (
 
 	"freectl/internal/common"
 	"freectl/internal/repository"
+	"freectl/internal/settings"
 
 	"github.com/charmbracelet/log"
 	"github.com/sahilm/fuzzy"
@@ -167,7 +168,7 @@ func isContentFile(path string) bool {
 }
 
 // Search performs a fuzzy search across all markdown files in the repository
-func Search(query string, cacheDir string, repoName string) ([]Result, error) {
+func Search(query string, cacheDir string, repoName string, settings settings.Settings) ([]Result, error) {
 	// Get list of repositories
 	repos, err := repository.List(cacheDir)
 	if err != nil {
@@ -305,7 +306,8 @@ func Search(query string, cacheDir string, repoName string) ([]Result, error) {
 									"category", lastHeading,
 									"repository", repo.Name)
 
-								if matches[0].Score >= -200 {
+								// Check if the score meets the minimum threshold
+								if matches[0].Score >= settings.MinFuzzyScore {
 									mu.Lock()
 									allResults = append(allResults, Result{
 										URL:         url,

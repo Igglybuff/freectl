@@ -31,6 +31,7 @@ type Settings struct {
 	TruncateTitles bool              `json:"truncateTitles"`
 	MaxTitleLength int               `json:"maxTitleLength"`
 	CustomHeader   string            `json:"customHeader"`
+	MinFuzzyScore  int               `json:"minFuzzyScore"`
 	Repositories   []RepositoryState `json:"repositories"`
 }
 
@@ -46,7 +47,8 @@ func DefaultSettings() Settings {
 		AutoUpdate:     true,
 		TruncateTitles: true,
 		MaxTitleLength: 100,
-		CustomHeader:   "Repository Search",
+		CustomHeader:   "find cool stuff",
+		MinFuzzyScore:  0, // Default minimum score
 		Repositories:   []RepositoryState{},
 	}
 }

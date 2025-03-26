@@ -6,6 +6,7 @@ import (
 
 	"freectl/internal/common"
 	"freectl/internal/search"
+	"freectl/internal/settings"
 	"freectl/internal/tui"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -54,7 +55,13 @@ Examples:
 		limit, _ := cmd.Flags().GetInt("limit")
 		cacheDir, _ := cmd.Flags().GetString("cache-dir")
 
-		results, err := search.Search(query, cacheDir, repoName)
+		// Load settings
+		settings, err := settings.LoadSettings()
+		if err != nil {
+			return fmt.Errorf("failed to load settings: %w", err)
+		}
+
+		results, err := search.Search(query, cacheDir, repoName, settings)
 		if err != nil {
 			return fmt.Errorf("search failed: %w", err)
 		}
