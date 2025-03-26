@@ -174,6 +174,96 @@ body {
     margin-right: 15px;
 }
 
+.result-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.result-link-container {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
+}
+
+.result-link {
+    color: var(--link-color);
+    text-decoration: none;
+    font-size: 16px;
+    margin-right: 4px;
+    white-space: nowrap;
+}
+
+.result-link:hover {
+    text-decoration: underline;
+}
+
+.result-description-toggle {
+    background: none;
+    border: none;
+    color: var(--secondary-text);
+    cursor: pointer;
+    padding: 2px;
+    opacity: 0.7;
+    transition: all 0.2s;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+}
+
+.result-description-toggle:hover {
+    opacity: 1;
+    background-color: var(--bg-hover);
+}
+
+.result-description-toggle svg {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
+}
+
+.result-description-toggle .collapse-icon {
+    display: none;
+}
+
+.result-description-toggle.expanded .expand-icon {
+    display: none;
+}
+
+.result-description-toggle.expanded .collapse-icon {
+    display: block;
+}
+
+.result-description {
+    display: none;
+    font-size: 12px;
+    color: var(--secondary-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    margin: 0 8px;
+}
+
+.result-description.show {
+    display: block;
+}
+
+.result-domain {
+    color: var(--secondary-text);
+    font-size: 12px;
+    white-space: nowrap;
+    padding: 4px 8px;
+    background-color: var(--bg-secondary);
+    border-radius: 4px;
+}
+
 .category-tag {
     padding: 4px 8px;
     border-radius: 4px;
@@ -204,25 +294,6 @@ body {
 
 .category-tag:hover {
     opacity: 0.9;
-}
-
-.result-link {
-    color: var(--link-color);
-    text-decoration: none;
-    font-size: 16px;
-    display: inline-block;
-    margin-bottom: 4px;
-}
-
-.result-link:hover {
-    text-decoration: underline;
-}
-
-.result-domain {
-    color: var(--secondary-text);
-    font-size: 14px;
-    display: inline-block;
-    margin-left: 8px;
 }
 
 .result-score {

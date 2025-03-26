@@ -9,7 +9,6 @@ let totalPages = 1;
 let totalResults = 0;
 let currentQuery = '';
 let currentResults = [];
-let currentCategories = new Set();
 let allSearchCategories = new Set();
 
 // Validate search input
@@ -182,21 +181,25 @@ function createResultHTML(result, showScore = true) {
     const repoColor = getRepositoryColor(result.repository, new Map());
     const currentSettings = getCurrentSettings();
     
-    // Truncate description if enabled
-    let description = result.description;
-    if (currentSettings && currentSettings.truncateTitles && description.length > currentSettings.maxTitleLength) {
-        description = description.substring(0, currentSettings.maxTitleLength) + '...';
-    }
-    
     // Check if category is invalid
     const isInvalid = result.category.length > 80;
     
     return `<div class="result-item ${isInvalid ? 'invalid-result' : ''}">
             <div class="result-content">
-                <a href="${result.url}" class="result-link" target="_blank" title="${result.description}">
-                    ${result.name || description}
-                </a>
-                <span class="result-domain">${getDisplayText(result.url)}</span>
+                <div class="result-header">
+                    <a href="${result.url}" class="result-link" target="_blank">
+                        ${result.name || result.description}
+                    </a>
+                    <button class="result-description-toggle" title="Toggle description">
+                        <svg class="expand-icon" viewBox="0 0 24 24">
+                            <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                        </svg>
+                        <svg class="collapse-icon" viewBox="0 0 24 24">
+                            <path d="M19 13H5v-2h14v2z"/>
+                        </svg>
+                    </button>
+                    <span class="result-description">${result.description}</span>
+                </div>
                 ${showScore && currentSettings.showScores ? `<div class="result-score">Score: ${result.score}</div>` : ''}
             </div>
             <div style="display: flex; align-items: center; gap: 8px;">
@@ -205,6 +208,7 @@ function createResultHTML(result, showScore = true) {
                     `<div class="category-tag">${result.category || 'n/a'}</div>`
                 }
                 <div class="repo-tag" style="background-color: ${repoColor}">${result.repository}</div>
+                <span class="result-domain">${getDisplayText(result.url)}</span>
                 <button class="favorite-btn ${isFavorite ? 'active' : ''}" 
                         data-link="${result.url}"
                         data-name="${result.name}"
@@ -215,6 +219,18 @@ function createResultHTML(result, showScore = true) {
                 </button>
             </div>
         </div>`;
+}
+
+// Update the event listeners for description toggles
+function addDescriptionToggleListeners() {
+    document.querySelectorAll('.result-description-toggle').forEach(button => {
+        button.addEventListener('click', function() {
+            const description = this.closest('.result-content').querySelector('.result-description');
+            const isShowing = description.classList.contains('show');
+            description.classList.toggle('show');
+            this.classList.toggle('expanded');
+        });
+    });
 }
 
 // Perform search
@@ -263,6 +279,9 @@ export function performSearch(page = 1) {
 
             // Display results
             resultsDiv.innerHTML = currentResults.map(result => createResultHTML(result, true)).join('');
+
+            // Add event listeners for description toggles
+            addDescriptionToggleListeners();
 
             // Update pagination info
             totalPages = data.total_pages;
