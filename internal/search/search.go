@@ -3,10 +3,7 @@ package search
 import (
 	"bufio"
 	"embed"
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -17,7 +14,6 @@ import (
 
 	"freectl/internal/common"
 	"freectl/internal/repository"
-	"freectl/internal/settings"
 
 	"github.com/charmbracelet/log"
 	"github.com/sahilm/fuzzy"
@@ -379,177 +375,4 @@ func AddRepository(cacheDir string, url string, name string) error {
 
 	log.Info("Repository added successfully", "name", name)
 	return nil
-}
-
-// StartWebServer starts the web server
-func StartWebServer(port int, cacheDir string) error {
-	// Initialize logger with stdout
-	logger := log.NewWithOptions(os.Stdout, log.Options{
-		ReportCaller:    true,
-		ReportTimestamp: true,
-		Level:           log.DebugLevel,
-	})
-	log.SetDefault(logger)
-
-	log.Info("Starting web server", "port", port, "cache_dir", cacheDir)
-
-	// Serve static files
-	http.Handle("/static/", http.FileServer(http.FS(StaticFS)))
-
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/" {
-			content, err := TemplateFS.ReadFile("templates/index.html")
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			w.Header().Set("Content-Type", "text/html")
-			w.Write(content)
-			return
-		}
-
-		if r.URL.Path == "/search" {
-			query := r.URL.Query().Get("q")
-			if query == "" {
-				json.NewEncoder(w).Encode([]Result{})
-				return
-			}
-
-			results, err := Search(query, cacheDir, "")
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-
-			// Convert internal results to JSON-friendly format
-			jsonResults := make([]Result, len(results))
-			for i, r := range results {
-				jsonResults[i] = Result{
-					URL:         r.URL,
-					Description: r.Description,
-					Category:    r.Category,
-					Repository:  r.Repository,
-				}
-			}
-
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(jsonResults)
-			return
-		}
-
-		if r.URL.Path == "/favorites" {
-			if r.Method == "GET" {
-				favorites, err := LoadFavorites()
-				if err != nil {
-					http.Error(w, err.Error(), http.StatusInternalServerError)
-					return
-				}
-
-				w.Header().Set("Content-Type", "application/json")
-				json.NewEncoder(w).Encode(favorites)
-				return
-			}
-		}
-
-		if r.URL.Path == "/favorites/add" {
-			if r.Method == "POST" {
-				body, err := io.ReadAll(r.Body)
-				if err != nil {
-					http.Error(w, err.Error(), http.StatusBadRequest)
-					return
-				}
-
-				var favorite Favorite
-				if err := json.Unmarshal(body, &favorite); err != nil {
-					http.Error(w, err.Error(), http.StatusBadRequest)
-					return
-				}
-
-				if err := AddFavorite(favorite); err != nil {
-					http.Error(w, err.Error(), http.StatusInternalServerError)
-					return
-				}
-
-				w.WriteHeader(http.StatusOK)
-				return
-			}
-		}
-
-		if r.URL.Path == "/favorites/remove" {
-			if r.Method == "POST" {
-				body, err := io.ReadAll(r.Body)
-				if err != nil {
-					http.Error(w, err.Error(), http.StatusBadRequest)
-					return
-				}
-
-				var favorite Favorite
-				if err := json.Unmarshal(body, &favorite); err != nil {
-					http.Error(w, err.Error(), http.StatusBadRequest)
-					return
-				}
-
-				if err := RemoveFavorite(favorite); err != nil {
-					http.Error(w, err.Error(), http.StatusInternalServerError)
-					return
-				}
-
-				w.WriteHeader(http.StatusOK)
-				return
-			}
-		}
-
-		if r.URL.Path == "/settings" {
-			w.Header().Set("Content-Type", "application/json")
-
-			if r.Method == "GET" {
-				s, err := settings.LoadSettings()
-				if err != nil {
-					log.Error("Failed to load settings", "error", err)
-					http.Error(w, fmt.Sprintf(`{"error": "%s"}`, err.Error()), http.StatusInternalServerError)
-					return
-				}
-
-				if err := json.NewEncoder(w).Encode(s); err != nil {
-					log.Error("Failed to encode settings", "error", err)
-					http.Error(w, fmt.Sprintf(`{"error": "Failed to encode settings: %s"}`, err.Error()), http.StatusInternalServerError)
-					return
-				}
-				return
-			}
-
-			if r.Method == "POST" {
-				var s settings.Settings
-				if err := json.NewDecoder(r.Body).Decode(&s); err != nil {
-					log.Error("Failed to decode settings from request", "error", err)
-					http.Error(w, fmt.Sprintf(`{"error": "Failed to decode settings: %s"}`, err.Error()), http.StatusBadRequest)
-					return
-				}
-
-				if err := settings.SaveSettings(s); err != nil {
-					log.Error("Failed to save settings", "error", err)
-					http.Error(w, fmt.Sprintf(`{"error": "Failed to save settings: %s"}`, err.Error()), http.StatusInternalServerError)
-					return
-				}
-
-				// Return the saved settings as confirmation
-				if err := json.NewEncoder(w).Encode(s); err != nil {
-					log.Error("Failed to encode response", "error", err)
-					http.Error(w, fmt.Sprintf(`{"error": "Failed to encode response: %s"}`, err.Error()), http.StatusInternalServerError)
-					return
-				}
-				return
-			}
-
-			// Method not allowed
-			if r.Method != "GET" && r.Method != "POST" {
-				http.Error(w, `{"error": "Method not allowed"}`, http.StatusMethodNotAllowed)
-				return
-			}
-		}
-
-		http.NotFound(w, r)
-	})
-
-	return http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 }
