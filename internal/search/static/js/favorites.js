@@ -34,7 +34,6 @@ export function toggleFavorite(link, description, category, repository, name) {
         allFavorites = favorites;
         currentFavorites = new Set(favorites.map(f => f.link));
         updateFavoriteButtons();
-        updateFavoritesDisplay();
         showToast(isFavorite ? 'Removed from favorites' : 'Added to favorites');
     })
     .catch(error => {
@@ -82,6 +81,14 @@ export function updateFavoritesDisplay() {
         return;
     }
 
+    // Store the current visibility state of descriptions
+    const visibleDescriptions = new Set();
+    document.querySelectorAll('.result-description').forEach(desc => {
+        if (desc.classList.contains('show')) {
+            visibleDescriptions.add(desc.closest('.result-content').querySelector('.result-link').href);
+        }
+    });
+
     favoritesDiv.innerHTML = filteredFavorites.map(f => createResultHTML({
         url: f.link,
         name: f.name,
@@ -95,7 +102,17 @@ export function updateFavoritesDisplay() {
     addDescriptionToggleListeners();
     // Add kebab menu listeners
     addKebabMenuListeners();
+    // Update favorite buttons
     updateFavoriteButtons();
+
+    // Restore description visibility state
+    document.querySelectorAll('.result-description').forEach(desc => {
+        const link = desc.closest('.result-content').querySelector('.result-link').href;
+        if (visibleDescriptions.has(link)) {
+            desc.classList.add('show');
+            desc.closest('.result-content').querySelector('.result-description-toggle').classList.add('expanded');
+        }
+    });
 }
 
 // Add description toggle functionality
