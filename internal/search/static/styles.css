@@ -156,7 +156,7 @@ body {
     padding: 10px;
     font-size: 16px;
     border: 1px solid var(--border-color);
-    border-radius: 4px;
+    border-radius: 6px;
     background-color: var(--bg-secondary);
     color: var(--text-color);
     transition: border-color 0.2s, box-shadow 0.2s;
@@ -188,7 +188,7 @@ body {
     margin-bottom: 20px;
     padding: 15px;
     border: 1px solid var(--border-color);
-    border-radius: 4px;
+    border-radius: 6px;
     transition: box-shadow 0.2s, border-color 0.2s;
     background-color: var(--bg-color);
     box-sizing: border-box;
@@ -250,7 +250,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 4px;
+    border-radius: 6px;
     flex-shrink: 0;
 }
 
@@ -379,7 +379,7 @@ body {
 .score-bar {
     width: 4px;
     background-color: var(--bg-secondary);
-    border-radius: 2px;
+    border-radius: 6px;
     transition: background-color 0.2s;
 }
 
@@ -484,7 +484,7 @@ body {
     background: var(--toast-bg);
     color: var(--toast-text);
     padding: 12px 24px;
-    border-radius: 4px;
+    border-radius: 6px;
     opacity: 0;
     transition: opacity 0.3s;
     z-index: 1000;
@@ -589,7 +589,7 @@ body {
 .stats-section {
     background: var(--bg-light);
     border: 1px solid var(--border-color);
-    border-radius: 4px;
+    border-radius: 6px;
     padding: 24px;
     margin-bottom: 24px;
 }
@@ -620,7 +620,7 @@ body {
     gap: 4px;
     background: var(--bg-lighter);
     padding: 12px;
-    border-radius: 4px;
+    border-radius: 6px;
     border: 1px solid var(--border-color);
     text-align: center;
     align-items: center;
@@ -652,7 +652,7 @@ body {
     padding: 16px;
     background: var(--bg-lighter);
     border: 1px solid var(--border-color);
-    border-radius: 4px;
+    border-radius: 6px;
 }
 
 .stats-list-label {
@@ -732,7 +732,7 @@ body {
     align-items: center;
     padding: 12px;
     border: 1px solid var(--border-color);
-    border-radius: 4px;
+    border-radius: 6px;
     margin-bottom: 10px;
     background-color: var(--bg-secondary);
     transition: background-color 0.2s, border-color 0.2s;
@@ -836,7 +836,7 @@ body {
     top: 100%;
     background-color: var(--bg-color);
     border: 1px solid var(--border-color);
-    border-radius: 4px;
+    border-radius: 6px;
     box-shadow: 0 2px 8px var(--shadow-color);
     z-index: 1000;
     min-width: 160px;
@@ -922,7 +922,7 @@ body {
 .settings-section {
     background: var(--bg-light);
     border: 1px solid var(--border-color);
-    border-radius: 4px;
+    border-radius: 6px;
     padding: 24px;
     margin-bottom: 24px;
     display: flex;
@@ -953,7 +953,7 @@ body {
     gap: 8px;
     background: var(--bg-lighter);
     padding: 16px;
-    border-radius: 4px;
+    border-radius: 6px;
     border: 1px solid var(--border-color);
 }
 
@@ -976,7 +976,7 @@ body {
     padding: 10px;
     font-size: 16px;
     border: 1px solid var(--border-color);
-    border-radius: 4px;
+    border-radius: 6px;
     background-color: var(--bg-secondary) !important;
     color: var(--text-color);
     transition: border-color 0.2s, box-shadow 0.2s;
@@ -1058,7 +1058,7 @@ body {
     gap: 4px;
     background: var(--bg-lighter);
     padding: 16px;
-    border-radius: 4px;
+    border-radius: 6px;
     border: 1px solid var(--border-color);
 }
 
@@ -1113,7 +1113,7 @@ body {
 .settings-button {
     padding: 12px 24px;
     border: none;
-    border-radius: 4px;
+    border-radius: 6px;
     cursor: pointer;
     font-size: 14px;
     font-weight: 500;
@@ -1176,7 +1176,7 @@ body {
 .pagination-button {
     padding: 8px 12px;
     border: 1px solid var(--border-color);
-    border-radius: 4px;
+    border-radius: 6px;
     background: var(--bg-color);
     color: var(--text-color);
     cursor: pointer;
