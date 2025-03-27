@@ -359,5 +359,14 @@ func Search(query string, cacheDir string, repoName string, settings settings.Se
 		return allResults[i].Score > allResults[j].Score
 	})
 
+	// Normalize scores relative to the highest score
+	if len(allResults) > 0 {
+		maxScore := allResults[0].Score
+		for i := range allResults {
+			// Convert to a percentage (0-100) and round to nearest integer
+			allResults[i].Score = int((float64(allResults[i].Score) / float64(maxScore)) * 100)
+		}
+	}
+
 	return allResults, nil
 }

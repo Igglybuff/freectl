@@ -187,6 +187,19 @@ function createResultHTML(result, showScore = true) {
     // Escape the description for use in the data attribute
     const escapedDescription = result.description.replace(/"/g, '&quot;');
     const escapedName = (result.name || '').replace(/"/g, '&quot;');
+
+    // Create score indicator HTML
+    let scoreHtml = '';
+    if (showScore && currentSettings && currentSettings.showScores) {
+        const bars = [];
+        for (let i = 0; i < 5; i++) {
+            const threshold = (i + 1) * 20; // Each bar represents 20%
+            const isActive = result.score >= threshold;
+            const isWarning = result.score < 40 && i === 0; // Show red for very low scores
+            bars.push(`<div class="score-bar ${isActive ? 'active' : ''} ${isWarning ? 'warning' : ''}"></div>`);
+        }
+        scoreHtml = `<div class="score-indicator">${bars.join('')}</div>`;
+    }
     
     return `<div class="result-item ${isInvalid ? 'invalid-result' : ''}">
             <div class="result-content">
@@ -221,7 +234,7 @@ function createResultHTML(result, showScore = true) {
                                 ><svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></button>
                     </div>
                 </div>
-                ${showScore && currentSettings && currentSettings.showScores ? `<div class="result-score">Score: ${result.score}</div>` : ''}
+                ${scoreHtml}
             </div>
         </div>`;
 }

@@ -332,6 +332,28 @@ body {
     margin-top: 2px;
 }
 
+.score-indicator {
+    display: flex;
+    gap: 2px;
+    height: 12px;
+    margin-top: 4px;
+}
+
+.score-bar {
+    width: 4px;
+    background-color: var(--bg-secondary);
+    border-radius: 2px;
+    transition: background-color 0.2s;
+}
+
+.score-bar.active {
+    background-color: var(--accent-color);
+}
+
+.score-bar.warning {
+    background-color: var(--error-color);
+}
+
 .no-results {
     text-align: center;
     color: var(--secondary-text);
