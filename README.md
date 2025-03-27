@@ -167,7 +167,7 @@ go build
 ### To do list
 
 - [x] max. results per page setting doesn't work
-- [ ] separate link names and descriptions into distinct fields and render them differently in the UI
+- [x] separate link names and descriptions into distinct fields and render them differently in the UI
 - [ ] after adding/removing repos from Settings, page needs to refresh before selecting categories from Search drop-down
 - [x] fix the readme, some of the info is just wrong
 - [x] add setting to change max fuzzy match score
