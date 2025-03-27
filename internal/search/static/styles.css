@@ -988,4 +988,72 @@ body {
 
 .repo-button.toggle.disabled {
     background-color: var(--text-secondary);
+}
+
+.kebab-menu {
+    position: relative;
+    display: inline-block;
+    margin-left: 4px;
+}
+
+.kebab-menu-btn {
+    background: none;
+    border: none;
+    color: var(--secondary-text);
+    cursor: pointer;
+    padding: 4px;
+    opacity: 0.7;
+    transition: all 0.2s;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+}
+
+.kebab-menu-btn:hover {
+    opacity: 1;
+    background-color: var(--bg-hover);
+}
+
+.kebab-menu-btn svg {
+    width: 25px;
+    height: 25px;
+    fill: currentColor;
+}
+
+.kebab-menu-content {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 100%;
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    box-shadow: 0 2px 8px var(--shadow-color);
+    z-index: 1000;
+    min-width: 160px;
+    margin-top: 4px;
+}
+
+.kebab-menu-content.show {
+    display: block;
+}
+
+.add-repo-btn {
+    display: block;
+    width: 100%;
+    padding: 8px 16px;
+    text-align: left;
+    background: none;
+    border: none;
+    color: var(--text-color);
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.add-repo-btn:hover {
+    background-color: var(--bg-hover);
 } 
