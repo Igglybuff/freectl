@@ -26,6 +26,8 @@
     --card-bg: #ffffff;
     --error-color: #dc3545;
     --success-color: #28a745;
+    --bg-lighter: #fafafa;
+    --bg-light: #f3f3f3;
 }
 
 [data-theme="dark"] {
@@ -55,6 +57,8 @@
     --card-bg: #2d2d2d;
     --error-color: #f87171;
     --success-color: #34d399;
+    --bg-lighter: #252525;
+    --bg-light: #222222;
 }
 
 body {
@@ -81,6 +85,7 @@ body {
     margin: 0 auto;
     padding: 0 20px;
     width: 100%;
+    margin-bottom: 20px;
 }
 
 .header-container h1 {
@@ -91,7 +96,7 @@ body {
 
 .tab-buttons {
     max-width: 1000px;
-    margin: 0 auto 10px;
+    margin: 0 auto 20px;
     padding: 0 20px;
     width: 100%;
     display: flex;
@@ -901,30 +906,38 @@ body {
 }
 
 .settings-section {
-    background: var(--bg-secondary);
+    background: var(--bg-light);
+    border: 1px solid var(--border-color);
     border-radius: 4px;
-    padding: 20px;
-    margin-bottom: 20px;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.settings-section:last-child {
+    margin-bottom: 0;
 }
 
 .settings-section h3 {
-    margin-top: 0;
-    margin-bottom: 16px;
+    margin: 0 0 20px 0;
     color: var(--text-color);
-    font-size: 16px;
-    font-weight: 500;
+    font-size: 18px;
+    font-weight: 600;
 }
 
 .settings-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 16px;
+    gap: 24px;
 }
 
 .setting-item {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    background: var(--bg-lighter);
+    padding: 16px;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
 }
 
 .setting-item label {
@@ -934,18 +947,49 @@ body {
     margin-bottom: 4px;
 }
 
+.setting-item .setting-description {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-top: 8px;
+    line-height: 1.4;
+}
+
 .setting-item input[type="number"],
 .setting-item input[type="text"] {
     padding: 10px;
     font-size: 16px;
     border: 1px solid var(--border-color);
     border-radius: 4px;
-    background-color: var(--bg-secondary);
+    background-color: var(--bg-secondary) !important;
     color: var(--text-color);
     transition: border-color 0.2s, box-shadow 0.2s;
     width: 100%;
     box-sizing: border-box;
     height: 40px;
+    -webkit-appearance: none;
+    -moz-appearance: textfield;
+    appearance: none;
+}
+
+.setting-item input[type="number"]::-webkit-inner-spin-button,
+.setting-item input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    background: var(--bg-secondary);
+    border-left: 1px solid var(--border-color);
+    opacity: 1;
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 20px;
+    border-top-right-radius: 4px;
+    border-bottom-right-radius: 4px;
+    cursor: pointer;
+}
+
+.setting-item input[type="number"]::-webkit-inner-spin-button:hover,
+.setting-item input[type="number"]::-webkit-outer-spin-button:hover {
+    background: var(--bg-hover);
 }
 
 .setting-item input[type="number"]:focus,
@@ -953,6 +997,7 @@ body {
     outline: none;
     border-color: var(--accent-color);
     box-shadow: 0 0 0 2px var(--accent-color-transparent);
+    background-color: var(--bg-secondary) !important;
 }
 
 .setting-item input[type="number"]:hover,
@@ -962,7 +1007,7 @@ body {
 
 .setting-item input[type="number"]:disabled,
 .setting-item input[type="text"]:disabled {
-    background: var(--bg-secondary);
+    background: var(--bg-secondary) !important;
     cursor: not-allowed;
     opacity: 0.7;
 }
@@ -972,39 +1017,59 @@ body {
     color: var(--text-secondary);
 }
 
-/* Add styles for number input spinners */
-.setting-item input[type="number"]::-webkit-inner-spin-button,
-.setting-item input[type="number"]::-webkit-outer-spin-button {
-    opacity: 1;
-    height: 40px;
+.checkbox-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: var(--bg-lighter);
+    padding: 16px;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+}
+
+.checkbox-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.checkbox-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
     margin: 0;
     cursor: pointer;
-    background: var(--bg-secondary);
+    accent-color: var(--accent-color);
 }
 
-.setting-item input[type="number"]::-webkit-inner-spin-button:hover,
-.setting-item input[type="number"]::-webkit-outer-spin-button:hover {
-    opacity: 0.8;
-}
-
-.setting-item .setting-description {
+.checkbox-item label {
+    color: var(--text-color);
+    font-weight: 500;
     font-size: 14px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.checkbox-item .setting-description {
+    font-size: 13px;
     color: var(--text-secondary);
-    margin-top: 4px;
+    margin-top: 8px;
+    margin-left: 28px;
+    line-height: 1.4;
 }
 
 .settings-buttons {
     display: flex;
-    gap: 10px;
-    margin-top: 20px;
+    gap: 12px;
+    padding-top: 4px;
 }
 
 .settings-button {
-    padding: 10px 20px;
+    padding: 12px 24px;
     border: none;
     border-radius: 4px;
     cursor: pointer;
     font-size: 14px;
+    font-weight: 500;
     transition: all 0.2s;
 }
 
@@ -1018,7 +1083,7 @@ body {
 }
 
 .settings-button.secondary {
-    background: var(--bg-secondary);
+    background: var(--bg-color);
     color: var(--text-color);
     border: 1px solid var(--border-color);
 }
@@ -1028,13 +1093,13 @@ body {
 }
 
 @media (max-width: 768px) {
-    .settings-grid {
-        grid-template-columns: 1fr;
+    .settings-section {
+        padding: 20px;
     }
 
-    .settings-section {
-        padding: 16px;
-        margin-bottom: 16px;
+    .settings-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
     }
 
     .settings-buttons {
