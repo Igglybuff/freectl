@@ -587,11 +587,11 @@ body {
 }
 
 .stats-section {
-    background: var(--bg-secondary);
+    background: var(--bg-light);
+    border: 1px solid var(--border-color);
     border-radius: 4px;
-    padding: 20px;
-    margin-bottom: 20px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 24px;
+    margin-bottom: 24px;
 }
 
 .stats-section:last-child {
@@ -599,60 +599,76 @@ body {
 }
 
 .stats-section h2 {
-    margin-top: 0;
-    margin-bottom: 20px;
+    margin: 0 0 20px 0;
     color: var(--text-color);
-    font-size: 1.2em;
+    font-size: 18px;
+    font-weight: 600;
 }
 
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(2, minmax(200px, 1fr));
+    gap: 24px;
+    justify-content: center;
+    max-width: 800px;
+    margin: 0 auto;
 }
 
-.stats-item {
+.stat-card {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 4px;
+    background: var(--bg-lighter);
+    padding: 12px;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+    text-align: center;
+    align-items: center;
 }
 
-.stats-item label {
-    font-weight: 500;
+.stat-value {
+    font-size: 24px;
+    font-weight: 600;
     color: var(--text-color);
+    line-height: 1.2;
 }
 
-.stats-value {
-    font-size: 1.2em;
-    color: var(--text-color);
+.stat-label {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.2;
 }
 
 .stats-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 16px;
 }
 
 .stats-list-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px;
-    background: var(--bg-primary);
+    padding: 16px;
+    background: var(--bg-lighter);
+    border: 1px solid var(--border-color);
     border-radius: 4px;
 }
 
 .stats-list-label {
     color: var(--text-color);
+    font-weight: 500;
+    font-size: 14px;
 }
 
 .stats-list-value {
-    color: var(--secondary-text);
+    color: var(--text-secondary);
     font-weight: 500;
+    font-size: 14px;
 }
 
 .repo-selection {
-    margin-bottom: 2rem;
+    margin-bottom: 24px;
     width: 100%;
     display: flex;
     justify-content: flex-start;
@@ -873,17 +889,14 @@ body {
 }
 
 @media (max-width: 768px) {
-    .stats-container {
-        padding: 10px;
-    }
-
     .stats-section {
-        padding: 16px;
-        margin-bottom: 16px;
+        padding: 20px;
     }
 
     .stats-grid {
         grid-template-columns: 1fr;
+        max-width: 400px;
+        gap: 16px;
     }
 
     .stats-list {
@@ -891,6 +904,7 @@ body {
     }
 
     .repo-selection {
+        margin-bottom: 20px;
         justify-content: center;
     }
 
@@ -911,6 +925,9 @@ body {
     border-radius: 4px;
     padding: 24px;
     margin-bottom: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
 }
 
 .settings-section:last-child {
@@ -927,7 +944,7 @@ body {
 .settings-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 24px;
+    gap: 16px;
 }
 
 .setting-item {
@@ -969,27 +986,45 @@ body {
     -webkit-appearance: none;
     -moz-appearance: textfield;
     appearance: none;
+    padding-right: 24px;
 }
 
+/* Style the spinner buttons */
 .setting-item input[type="number"]::-webkit-inner-spin-button,
 .setting-item input[type="number"]::-webkit-outer-spin-button {
-    -webkit-appearance: none;
+    opacity: 1;
     background: var(--bg-secondary);
     border-left: 1px solid var(--border-color);
-    opacity: 1;
+    height: 100%;
+    margin: 0;
     position: absolute;
-    top: 0;
     right: 0;
-    bottom: 0;
-    width: 20px;
-    border-top-right-radius: 4px;
-    border-bottom-right-radius: 4px;
+    top: 0;
     cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    width: 24px;
 }
 
 .setting-item input[type="number"]::-webkit-inner-spin-button:hover,
 .setting-item input[type="number"]::-webkit-outer-spin-button:hover {
     background: var(--bg-hover);
+}
+
+/* For Firefox */
+.setting-item input[type="number"] {
+    -moz-appearance: textfield;
+}
+
+.setting-item input[type="number"]:hover::-webkit-inner-spin-button,
+.setting-item input[type="number"]:hover::-webkit-outer-spin-button {
+    background: var(--bg-hover);
+}
+
+.setting-item input[type="number"]:focus::-webkit-inner-spin-button,
+.setting-item input[type="number"]:focus::-webkit-outer-spin-button {
+    border-left-color: var(--accent-color);
 }
 
 .setting-item input[type="number"]:focus,
@@ -1020,7 +1055,7 @@ body {
 .checkbox-item {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 4px;
     background: var(--bg-lighter);
     padding: 16px;
     border-radius: 4px;
@@ -1029,14 +1064,14 @@ body {
 
 .checkbox-wrapper {
     display: flex;
-    align-items: center;
-    gap: 10px;
+    align-items: flex-start;
+    gap: 8px;
 }
 
 .checkbox-item input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    margin: 0;
+    width: 16px;
+    height: 16px;
+    margin: 3px 0 0 0;
     cursor: pointer;
     accent-color: var(--accent-color);
 }
@@ -1047,20 +1082,32 @@ body {
     font-size: 14px;
     cursor: pointer;
     user-select: none;
+    line-height: 1.4;
 }
 
 .checkbox-item .setting-description {
     font-size: 13px;
     color: var(--text-secondary);
-    margin-top: 8px;
-    margin-left: 28px;
+    margin: 4px 0 0 24px;
     line-height: 1.4;
+}
+
+.checkbox-item:has(input[type="checkbox"]:not(:checked)) {
+    opacity: 0.7;
+}
+
+.checkbox-item:has(input[type="checkbox"]:not(:checked)) label {
+    color: var(--text-secondary);
+}
+
+.checkbox-item:has(input[type="checkbox"]:not(:checked)) .setting-description {
+    color: var(--text-secondary);
 }
 
 .settings-buttons {
     display: flex;
     gap: 12px;
-    padding-top: 4px;
+    margin: 8px 0 0 0;
 }
 
 .settings-button {
@@ -1155,50 +1202,4 @@ body {
     color: var(--secondary-text);
     font-size: 14px;
     margin-top: 8px;
-}
-
-.checkbox-item {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.checkbox-wrapper {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.checkbox-item input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
-    margin: 0;
-    cursor: pointer;
-    accent-color: var(--accent-color);
-}
-
-.checkbox-item label {
-    color: var(--text-color);
-    font-weight: 500;
-    font-size: 14px;
-    cursor: pointer;
-    user-select: none;
-}
-
-.checkbox-item:has(input[type="checkbox"]:not(:checked)) {
-    opacity: 0.7;
-}
-
-.checkbox-item:has(input[type="checkbox"]:not(:checked)) label {
-    color: var(--text-secondary);
-}
-
-.checkbox-item:has(input[type="checkbox"]:not(:checked)) .setting-description {
-    color: var(--text-secondary);
-}
-
-.checkbox-item .setting-description {
-    margin-left: 24px;
-    color: var(--text-secondary);
-    font-size: 12px;
 } 

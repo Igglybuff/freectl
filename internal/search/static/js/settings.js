@@ -23,7 +23,7 @@ export function loadSettings() {
                 autoUpdate: true,
                 truncateTitles: true,
                 maxTitleLength: 100,
-                customHeader: 'Repository Search',
+                customHeader: 'find cool stuff',
                 minFuzzyScore: 0
             };
 
