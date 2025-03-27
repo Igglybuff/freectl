@@ -192,11 +192,34 @@ function createResultHTML(result, showScore = true) {
     let scoreHtml = '';
     if (showScore && currentSettings && currentSettings.showScores) {
         const bars = [];
+        // Ensure at least 1 bar for any score > 0
+        const normalizedScore = result.score > 0 ? Math.max(20, result.score) : 0;
+        
         for (let i = 0; i < 5; i++) {
             const threshold = (i + 1) * 20; // Each bar represents 20%
-            const isActive = result.score >= threshold;
-            const isWarning = result.score < 40 && i === 0; // Show red for very low scores
-            bars.push(`<div class="score-bar ${isActive ? 'active' : ''} ${isWarning ? 'warning' : ''}"></div>`);
+            const isActive = normalizedScore >= threshold;
+            let colorClass = '';
+            if (isActive) {
+                // Assign colors based on bar position
+                switch (i) {
+                    case 0: // First bar
+                        colorClass = 'score-red';
+                        break;
+                    case 1: // Second bar
+                        colorClass = 'score-orange';
+                        break;
+                    case 2: // Third bar
+                        colorClass = 'score-yellow';
+                        break;
+                    case 3: // Fourth bar
+                        colorClass = 'score-light-green';
+                        break;
+                    case 4: // Fifth bar
+                        colorClass = 'score-green';
+                        break;
+                }
+            }
+            bars.push(`<div class="score-bar ${isActive ? 'active' : ''} ${colorClass}"></div>`);
         }
         scoreHtml = `<div class="score-indicator">${bars.join('')}</div>`;
     }

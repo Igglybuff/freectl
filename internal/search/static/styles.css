@@ -346,12 +346,32 @@ body {
     transition: background-color 0.2s;
 }
 
-.score-bar.active {
-    background-color: var(--accent-color);
+.score-bar.active.score-red {
+    background-color: #FF4444; /* Red */
 }
 
-.score-bar.warning {
-    background-color: var(--error-color);
+.score-bar.active.score-orange {
+    background-color: #FF8800; /* Orange */
+}
+
+.score-bar.active.score-yellow {
+    background-color: #FFCC00; /* Yellow */
+}
+
+.score-bar.active.score-light-green {
+    background-color: #88CC44; /* Light green */
+}
+
+.score-bar.active.score-green {
+    background-color: #44BB44; /* Green */
+}
+
+.score-bar.active {
+    background-color: var(--bg-secondary);
+}
+
+.score-bar.active.score-poor:last-child {
+    background-color: #dc3545; /* Red for the last bar when score is poor */
 }
 
 .no-results {
