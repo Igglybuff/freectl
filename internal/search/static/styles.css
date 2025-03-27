@@ -481,13 +481,15 @@ body {
     position: fixed;
     bottom: 20px;
     right: 20px;
-    background: var(--toast-bg);
-    color: var(--toast-text);
+    background: var(--bg-secondary);
+    color: var(--text-color);
     padding: 12px 24px;
     border-radius: 6px;
     opacity: 0;
     transition: opacity 0.3s;
     z-index: 1000;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 12px var(--shadow-color);
 }
 
 .toast.show {

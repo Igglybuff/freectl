@@ -2,7 +2,7 @@
 export function showToast(message, isError = false) {
     const toast = document.getElementById('toast');
     toast.textContent = message;
-    toast.style.background = isError ? '#dc3545' : '#333';
+    toast.style.background = isError ? 'var(--error-color)' : 'var(--bg-secondary)';
     toast.classList.add('show');
     setTimeout(() => {
         toast.classList.remove('show');
