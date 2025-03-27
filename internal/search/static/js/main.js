@@ -101,10 +101,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const favoriteBtn = e.target.closest('.favorite-btn');
             if (favoriteBtn) {
                 const link = favoriteBtn.dataset.link;
+                const name = favoriteBtn.dataset.name;
                 const description = favoriteBtn.dataset.description;
                 const category = favoriteBtn.dataset.category;
                 const repository = favoriteBtn.dataset.repository;
-                toggleFavorite(link, description, category, repository);
+                toggleFavorite(link, description, category, repository, name);
             }
         });
 

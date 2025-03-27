@@ -9,6 +9,7 @@ import (
 
 type Favorite struct {
 	Link        string `json:"link"`
+	Name        string `json:"name"`
 	Description string `json:"description"`
 	Category    string `json:"category"`
 	Repository  string `json:"repository"`
