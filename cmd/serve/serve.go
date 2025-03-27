@@ -130,6 +130,8 @@ func handleStatic(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/css")
 	case strings.HasSuffix(path, ".js"):
 		w.Header().Set("Content-Type", "application/javascript")
+		// Add CORS headers for JavaScript modules
+		w.Header().Set("Access-Control-Allow-Origin", "*")
 	default:
 		w.Header().Set("Content-Type", "application/octet-stream")
 	}
