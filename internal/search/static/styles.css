@@ -1056,4 +1056,28 @@ body {
 
 .add-repo-btn:hover {
     background-color: var(--bg-hover);
+}
+
+.scan-virustotal-btn {
+    display: block;
+    width: 100%;
+    padding: 8px 16px;
+    text-align: left;
+    background: none;
+    border: none;
+    color: var(--text-color);
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.scan-virustotal-btn:hover {
+    background-color: var(--bg-hover);
+}
+
+/* Add loading state styles for both buttons */
+.add-repo-btn.loading,
+.scan-virustotal-btn.loading {
+    opacity: 0.7;
+    cursor: wait;
 } 

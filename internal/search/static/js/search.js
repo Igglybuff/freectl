@@ -263,6 +263,7 @@ function createResultHTML(result, showScore = true) {
                             </button>
                             <div class="kebab-menu-content">
                                 <button class="add-repo-btn" data-url="${result.url}">Add repository</button>
+                                <button class="scan-virustotal-btn" data-url="${result.url}">Scan with VirusTotal</button>
                             </div>
                         </div>
                     </div>
@@ -344,6 +345,43 @@ function addKebabMenuListeners() {
             .catch(error => {
                 console.error('Error:', error);
                 showToast(`Failed to add repository: ${error.message}`, true);
+            })
+            .finally(() => {
+                // Remove loading state
+                this.classList.remove('loading');
+            });
+        });
+    });
+
+    // Handle VirusTotal scan action
+    document.querySelectorAll('.scan-virustotal-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const url = this.dataset.url;
+            
+            // Add loading state
+            this.classList.add('loading');
+            
+            // Make POST request to scan URL
+            fetch('/scan/virustotal', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ url }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    throw new Error(data.error || 'Failed to scan URL');
+                }
+                showToast(data.message);
+                // Close the kebab menu
+                this.closest('.kebab-menu-content').classList.remove('show');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast(`Failed to scan URL: ${error.message}`, true);
             })
             .finally(() => {
                 // Remove loading state

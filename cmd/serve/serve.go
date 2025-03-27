@@ -77,6 +77,7 @@ func startServer() error {
 	http.HandleFunc("/repositories/list", handleListRepositories)
 	http.HandleFunc("/repositories/delete", handleDeleteRepository)
 	http.HandleFunc("/repositories/toggle", handleToggleRepository)
+	http.HandleFunc("/scan/virustotal", handleVirusTotalScan)
 
 	log.Infof("Starting server at http://localhost:%d", port)
 	return http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
@@ -653,6 +654,41 @@ func handleToggleRepository(w http.ResponseWriter, r *http.Request) {
 		"success": true,
 		"enabled": enabled,
 		"message": fmt.Sprintf("Repository %s successfully", status),
+	})
+}
+
+func handleVirusTotalScan(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"error":   "Method not allowed",
+		})
+		return
+	}
+
+	var req struct {
+		URL string `json:"url"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Error("Failed to decode request body", "error", err)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"error":   fmt.Sprintf("Invalid request: %s", err.Error()),
+		})
+		return
+	}
+
+	// TODO: Implement actual VirusTotal scanning
+	// For now, return a placeholder response
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"message": "VirusTotal scanning not yet implemented",
+		"url":     req.URL,
 	})
 }
 
