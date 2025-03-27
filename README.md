@@ -1,4 +1,4 @@
-<p align="center"><img width="800" alt="image" src="https://github.com/user-attachments/assets/44223165-e762-427b-b9ee-f5b31228a32f" /></p>
+<p align="center"><img width="800" alt="image" src="https://github.com/user-attachments/assets/39fdffde-c976-436b-97b4-a9ab3acdb3db" /></p>
 
 # freectl
 
