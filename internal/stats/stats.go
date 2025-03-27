@@ -44,11 +44,17 @@ func (s *Stats) ProcessFile(path string) {
 	for _, line := range lines {
 		// Track categories
 		if strings.HasPrefix(line, "# ") {
-			currentCategory = common.CleanCategory(strings.TrimSpace(strings.TrimPrefix(line, "# ")))
+			category := common.CleanCategory(strings.TrimSpace(strings.TrimPrefix(line, "# ")))
+			if !common.IsInvalidCategory(category) {
+				currentCategory = category
+			}
 			continue
 		}
 		if strings.HasPrefix(line, "## ") {
-			currentCategory = common.CleanCategory(strings.TrimSpace(strings.TrimPrefix(line, "## ")))
+			category := common.CleanCategory(strings.TrimSpace(strings.TrimPrefix(line, "## ")))
+			if !common.IsInvalidCategory(category) {
+				currentCategory = category
+			}
 			continue
 		}
 
@@ -59,19 +65,21 @@ func (s *Stats) ProcessFile(path string) {
 				s.TotalLinks++
 
 				// Update category stats
-				found := false
-				for i := range s.Categories {
-					if s.Categories[i].Name == currentCategory {
-						s.Categories[i].LinkCount++
-						found = true
-						break
+				if currentCategory != "" {
+					found := false
+					for i := range s.Categories {
+						if s.Categories[i].Name == currentCategory {
+							s.Categories[i].LinkCount++
+							found = true
+							break
+						}
 					}
-				}
-				if !found {
-					s.Categories = append(s.Categories, CategoryStats{
-						Name:      currentCategory,
-						LinkCount: 1,
-					})
+					if !found {
+						s.Categories = append(s.Categories, CategoryStats{
+							Name:      currentCategory,
+							LinkCount: 1,
+						})
+					}
 				}
 
 				// Extract and count domains

@@ -1,5 +1,9 @@
 import { showToast } from './ui.js';
 import { formatBytes } from './ui.js';
+import { getRepositoryColor } from './ui.js';
+
+let selectedRepos = new Set();
+let allStats = new Map();
 
 // Load repositories into stats dropdown
 export function loadRepositories() {
@@ -7,37 +11,138 @@ export function loadRepositories() {
         .then(response => response.json())
         .then(repos => {
             const select = document.getElementById('statsRepo');
-            select.innerHTML = repos.map(repo => 
-                `<option value="${repo.name}">${repo.name}</option>`
-            ).join('');
+            if (!select) return;
             
-            // If we have repositories, select the first one and load its stats
-            if (repos.length > 0) {
-                select.value = repos[0].name;
-                loadStats();
-            }
+            // Add "All repositories" as the first option
+            select.innerHTML = '<option value="">All repositories</option>' + 
+                repos.map(repo => 
+                    `<option value="${repo.name}">${repo.name}</option>`
+                ).join('');
+            
+            // Load combined stats by default
+            loadStats();
         })
         .catch(error => {
             console.error('Error loading repositories:', error);
+            showToast('Failed to load repositories', true);
             const select = document.getElementById('statsRepo');
-            select.innerHTML = '<option value="">Error loading repositories</option>';
+            if (select) {
+                select.innerHTML = '<option value="">Error loading repositories</option>';
+            }
         });
 }
 
-// Load stats for selected repository
+// Load stats for selected repository or all repositories
 export function loadStats() {
-    const repoName = document.getElementById('statsRepo').value;
+    const repoName = document.getElementById('statsRepo')?.value;
+    
+    // Show loading state
+    const elements = {
+        totalLinks: document.getElementById('totalLinks'),
+        repoSize: document.getElementById('repoSize'),
+        httpsCount: document.getElementById('https-count'),
+        httpCount: document.getElementById('http-count'),
+        topCategories: document.getElementById('topCategories'),
+        topDomains: document.getElementById('topDomains')
+    };
+
+    // Check if we're on the stats tab
+    if (!elements.totalLinks) return;
+
+    // Set loading states
+    elements.totalLinks.textContent = '...';
+    elements.repoSize.textContent = '...';
+    elements.httpsCount.textContent = '...';
+    elements.httpCount.textContent = '...';
+    elements.topCategories.innerHTML = 'Loading...';
+    elements.topDomains.innerHTML = 'Loading...';
+
+    // If no repository is selected, load combined stats
     if (!repoName) {
-        document.getElementById('totalFiles').textContent = '-';
-        document.getElementById('totalLinks').textContent = '-';
-        document.getElementById('repoSize').textContent = '-';
-        document.getElementById('https-count').textContent = '-';
-        document.getElementById('http-count').textContent = '-';
-        document.getElementById('topCategories').innerHTML = 'Please select a repository';
-        document.getElementById('topDomains').innerHTML = 'Please select a repository';
+        fetch('/list')
+            .then(response => response.json())
+            .then(repos => {
+                const combinedStats = {
+                    TotalLinks: 0,
+                    TotalSize: 0,
+                    Categories: [],
+                    DomainsCount: {},
+                    ProtocolStats: { https: 0, http: 0 }
+                };
+
+                // Load stats for each repository
+                const promises = repos.map(repo => 
+                    fetch(`/stats?repo=${encodeURIComponent(repo.name)}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            // Safely add total links and size
+                            combinedStats.TotalLinks += data.TotalLinks || 0;
+                            combinedStats.TotalSize += data.TotalSize || 0;
+                            
+                            // Safely combine categories
+                            if (data.Categories && Array.isArray(data.Categories)) {
+                                data.Categories.forEach(cat => {
+                                    if (!cat || !cat.Name) return;
+                                    
+                                    let found = false;
+                                    for (let i = 0; i < combinedStats.Categories.length; i++) {
+                                        if (combinedStats.Categories[i].Name === cat.Name) {
+                                            combinedStats.Categories[i].LinkCount += cat.LinkCount || 0;
+                                            found = true;
+                                            break;
+                                        }
+                                    }
+                                    if (!found) {
+                                        combinedStats.Categories.push({
+                                            Name: cat.Name,
+                                            LinkCount: cat.LinkCount || 0
+                                        });
+                                    }
+                                });
+                            }
+
+                            // Safely combine domains
+                            if (data.DomainsCount && typeof data.DomainsCount === 'object') {
+                                Object.entries(data.DomainsCount).forEach(([domain, count]) => {
+                                    if (!domain) return;
+                                    combinedStats.DomainsCount[domain] = (combinedStats.DomainsCount[domain] || 0) + (count || 0);
+                                });
+                            }
+
+                            // Safely combine protocols
+                            if (data.ProtocolStats && typeof data.ProtocolStats === 'object') {
+                                combinedStats.ProtocolStats.https += data.ProtocolStats.https || 0;
+                                combinedStats.ProtocolStats.http += data.ProtocolStats.http || 0;
+                            }
+                        })
+                        .catch(error => {
+                            console.error(`Error loading stats for ${repo.name}:`, error);
+                            // Continue with other repositories even if one fails
+                            return null;
+                        })
+                );
+
+                Promise.all(promises)
+                    .then(() => {
+                        // Sort categories before displaying
+                        combinedStats.Categories.sort((a, b) => b.LinkCount - a.LinkCount);
+                        updateStatsDisplay(combinedStats);
+                    })
+                    .catch(error => {
+                        console.error('Error loading combined stats:', error);
+                        showToast('Failed to load combined stats', true);
+                        clearStats();
+                    });
+            })
+            .catch(error => {
+                console.error('Error loading repositories:', error);
+                showToast('Failed to load repositories', true);
+                clearStats();
+            });
         return;
     }
 
+    // Load stats for specific repository
     fetch(`/stats?repo=${encodeURIComponent(repoName)}`)
         .then(response => {
             if (!response.ok) {
@@ -46,41 +151,89 @@ export function loadStats() {
             return response.json();
         })
         .then(data => {
-            document.getElementById('totalFiles').textContent = data.TotalFiles;
-            document.getElementById('totalLinks').textContent = data.TotalLinks;
-            document.getElementById('repoSize').textContent = formatBytes(data.TotalSize);
-            document.getElementById('https-count').textContent = data.ProtocolStats.https || 0;
-            document.getElementById('http-count').textContent = data.ProtocolStats.http || 0;
+            // Store stats for this repository
+            allStats.set(repoName, data);
             
-            document.getElementById('topCategories').innerHTML = data.Categories
-                .slice(0, 10)
-                .map(cat => `
-                    <div class="stats-list-item">
-                        <span class="stats-list-label">${cat.Name}</span>
-                        <span class="stats-list-value">${cat.LinkCount}</span>
-                    </div>
-                `).join('');
-            
-            const sortedDomains = Object.entries(data.DomainsCount)
-                .sort(([,a], [,b]) => b - a)
-                .slice(0, 10);
-            
-            document.getElementById('topDomains').innerHTML = sortedDomains
-                .map(([domain, count]) => `
-                    <div class="stats-list-item">
-                        <span class="stats-list-label">${domain}</span>
-                        <span class="stats-list-value">${count}</span>
-                    </div>
-                `).join('');
+            // Update UI with stats
+            updateStatsDisplay(data);
         })
         .catch(error => {
             console.error('Error loading stats:', error);
-            document.getElementById('totalFiles').textContent = '-';
-            document.getElementById('totalLinks').textContent = '-';
-            document.getElementById('repoSize').textContent = '-';
-            document.getElementById('https-count').textContent = '-';
-            document.getElementById('http-count').textContent = '-';
-            document.getElementById('topCategories').innerHTML = 'Error loading stats';
-            document.getElementById('topDomains').innerHTML = 'Error loading stats';
+            showToast('Failed to load repository stats', true);
+            clearStats();
         });
-} 
+}
+
+function updateStatsDisplay(data) {
+    // Update general stats
+    const totalLinks = document.getElementById('totalLinks');
+    const repoSize = document.getElementById('repoSize');
+    if (totalLinks) totalLinks.textContent = data.TotalLinks.toLocaleString();
+    if (repoSize) repoSize.textContent = formatBytes(data.TotalSize);
+    
+    // Update protocol stats
+    const httpsCount = data.ProtocolStats.https || 0;
+    const httpCount = data.ProtocolStats.http || 0;
+    const totalProtocols = httpsCount + httpCount;
+    
+    const httpsCountEl = document.getElementById('https-count');
+    const httpCountEl = document.getElementById('http-count');
+    if (httpsCountEl) httpsCountEl.textContent = `${httpsCount.toLocaleString()} (${((httpsCount / totalProtocols) * 100).toFixed(1)}%)`;
+    if (httpCountEl) httpCountEl.textContent = `${httpCount.toLocaleString()} (${((httpCount / totalProtocols) * 100).toFixed(1)}%)`;
+    
+    // Update categories
+    const topCategories = document.getElementById('topCategories');
+    if (topCategories) {
+        topCategories.innerHTML = data.Categories
+            .sort((a, b) => b.LinkCount - a.LinkCount)
+            .slice(0, 12)
+            .map(cat => `
+                <div class="stats-list-item">
+                    <span class="stats-list-label">${cat.Name}</span>
+                    <span class="stats-list-value">${cat.LinkCount.toLocaleString()}</span>
+                </div>
+            `).join('');
+    }
+    
+    // Update domains
+    const topDomains = document.getElementById('topDomains');
+    if (topDomains) {
+        const sortedDomains = Object.entries(data.DomainsCount)
+            .sort(([,a], [,b]) => b - a)
+            .slice(0, 12);
+        
+        topDomains.innerHTML = sortedDomains
+            .map(([domain, count]) => `
+                <div class="stats-list-item">
+                    <span class="stats-list-label">${domain}</span>
+                    <span class="stats-list-value">${count.toLocaleString()}</span>
+                </div>
+            `).join('');
+    }
+}
+
+function clearStats() {
+    const elements = {
+        totalLinks: document.getElementById('totalLinks'),
+        repoSize: document.getElementById('repoSize'),
+        httpsCount: document.getElementById('https-count'),
+        httpCount: document.getElementById('http-count'),
+        topCategories: document.getElementById('topCategories'),
+        topDomains: document.getElementById('topDomains')
+    };
+
+    if (elements.totalLinks) elements.totalLinks.textContent = '-';
+    if (elements.repoSize) elements.repoSize.textContent = '-';
+    if (elements.httpsCount) elements.httpsCount.textContent = '-';
+    if (elements.httpCount) elements.httpCount.textContent = '-';
+    if (elements.topCategories) elements.topCategories.innerHTML = 'Please select a repository';
+    if (elements.topDomains) elements.topDomains.innerHTML = 'Please select a repository';
+}
+
+// Initialize event listeners
+document.addEventListener('DOMContentLoaded', () => {
+    const repoSelect = document.getElementById('statsRepo');
+    if (repoSelect) {
+        repoSelect.addEventListener('change', loadStats);
+    }
+}); 

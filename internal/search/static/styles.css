@@ -552,18 +552,29 @@ body {
 }
 
 .stats-container {
-    padding: 20px;
-    max-width: 1200px;
-    margin: 0 auto;
+    margin-bottom: 20px;
+    width: 100%;
 }
 
 .stats-section {
-    margin-bottom: 30px;
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 4px var(--shadow-color);
+}
+
+.stats-section:last-child {
+    margin-bottom: 0;
 }
 
 .stats-section h2 {
-    margin-bottom: 15px;
+    margin: 0 0 20px 0;
     color: var(--text-color);
+    font-size: 1.2em;
+    font-weight: 600;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 12px;
 }
 
 .stats-grid {
@@ -573,15 +584,17 @@ body {
 }
 
 .stat-card {
-    background: var(--bg-secondary);
+    background: var(--bg-color);
     padding: 20px;
     border-radius: 8px;
     text-align: center;
-    transition: transform 0.2s;
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: 1px solid var(--border-color);
 }
 
 .stat-card:hover {
     transform: translateY(-2px);
+    box-shadow: 0 4px 8px var(--shadow-color);
 }
 
 .stat-value {
@@ -603,20 +616,25 @@ body {
 }
 
 .stats-list-item {
-    background: var(--bg-secondary);
+    background: var(--bg-color);
     padding: 15px;
     border-radius: 8px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    border: 1px solid var(--border-color);
+    transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .stats-list-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px var(--shadow-color);
     background: var(--bg-hover);
 }
 
 .stats-list-label {
     color: var(--text-color);
+    font-weight: 500;
 }
 
 .stats-list-value {
@@ -624,27 +642,258 @@ body {
     font-weight: bold;
 }
 
+.repo-selection {
+    margin-bottom: 2rem;
+    width: 100%;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+}
+
+.repo-select {
+    width: 100%;
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: var(--bg-secondary);
+    color: var(--secondary-text);
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%236c757d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 16px;
+    padding-right: 40px;
+}
+
+.repo-select:hover {
+    border-color: var(--accent-color);
+    color: var(--text-color);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+}
+
+.repo-select:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 2px var(--accent-color-transparent);
+    color: var(--text-color);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+}
+
+.repo-select option {
+    background-color: var(--input-bg);
+    color: var(--text-color);
+    padding: 8px;
+}
+
+.repo-tag {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    color: white;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+    white-space: nowrap;
+    transition: opacity 0.2s;
+}
+
+.repo-tag:hover {
+    opacity: 0.9;
+}
+
+.repo-list {
+    margin-top: 10px;
+}
+
+.repo-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    margin-bottom: 10px;
+    background-color: var(--bg-secondary);
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.repo-item:hover {
+    background-color: var(--bg-hover);
+    border-color: var(--accent-color);
+}
+
+.repo-info {
+    flex: 1;
+}
+
+.repo-name {
+    font-weight: 500;
+    color: var(--text-color);
+    margin-bottom: 4px;
+}
+
+.repo-path {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.repo-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.repo-button {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.repo-button.delete {
+    background-color: var(--error-color);
+    color: white;
+}
+
+.repo-button.delete:hover {
+    background-color: var(--error-color);
+    opacity: 0.9;
+}
+
+.repo-button.toggle {
+    background-color: var(--accent-color);
+    color: white;
+}
+
+.repo-button.toggle:hover {
+    background-color: var(--accent-color);
+    opacity: 0.9;
+}
+
+.repo-button.toggle.disabled {
+    background-color: var(--text-secondary);
+}
+
+.kebab-menu {
+    position: relative;
+    display: inline-block;
+    margin-left: 4px;
+}
+
+.kebab-menu-btn {
+    background: none;
+    border: none;
+    color: var(--secondary-text);
+    cursor: pointer;
+    padding: 4px;
+    opacity: 0.7;
+    transition: all 0.2s;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+}
+
+.kebab-menu-btn:hover {
+    opacity: 1;
+    background-color: var(--bg-hover);
+}
+
+.kebab-menu-btn svg {
+    width: 25px;
+    height: 25px;
+    fill: currentColor;
+}
+
+.kebab-menu-content {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 100%;
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    box-shadow: 0 2px 8px var(--shadow-color);
+    z-index: 1000;
+    min-width: 160px;
+    margin-top: 4px;
+}
+
+.kebab-menu-content.show {
+    display: block;
+}
+
+.add-repo-btn {
+    display: block;
+    width: 100%;
+    padding: 8px 16px;
+    text-align: left;
+    background: none;
+    border: none;
+    color: var(--text-color);
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.add-repo-btn:hover {
+    background-color: var(--bg-hover);
+}
+
+.scan-virustotal-btn {
+    display: block;
+    width: 100%;
+    padding: 8px 16px;
+    text-align: left;
+    background: none;
+    border: none;
+    color: var(--text-color);
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.scan-virustotal-btn:hover {
+    background-color: var(--bg-hover);
+}
+
+/* Add loading state styles for both buttons */
+.add-repo-btn.loading,
+.scan-virustotal-btn.loading {
+    opacity: 0.7;
+    cursor: wait;
+}
+
 @media (max-width: 768px) {
-    .stats-row {
-        flex-direction: column;
+    .stats-container {
+        padding: 10px;
     }
-    
-    body, .settings-container {
-        max-width: 100%;
-        padding: 0 15px;
+
+    .stats-section {
+        padding: 16px;
+        margin-bottom: 16px;
     }
-    
-    .search-controls {
-        flex-direction: column;
+
+    .stats-grid {
+        grid-template-columns: 1fr;
     }
-    
-    .filter-group {
+
+    .stats-list {
+        grid-template-columns: 1fr;
+    }
+
+    .repo-selection {
+        justify-content: center;
+    }
+
+    .repo-select {
         width: 100%;
-    }
-    
-    .filter-select {
-        width: 100%;
-        min-width: unset;
+        max-width: 300px;
     }
 }
 
@@ -864,220 +1113,4 @@ body {
     margin-left: 24px;
     color: var(--text-secondary);
     font-size: 12px;
-}
-
-.repo-selection {
-    margin-bottom: 2rem;
-    width: 100%;
-    display: flex;
-    justify-content: flex-end;
-}
-
-.repo-select {
-    min-width: 200px;
-    padding: 10px;
-    font-size: 16px;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    background-color: var(--input-bg);
-    color: var(--text-color);
-    cursor: pointer;
-    transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-.repo-select:hover {
-    border-color: var(--accent-color);
-}
-
-.repo-select:focus {
-    outline: none;
-    border-color: var(--accent-color);
-    box-shadow: 0 0 0 2px var(--accent-color-transparent);
-}
-
-.repo-select option {
-    background-color: var(--input-bg);
-    color: var(--text-color);
-    padding: 8px;
-}
-
-.repo-tag {
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 12px;
-    font-weight: 500;
-    color: white;
-    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
-    white-space: nowrap;
-    transition: opacity 0.2s;
-}
-
-.repo-tag:hover {
-    opacity: 0.9;
-}
-
-.repo-list {
-    margin-top: 10px;
-}
-
-.repo-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px;
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    margin-bottom: 10px;
-    background-color: var(--bg-secondary);
-    transition: background-color 0.2s, border-color 0.2s;
-}
-
-.repo-item:hover {
-    background-color: var(--bg-hover);
-    border-color: var(--accent-color);
-}
-
-.repo-info {
-    flex: 1;
-}
-
-.repo-name {
-    font-weight: 500;
-    color: var(--text-color);
-    margin-bottom: 4px;
-}
-
-.repo-path {
-    font-size: 12px;
-    color: var(--text-secondary);
-}
-
-.repo-actions {
-    display: flex;
-    gap: 8px;
-}
-
-.repo-button {
-    padding: 6px 12px;
-    border: none;
-    border-radius: 4px;
-    font-size: 14px;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-
-.repo-button.delete {
-    background-color: var(--error-color);
-    color: white;
-}
-
-.repo-button.delete:hover {
-    background-color: var(--error-color);
-    opacity: 0.9;
-}
-
-.repo-button.toggle {
-    background-color: var(--accent-color);
-    color: white;
-}
-
-.repo-button.toggle:hover {
-    background-color: var(--accent-color);
-    opacity: 0.9;
-}
-
-.repo-button.toggle.disabled {
-    background-color: var(--text-secondary);
-}
-
-.kebab-menu {
-    position: relative;
-    display: inline-block;
-    margin-left: 4px;
-}
-
-.kebab-menu-btn {
-    background: none;
-    border: none;
-    color: var(--secondary-text);
-    cursor: pointer;
-    padding: 4px;
-    opacity: 0.7;
-    transition: all 0.2s;
-    width: 30px;
-    height: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 4px;
-}
-
-.kebab-menu-btn:hover {
-    opacity: 1;
-    background-color: var(--bg-hover);
-}
-
-.kebab-menu-btn svg {
-    width: 25px;
-    height: 25px;
-    fill: currentColor;
-}
-
-.kebab-menu-content {
-    display: none;
-    position: absolute;
-    right: 0;
-    top: 100%;
-    background-color: var(--bg-color);
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    box-shadow: 0 2px 8px var(--shadow-color);
-    z-index: 1000;
-    min-width: 160px;
-    margin-top: 4px;
-}
-
-.kebab-menu-content.show {
-    display: block;
-}
-
-.add-repo-btn {
-    display: block;
-    width: 100%;
-    padding: 8px 16px;
-    text-align: left;
-    background: none;
-    border: none;
-    color: var(--text-color);
-    cursor: pointer;
-    font-size: 14px;
-    transition: background-color 0.2s;
-}
-
-.add-repo-btn:hover {
-    background-color: var(--bg-hover);
-}
-
-.scan-virustotal-btn {
-    display: block;
-    width: 100%;
-    padding: 8px 16px;
-    text-align: left;
-    background: none;
-    border: none;
-    color: var(--text-color);
-    cursor: pointer;
-    font-size: 14px;
-    transition: background-color 0.2s;
-}
-
-.scan-virustotal-btn:hover {
-    background-color: var(--bg-hover);
-}
-
-/* Add loading state styles for both buttons */
-.add-repo-btn.loading,
-.scan-virustotal-btn.loading {
-    opacity: 0.7;
-    cursor: wait;
 } 

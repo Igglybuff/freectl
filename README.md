@@ -27,8 +27,6 @@ It uses a very scrappy, home-grown markdown parser to extract URLs, titles/descr
 
 There is also a basic favouriting system. Favourites and settings are stored locally as JSON files in `~/.config/freectl/`.
 
-The "Stats" page is very broken right now, and to be honest is low down on the list of priorities for this project.
-
 The frontend is (in theory) embedded into the Go binary, so it should be pretty portable.
 
 ## Installation
@@ -177,7 +175,7 @@ go build
 - [ ] add reachability check button to quickly see if a link is dead
 - [ ] add share button
 - [ ] after adding/removing repos from Settings, page needs to refresh before selecting categories from Search drop-down
-- [ ] fix stats page
+- [x] fix stats page
 - [ ] make the web UI prettier because it's very boring
 - [ ] make the web UI mobile-compatible
 - [ ] rest API

@@ -353,14 +353,18 @@ func handleStats(w http.ResponseWriter, r *http.Request) {
 	}
 
 	repoPath := repository.GetRepoPath(config.CacheDir, repoName)
-	docsDir := filepath.Join(repoPath, "docs")
+	if _, err := os.Stat(repoPath); os.IsNotExist(err) {
+		http.Error(w, fmt.Sprintf("Repository '%s' not found", repoName), http.StatusNotFound)
+		return
+	}
+
 	s := &stats.Stats{
 		DomainsCount:  make(map[string]int),
 		ProtocolStats: make(map[string]int),
 	}
 
 	var wg sync.WaitGroup
-	err := filepath.Walk(docsDir, func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(repoPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -375,7 +379,7 @@ func handleStats(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Error walking docs directory: %v", err), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Error walking repository: %v", err), http.StatusInternalServerError)
 		return
 	}
 

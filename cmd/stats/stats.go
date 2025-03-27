@@ -96,7 +96,7 @@ func sortAndPrintStats(s *internalStats.Stats) {
 
 	fmt.Printf("📚 Top Categories:\n")
 	for i, cat := range s.Categories {
-		if i >= 10 {
+		if i >= 12 {
 			break
 		}
 		fmt.Printf("  • %s: %d links\n", cat.Name, cat.LinkCount)
@@ -105,7 +105,7 @@ func sortAndPrintStats(s *internalStats.Stats) {
 
 	fmt.Printf("🌐 Top Domains:\n")
 	for i, d := range domains {
-		if i >= 10 {
+		if i >= 12 {
 			break
 		}
 		fmt.Printf("  • %s: %d links\n", d.domain, d.count)
