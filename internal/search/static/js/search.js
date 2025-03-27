@@ -184,39 +184,44 @@ function createResultHTML(result, showScore = true) {
     // Check if category is invalid
     const isInvalid = result.category.length > 80;
     
+    // Escape the description for use in the data attribute
+    const escapedDescription = result.description.replace(/"/g, '&quot;');
+    
     return `<div class="result-item ${isInvalid ? 'invalid-result' : ''}">
             <div class="result-content">
                 <div class="result-header">
-                    <a href="${result.url}" class="result-link" target="_blank">
-                        ${result.name || result.description}
-                    </a>
-                    <button class="result-description-toggle" title="Toggle description">
-                        <svg class="expand-icon" viewBox="0 0 24 24">
-                            <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
-                        </svg>
-                        <svg class="collapse-icon" viewBox="0 0 24 24">
-                            <path d="M19 13H5v-2h14v2z"/>
-                        </svg>
-                    </button>
-                    <span class="result-description">${result.description}</span>
+                    <div class="result-main">
+                        <a href="${result.url}" class="result-link" target="_blank">
+                            ${result.name || result.description}
+                        </a>
+                        <button class="result-description-toggle" title="Toggle description">
+                            <svg class="expand-icon" viewBox="0 0 24 24">
+                                <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                            </svg>
+                            <svg class="collapse-icon" viewBox="0 0 24 24">
+                                <path d="M19 13H5v-2h14v2z"/>
+                            </svg>
+                        </button>
+                        <span class="result-description" data-full-description="${escapedDescription}">${result.description}</span>
+                    </div>
+                    <div class="result-tags">
+                        ${isInvalid ? 
+                            `<div class="warning-tag">⚠️ Invalid category</div>` :
+                            `<div class="category-tag">${result.category || 'n/a'}</div>`
+                        }
+                        <div class="repo-tag" style="background-color: ${repoColor}">${result.repository}</div>
+                        <span class="result-domain">${getDisplayText(result.url)}</span>
+                        <button class="favorite-btn ${isFavorite ? 'active' : ''}" 
+                                data-link="${result.url}"
+                                data-name="${result.name}"
+                                data-description="${result.description}"
+                                data-category="${result.category || 'n/a'}"
+                                data-repository="${result.repository}">
+                            <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                        </button>
+                    </div>
                 </div>
                 ${showScore && currentSettings.showScores ? `<div class="result-score">Score: ${result.score}</div>` : ''}
-            </div>
-            <div style="display: flex; align-items: center; gap: 8px;">
-                ${isInvalid ? 
-                    `<div class="warning-tag">⚠️ Invalid category</div>` :
-                    `<div class="category-tag">${result.category || 'n/a'}</div>`
-                }
-                <div class="repo-tag" style="background-color: ${repoColor}">${result.repository}</div>
-                <span class="result-domain">${getDisplayText(result.url)}</span>
-                <button class="favorite-btn ${isFavorite ? 'active' : ''}" 
-                        data-link="${result.url}"
-                        data-name="${result.name}"
-                        data-description="${result.description}"
-                        data-category="${result.category || 'n/a'}"
-                        data-repository="${result.repository}">
-                    <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-                </button>
             </div>
         </div>`;
 }

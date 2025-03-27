@@ -153,9 +153,6 @@ body {
     border: 1px solid var(--border-color);
     border-radius: 8px;
     transition: box-shadow 0.2s, border-color 0.2s;
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
     background-color: var(--bg-color);
     box-sizing: border-box;
     width: 100%;
@@ -170,22 +167,21 @@ body {
 }
 
 .result-content {
-    flex: 1;
-    margin-right: 15px;
+    width: 100%;
 }
 
 .result-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 16px;
+    margin-bottom: 4px;
+    align-items: flex-start;
+}
+
+.result-main {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-bottom: 4px;
-}
-
-.result-link-container {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    flex: 1;
     min-width: 0;
 }
 
@@ -193,8 +189,11 @@ body {
     color: var(--link-color);
     text-decoration: none;
     font-size: 16px;
-    margin-right: 4px;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-shrink: 1;
+    min-width: 0;
 }
 
 .result-link:hover {
@@ -215,6 +214,7 @@ body {
     align-items: center;
     justify-content: center;
     border-radius: 4px;
+    flex-shrink: 0;
 }
 
 .result-description-toggle:hover {
@@ -247,12 +247,42 @@ body {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    flex: 1;
     margin: 0 8px;
+    min-width: 0;
+    flex: 1;
 }
 
 .result-description.show {
     display: block;
+}
+
+/* Tooltip styles */
+.result-description.show:hover::before {
+    content: attr(data-full-description);
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 20px;
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 12px 16px;
+    font-size: 13px;
+    white-space: normal;
+    max-width: 800px;
+    width: max-content;
+    box-shadow: 0 2px 8px var(--shadow-color);
+    z-index: 1000;
+    line-height: 1.4;
+    color: var(--text-color);
+}
+
+.result-tags {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    white-space: nowrap;
 }
 
 .result-domain {
