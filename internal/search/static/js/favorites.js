@@ -105,6 +105,110 @@ function addDescriptionToggleListeners() {
             this.classList.toggle('expanded');
         });
     });
+
+    // Add kebab menu functionality
+    document.querySelectorAll('.kebab-menu-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const menu = this.closest('.kebab-menu');
+            const content = menu.querySelector('.kebab-menu-content');
+            
+            // Close all other open menus
+            document.querySelectorAll('.kebab-menu-content').forEach(otherContent => {
+                if (otherContent !== content) {
+                    otherContent.classList.remove('show');
+                }
+            });
+            
+            content.classList.toggle('show');
+        });
+    });
+
+    // Close menu when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.kebab-menu')) {
+            document.querySelectorAll('.kebab-menu-content').forEach(content => {
+                content.classList.remove('show');
+            });
+        }
+    });
+
+    // Handle add repository action
+    document.querySelectorAll('.add-repo-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const url = this.dataset.url;
+            
+            // Clean the URL by removing fragments, query params, and trailing slashes
+            const cleanUrl = url.split('#')[0].split('?')[0].replace(/\/$/, '');
+            
+            // Add loading state
+            this.classList.add('loading');
+            
+            // Make POST request to add repository
+            fetch('/repositories/add', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ url: cleanUrl }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    throw new Error(data.error || 'Failed to add repository');
+                }
+                showToast('Repository added successfully');
+                // Close the kebab menu
+                this.closest('.kebab-menu-content').classList.remove('show');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast(`Failed to add repository: ${error.message}`, true);
+            })
+            .finally(() => {
+                // Remove loading state
+                this.classList.remove('loading');
+            });
+        });
+    });
+
+    // Handle VirusTotal scan action
+    document.querySelectorAll('.scan-virustotal-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const url = this.dataset.url;
+            
+            // Add loading state
+            this.classList.add('loading');
+            
+            // Make POST request to scan URL
+            fetch('/scan/virustotal', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ url }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    throw new Error(data.error || 'Failed to scan URL');
+                }
+                showToast(data.message);
+                // Close the kebab menu
+                this.closest('.kebab-menu-content').classList.remove('show');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast(`Failed to scan URL: ${error.message}`, true);
+            })
+            .finally(() => {
+                // Remove loading state
+                this.classList.remove('loading');
+            });
+        });
+    });
 }
 
 export function loadFavorites() {
@@ -155,6 +259,7 @@ function createResultHTML(result, showScore = true) {
 
     // Escape the description for use in the data attribute
     const escapedDescription = result.description.replace(/"/g, '&quot;');
+    const escapedName = (result.name || '').replace(/"/g, '&quot;');
 
     return `<div class="result-item ${isInvalid ? 'invalid-result' : ''}">
             <div class="result-content">
@@ -182,10 +287,22 @@ function createResultHTML(result, showScore = true) {
                         <span class="result-domain">${getDisplayText(result.url)}</span>
                         <button class="favorite-btn ${isFavorite ? 'active' : ''}" 
                                 data-link="${result.url}"
+                                data-name="${escapedName}"
                                 data-description="${escapedDescription}"
                                 data-category="${(result.category || '').replace(/"/g, '&quot;')}"
                                 data-repository="${result.repository.replace(/"/g, '&quot;')}"
                                 ><svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></button>
+                        <div class="kebab-menu">
+                            <button class="kebab-menu-btn" title="More options">
+                                <svg viewBox="0 0 24 24">
+                                    <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
+                                </svg>
+                            </button>
+                            <div class="kebab-menu-content">
+                                <button class="add-repo-btn" data-url="${result.url}">Add repository</button>
+                                <button class="scan-virustotal-btn" data-url="${result.url}">Scan with VirusTotal</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
