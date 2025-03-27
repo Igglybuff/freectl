@@ -168,12 +168,12 @@ function updateStatsDisplay(data) {
     // Update general stats
     const totalLinks = document.getElementById('totalLinks');
     const repoSize = document.getElementById('repoSize');
-    if (totalLinks) totalLinks.textContent = data.TotalLinks.toLocaleString();
-    if (repoSize) repoSize.textContent = formatBytes(data.TotalSize);
+    if (totalLinks) totalLinks.textContent = (data.TotalLinks || 0).toLocaleString();
+    if (repoSize) repoSize.textContent = formatBytes(data.TotalSize || 0);
     
     // Update protocol stats
-    const httpsCount = data.ProtocolStats.https || 0;
-    const httpCount = data.ProtocolStats.http || 0;
+    const httpsCount = data.ProtocolStats?.https || 0;
+    const httpCount = data.ProtocolStats?.http || 0;
     const totalProtocols = httpsCount + httpCount;
     
     const httpsCountEl = document.getElementById('https-count');
@@ -184,7 +184,8 @@ function updateStatsDisplay(data) {
     // Update categories
     const topCategories = document.getElementById('topCategories');
     if (topCategories) {
-        topCategories.innerHTML = data.Categories
+        const categories = data.Categories || [];
+        topCategories.innerHTML = categories
             .sort((a, b) => b.LinkCount - a.LinkCount)
             .slice(0, 12)
             .map(cat => `
@@ -198,15 +199,25 @@ function updateStatsDisplay(data) {
     // Update domains
     const topDomains = document.getElementById('topDomains');
     if (topDomains) {
-        const sortedDomains = Object.entries(data.DomainsCount)
-            .sort(([,a], [,b]) => b - a)
-            .slice(0, 12);
-        
-        topDomains.innerHTML = sortedDomains
-            .map(([domain, count]) => `
+        let domains;
+        if (data.Domains && Array.isArray(data.Domains)) {
+            // Handle array format with Name and LinkCount
+            domains = data.Domains;
+        } else if (data.DomainsCount && typeof data.DomainsCount === 'object') {
+            // Handle object format with domain names as keys
+            domains = Object.entries(data.DomainsCount)
+                .map(([name, linkCount]) => ({ Name: name, LinkCount: linkCount }));
+        } else {
+            domains = [];
+        }
+
+        topDomains.innerHTML = domains
+            .sort((a, b) => b.LinkCount - a.LinkCount)
+            .slice(0, 12)
+            .map(domain => `
                 <div class="stats-list-item">
-                    <span class="stats-list-label">${domain}</span>
-                    <span class="stats-list-value">${count.toLocaleString()}</span>
+                    <span class="stats-list-label">${domain.Name}</span>
+                    <span class="stats-list-value">${domain.LinkCount.toLocaleString()}</span>
                 </div>
             `).join('');
     }

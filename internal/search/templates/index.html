@@ -7,13 +7,15 @@
     <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h1 id="mainHeader">find cool stuff</h1>
-        <button class="theme-toggle" id="themeToggle" title="Toggle dark mode">
-            <svg viewBox="0 0 24 24">
-                <path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-3.03 0-5.5-2.47-5.5-5.5 0-1.82.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/>
-            </svg>
-        </button>
+    <div class="header-container">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h1 id="mainHeader">find cool stuff</h1>
+            <button class="theme-toggle" id="themeToggle" title="Toggle dark mode">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-3.03 0-5.5-2.47-5.5-5.5 0-1.82.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/>
+                </svg>
+            </button>
+        </div>
     </div>
     <div class="tab-buttons">
         <div class="tab-left">
@@ -32,211 +34,219 @@
         </div>
     </div>
     <div id="searchTab" class="active">
-        <div class="search-container">
-            <div class="search-controls">
-                <input type="text" 
-                       id="searchInput" 
-                       class="search-box" 
-                       placeholder="Search repositories..." 
-                       maxlength="1000"
-                       pattern="[^<>]*"
-                       title="Search query cannot contain < or > characters"
-                       required>
-                <div class="filter-group">
-                    <select id="repoFilter" class="filter-select">
-                        <option value="">All repositories</option>
-                    </select>
-                    <select id="categoryFilter" class="filter-select">
-                        <option value="">All categories</option>
-                    </select>
+        <div class="page-container">
+            <div class="search-container">
+                <div class="search-controls">
+                    <input type="text" 
+                           id="searchInput" 
+                           class="search-box" 
+                           placeholder="Search repositories..." 
+                           maxlength="1000"
+                           pattern="[^<>]*"
+                           title="Search query cannot contain < or > characters"
+                           required>
+                    <div class="filter-group">
+                        <select id="repoFilter" class="filter-select">
+                            <option value="">All repositories</option>
+                        </select>
+                        <select id="categoryFilter" class="filter-select">
+                            <option value="">All categories</option>
+                        </select>
+                    </div>
                 </div>
+                <div id="errorMessage" class="error-message"></div>
             </div>
-            <div id="errorMessage" class="error-message"></div>
+            <div id="results" class="results"></div>
+            <div id="pagination" class="pagination"></div>
         </div>
-        <div id="results" class="results"></div>
-        <div id="pagination" class="pagination"></div>
     </div>
     <div id="favoritesTab">
-        <div class="search-container">
-            <div class="search-controls">
-                <input type="text" class="search-box" id="favoritesSearchInput" placeholder="Search favorites...">
-                <div class="filter-group">
-                    <select id="favoriteRepoFilter" class="filter-select">
-                        <option value="">All repositories</option>
-                    </select>
-                    <select id="favoriteCategoryFilter" class="filter-select">
-                        <option value="">All categories</option>
-                    </select>
+        <div class="page-container">
+            <div class="search-container">
+                <div class="search-controls">
+                    <input type="text" class="search-box" id="favoritesSearchInput" placeholder="Search favorites...">
+                    <div class="filter-group">
+                        <select id="favoriteRepoFilter" class="filter-select">
+                            <option value="">All repositories</option>
+                        </select>
+                        <select id="favoriteCategoryFilter" class="filter-select">
+                            <option value="">All categories</option>
+                        </select>
+                    </div>
                 </div>
             </div>
+            <div id="favorites" class="results"></div>
         </div>
-        <div id="favorites" class="results"></div>
     </div>
     <div id="statsTab" class="tab">
-        <div class="stats-container">
-            <div class="repo-selection">
-                <select id="statsRepo" class="repo-select">
-                    <option value="">Loading repositories...</option>
-                </select>
-            </div>
+        <div class="page-container">
+            <div class="stats-container">
+                <div class="repo-selection">
+                    <select id="statsRepo" class="repo-select">
+                        <option value="">Loading repositories...</option>
+                    </select>
+                </div>
 
-            <div class="stats-section">
-                <h2>General stats</h2>
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-value" id="totalLinks">-</div>
-                        <div class="stat-label">Total links</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="repoSize">-</div>
-                        <div class="stat-label">Repository size</div>
+                <div class="stats-section">
+                    <h2>General stats</h2>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value" id="totalLinks">-</div>
+                            <div class="stat-label">Total links</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="repoSize">-</div>
+                            <div class="stat-label">Repository size</div>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="stats-section">
-                <h2>Protocol usage</h2>
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-value" id="https-count">-</div>
-                        <div class="stat-label">HTTPS links</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="http-count">-</div>
-                        <div class="stat-label">HTTP links</div>
+                <div class="stats-section">
+                    <h2>Protocol usage</h2>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value" id="https-count">-</div>
+                            <div class="stat-label">HTTPS links</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="http-count">-</div>
+                            <div class="stat-label">HTTP links</div>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="stats-section">
-                <h2>Top categories</h2>
-                <div class="stats-list" id="topCategories">
-                    Loading...
+                <div class="stats-section">
+                    <h2>Top categories</h2>
+                    <div class="stats-list" id="topCategories">
+                        Loading...
+                    </div>
                 </div>
-            </div>
 
-            <div class="stats-section">
-                <h2>Top domains</h2>
-                <div class="stats-list" id="topDomains">
-                    Loading...
+                <div class="stats-section">
+                    <h2>Top domains</h2>
+                    <div class="stats-list" id="topDomains">
+                        Loading...
+                    </div>
                 </div>
             </div>
         </div>
     </div>
     <div id="settingsTab" class="tab">
-        <div class="settings-container">
-            <div class="settings-section">
-                <h3>Search behavior</h3>
-                <div class="settings-grid">
-                    <div class="setting-item">
-                        <label for="minQueryLength">Minimum query length:</label>
-                        <input type="number" id="minQueryLength" value="2" min="1" max="10">
-                        <span class="setting-description">Minimum number of characters required for a search query</span>
-                    </div>
-                    <div class="setting-item">
-                        <label for="maxQueryLength">Maximum query length:</label>
-                        <input type="number" id="maxQueryLength" value="1000" min="100" max="2000">
-                        <span class="setting-description">Maximum number of characters allowed in a search query</span>
-                    </div>
-                    <div class="setting-item">
-                        <label for="searchDelay">Search delay (ms):</label>
-                        <input type="number" id="searchDelay" value="300" min="100" max="1000" step="100">
-                        <span class="setting-description">Delay before performing search after typing</span>
-                    </div>
-                    <div class="setting-item">
-                        <label for="resultsPerPage">Results per page:</label>
-                        <input type="number" id="resultsPerPage" value="10" min="5" max="50" step="5">
-                        <span class="setting-description">Number of search results to display per page</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="settings-section">
-                <h3>Display options</h3>
-                <div class="settings-grid">
-                    <div class="setting-item checkbox-item">
-                        <div class="checkbox-wrapper">
-                            <input type="checkbox" id="showScores" checked>
-                            <label for="showScores">Show scores</label>
+        <div class="page-container">
+            <div class="settings-container">
+                <div class="settings-section">
+                    <h3>Search behavior</h3>
+                    <div class="settings-grid">
+                        <div class="setting-item">
+                            <label for="minQueryLength">Minimum query length:</label>
+                            <input type="number" id="minQueryLength" value="2" min="1" max="10">
+                            <span class="setting-description">Minimum number of characters required for a search query</span>
                         </div>
-                        <span class="setting-description">Display relevance scores for search results</span>
-                    </div>
-                    <div class="setting-item checkbox-item">
-                        <div class="checkbox-wrapper">
-                            <input type="checkbox" id="truncateTitles" checked>
-                            <label for="truncateTitles">Truncate long titles</label>
+                        <div class="setting-item">
+                            <label for="maxQueryLength">Maximum query length:</label>
+                            <input type="number" id="maxQueryLength" value="1000" min="100" max="2000">
+                            <span class="setting-description">Maximum number of characters allowed in a search query</span>
                         </div>
-                        <span class="setting-description">Truncate long link titles to improve readability</span>
-                    </div>
-                    <div class="setting-item">
-                        <label for="maxTitleLength">Maximum title length:</label>
-                        <input type="number" id="maxTitleLength" value="100" min="20" max="500" step="10">
-                        <span class="setting-description">Maximum number of characters to show in link titles</span>
-                    </div>
-                    <div class="setting-item">
-                        <label for="minFuzzyScore">Minimum fuzzy score:</label>
-                        <input type="number" id="minFuzzyScore" name="minFuzzyScore" value="{{.Settings.MinFuzzyScore}}">
-                        <span class="setting-description">Lower values allow more lenient matches. Higher values require more exact matches.</span>
-                    </div>
-                    <div class="setting-item">
-                        <label for="customHeader">Custom header:</label>
-                        <input type="text" id="customHeader" value="find cool stuff" maxlength="50">
-                        <span class="setting-description">Custom header text to display at the top of the page</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="settings-section">
-                <h3>Repository settings</h3>
-                <div class="settings-grid">
-                    <div class="setting-item">
-                        <label for="cacheDir">Cache directory:</label>
-                        <input type="text" id="cacheDir">
-                        <span class="setting-description">Directory where repositories are cached</span>
-                    </div>
-                    <div class="setting-item checkbox-item">
-                        <div class="checkbox-wrapper">
-                            <input type="checkbox" id="autoUpdate" checked>
-                            <label for="autoUpdate">Auto update</label>
+                        <div class="setting-item">
+                            <label for="searchDelay">Search delay (ms):</label>
+                            <input type="number" id="searchDelay" value="300" min="100" max="1000" step="100">
+                            <span class="setting-description">Delay before performing search after typing</span>
                         </div>
-                        <span class="setting-description">Automatically update the cache when it's older than a week</span>
+                        <div class="setting-item">
+                            <label for="resultsPerPage">Results per page:</label>
+                            <input type="number" id="resultsPerPage" value="10" min="5" max="50" step="5">
+                            <span class="setting-description">Number of search results to display per page</span>
+                        </div>
                     </div>
                 </div>
-                <div class="settings-buttons">
-                    <button id="updateRepo" class="settings-button">Update repositories</button>
-                </div>
-            </div>
 
-            <div class="settings-section">
-                <h3>Add repository</h3>
-                <div class="settings-grid">
-                    <div class="setting-item">
-                        <label for="repoUrl">Repository URL:</label>
-                        <input type="text" id="repoUrl" placeholder="https://github.com/user/repo">
-                        <span class="setting-description">URL of the Git repository to add</span>
+                <div class="settings-section">
+                    <h3>Display options</h3>
+                    <div class="settings-grid">
+                        <div class="setting-item checkbox-item">
+                            <div class="checkbox-wrapper">
+                                <input type="checkbox" id="showScores" checked>
+                                <label for="showScores">Show scores</label>
+                            </div>
+                            <span class="setting-description">Display relevance scores for search results</span>
+                        </div>
+                        <div class="setting-item checkbox-item">
+                            <div class="checkbox-wrapper">
+                                <input type="checkbox" id="truncateTitles" checked>
+                                <label for="truncateTitles">Truncate long titles</label>
+                            </div>
+                            <span class="setting-description">Truncate long link titles to improve readability</span>
+                        </div>
+                        <div class="setting-item">
+                            <label for="maxTitleLength">Maximum title length:</label>
+                            <input type="number" id="maxTitleLength" value="100" min="20" max="500" step="10">
+                            <span class="setting-description">Maximum number of characters to show in link titles</span>
+                        </div>
+                        <div class="setting-item">
+                            <label for="minFuzzyScore">Minimum fuzzy score:</label>
+                            <input type="number" id="minFuzzyScore" name="minFuzzyScore" value="{{.Settings.MinFuzzyScore}}">
+                            <span class="setting-description">Lower values allow more lenient matches. Higher values require more exact matches.</span>
+                        </div>
+                        <div class="setting-item">
+                            <label for="customHeader">Custom header:</label>
+                            <input type="text" id="customHeader" value="find cool stuff" maxlength="50">
+                            <span class="setting-description">Custom header text to display at the top of the page</span>
+                        </div>
                     </div>
-                    <div class="setting-item">
-                        <label for="repoName">Repository name:</label>
-                        <input type="text" id="repoName" placeholder="repo-name">
-                        <span class="setting-description">Name to identify the repository (optional, defaults to repo name)</span>
+                </div>
+
+                <div class="settings-section">
+                    <h3>Repository settings</h3>
+                    <div class="settings-grid">
+                        <div class="setting-item">
+                            <label for="cacheDir">Cache directory:</label>
+                            <input type="text" id="cacheDir">
+                            <span class="setting-description">Directory where repositories are cached</span>
+                        </div>
+                        <div class="setting-item checkbox-item">
+                            <div class="checkbox-wrapper">
+                                <input type="checkbox" id="autoUpdate" checked>
+                                <label for="autoUpdate">Auto update</label>
+                            </div>
+                            <span class="setting-description">Automatically update the cache when it's older than a week</span>
+                        </div>
+                    </div>
+                    <div class="settings-buttons">
+                        <button id="updateRepo" class="settings-button">Update repositories</button>
                     </div>
                 </div>
-                <div class="settings-buttons">
-                    <button id="addRepo" class="settings-button">Add repository</button>
-                </div>
-            </div>
 
-            <div class="settings-section">
-                <h3>Manage repositories</h3>
-                <div id="repoList" class="repo-list">
-                    Loading repositories...
+                <div class="settings-section">
+                    <h3>Add repository</h3>
+                    <div class="settings-grid">
+                        <div class="setting-item">
+                            <label for="repoUrl">Repository URL:</label>
+                            <input type="text" id="repoUrl" placeholder="https://github.com/user/repo">
+                            <span class="setting-description">URL of the Git repository to add</span>
+                        </div>
+                        <div class="setting-item">
+                            <label for="repoName">Repository name:</label>
+                            <input type="text" id="repoName" placeholder="repo-name">
+                            <span class="setting-description">Name to identify the repository (optional, defaults to repo name)</span>
+                        </div>
+                    </div>
+                    <div class="settings-buttons">
+                        <button id="addRepo" class="settings-button">Add repository</button>
+                    </div>
                 </div>
-            </div>
 
-            <div class="settings-section">
-                <div class="settings-buttons">
-                    <button id="saveSettings" class="settings-button">Save settings</button>
-                    <button id="resetSettings" class="settings-button secondary">Reset to defaults</button>
+                <div class="settings-section">
+                    <h3>Manage repositories</h3>
+                    <div id="repoList" class="repo-list">
+                        Loading repositories...
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <div class="settings-buttons">
+                        <button id="saveSettings" class="settings-button">Save settings</button>
+                        <button id="resetSettings" class="settings-button secondary">Reset to defaults</button>
+                    </div>
                 </div>
             </div>
         </div>

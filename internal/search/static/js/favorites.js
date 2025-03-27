@@ -2,6 +2,7 @@ import { showToast } from './ui.js';
 import { getDisplayText } from './ui.js';
 import { getRepositoryColor } from './ui.js';
 import { getCurrentSettings } from './settings.js';
+import { addKebabMenuListeners } from './ui.js';
 
 let currentFavorites = new Set();
 let allFavorites = [];
@@ -92,6 +93,8 @@ export function updateFavoritesDisplay() {
     
     // Add event listeners for description toggles
     addDescriptionToggleListeners();
+    // Add kebab menu listeners
+    addKebabMenuListeners();
     updateFavoriteButtons();
 }
 
@@ -103,110 +106,6 @@ function addDescriptionToggleListeners() {
             const isShowing = description.classList.contains('show');
             description.classList.toggle('show');
             this.classList.toggle('expanded');
-        });
-    });
-
-    // Add kebab menu functionality
-    document.querySelectorAll('.kebab-menu-btn').forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.stopPropagation();
-            const menu = this.closest('.kebab-menu');
-            const content = menu.querySelector('.kebab-menu-content');
-            
-            // Close all other open menus
-            document.querySelectorAll('.kebab-menu-content').forEach(otherContent => {
-                if (otherContent !== content) {
-                    otherContent.classList.remove('show');
-                }
-            });
-            
-            content.classList.toggle('show');
-        });
-    });
-
-    // Close menu when clicking outside
-    document.addEventListener('click', function(e) {
-        if (!e.target.closest('.kebab-menu')) {
-            document.querySelectorAll('.kebab-menu-content').forEach(content => {
-                content.classList.remove('show');
-            });
-        }
-    });
-
-    // Handle add repository action
-    document.querySelectorAll('.add-repo-btn').forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.stopPropagation();
-            const url = this.dataset.url;
-            
-            // Clean the URL by removing fragments, query params, and trailing slashes
-            const cleanUrl = url.split('#')[0].split('?')[0].replace(/\/$/, '');
-            
-            // Add loading state
-            this.classList.add('loading');
-            
-            // Make POST request to add repository
-            fetch('/repositories/add', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ url: cleanUrl }),
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (!data.success) {
-                    throw new Error(data.error || 'Failed to add repository');
-                }
-                showToast('Repository added successfully');
-                // Close the kebab menu
-                this.closest('.kebab-menu-content').classList.remove('show');
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showToast(`Failed to add repository: ${error.message}`, true);
-            })
-            .finally(() => {
-                // Remove loading state
-                this.classList.remove('loading');
-            });
-        });
-    });
-
-    // Handle VirusTotal scan action
-    document.querySelectorAll('.scan-virustotal-btn').forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.stopPropagation();
-            const url = this.dataset.url;
-            
-            // Add loading state
-            this.classList.add('loading');
-            
-            // Make POST request to scan URL
-            fetch('/scan/virustotal', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ url }),
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (!data.success) {
-                    throw new Error(data.error || 'Failed to scan URL');
-                }
-                showToast(data.message);
-                // Close the kebab menu
-                this.closest('.kebab-menu-content').classList.remove('show');
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showToast(`Failed to scan URL: ${error.message}`, true);
-            })
-            .finally(() => {
-                // Remove loading state
-                this.classList.remove('loading');
-            });
         });
     });
 }

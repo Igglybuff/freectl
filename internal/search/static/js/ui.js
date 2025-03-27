@@ -50,4 +50,136 @@ export function getRepositoryColor(repoName, repositoryColors) {
     const color = `hsl(${hue}, 70%, 40%)`;
     repositoryColors.set(repoName, color);
     return color;
+}
+
+// Add kebab menu functionality
+export function addKebabMenuListeners() {
+    // Remove existing event listeners first
+    document.querySelectorAll('.kebab-menu-btn').forEach(button => {
+        const newButton = button.cloneNode(true);
+        button.parentNode.replaceChild(newButton, button);
+    });
+
+    document.querySelectorAll('.kebab-menu-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const menu = this.closest('.kebab-menu');
+            const content = menu.querySelector('.kebab-menu-content');
+            
+            // Close all other open menus
+            document.querySelectorAll('.kebab-menu-content').forEach(otherContent => {
+                if (otherContent !== content) {
+                    otherContent.classList.remove('show');
+                }
+            });
+            
+            content.classList.toggle('show');
+        });
+    });
+
+    // Remove existing click outside listener if it exists
+    const existingListener = document._kebabMenuOutsideListener;
+    if (existingListener) {
+        document.removeEventListener('click', existingListener);
+    }
+
+    // Add new click outside listener
+    const clickOutsideListener = function(e) {
+        if (!e.target.closest('.kebab-menu')) {
+            document.querySelectorAll('.kebab-menu-content').forEach(content => {
+                content.classList.remove('show');
+            });
+        }
+    };
+    document._kebabMenuOutsideListener = clickOutsideListener;
+    document.addEventListener('click', clickOutsideListener);
+
+    // Remove existing repository button listeners
+    document.querySelectorAll('.add-repo-btn').forEach(button => {
+        const newButton = button.cloneNode(true);
+        button.parentNode.replaceChild(newButton, button);
+    });
+
+    // Handle add repository action
+    document.querySelectorAll('.add-repo-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const url = this.dataset.url;
+            
+            // Clean the URL by removing fragments, query params, and trailing slashes
+            const cleanUrl = url.split('#')[0].split('?')[0].replace(/\/$/, '');
+            
+            // Add loading state
+            this.classList.add('loading');
+            
+            // Make POST request to add repository
+            fetch('/repositories/add', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ url: cleanUrl }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    throw new Error(data.error || 'Failed to add repository');
+                }
+                showToast('Repository added successfully');
+                // Close the kebab menu
+                this.closest('.kebab-menu-content').classList.remove('show');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast(`Failed to add repository: ${error.message}`, true);
+            })
+            .finally(() => {
+                // Remove loading state
+                this.classList.remove('loading');
+            });
+        });
+    });
+
+    // Remove existing VirusTotal button listeners
+    document.querySelectorAll('.scan-virustotal-btn').forEach(button => {
+        const newButton = button.cloneNode(true);
+        button.parentNode.replaceChild(newButton, button);
+    });
+
+    // Handle VirusTotal scan action
+    document.querySelectorAll('.scan-virustotal-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const url = this.dataset.url;
+            
+            // Add loading state
+            this.classList.add('loading');
+            
+            // Make POST request to scan URL
+            fetch('/scan/virustotal', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ url }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    throw new Error(data.error || 'Failed to scan URL');
+                }
+                showToast(data.message);
+                // Close the kebab menu
+                this.closest('.kebab-menu-content').classList.remove('show');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast(`Failed to scan URL: ${error.message}`, true);
+            })
+            .finally(() => {
+                // Remove loading state
+                this.classList.remove('loading');
+            });
+        });
+    });
 } 
