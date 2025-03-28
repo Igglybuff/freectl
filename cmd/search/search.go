@@ -17,9 +17,9 @@ var sourceName string
 
 var SearchCmd = &cobra.Command{
 	Use:   "search [query]",
-	Short: "Search through all cached sourcesitories",
-	Long: `Search through all cached sourcesitories for resources.
-If no source is specified with --source, searches across all sourcesitories.
+	Short: "Search through all cached sources",
+	Long: `Search through all cached sources for resources.
+If no source is specified with --source, searches across all sources.
 
 The search will:
 1. Look through all markdown files in each source
@@ -37,7 +37,7 @@ Controls:
   enter - Select result
 
 Examples:
-  # Search across all sourcesitories
+  # Search across all sources
   freectl search "torrent"
   
   # Search in a specific source

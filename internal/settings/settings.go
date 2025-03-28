@@ -126,6 +126,12 @@ func AddSource(url, name, sourceType string) error {
 		return fmt.Errorf("failed to load settings: %w", err)
 	}
 
+	// Check if source type is implemented
+	if !sources.IsImplemented(sources.SourceType(sourceType)) {
+		log.Warn("Unsupported source type for update", "name", name, "type", sourceType)
+		return fmt.Errorf("unsupported source type: %s", sourceType)
+	}
+
 	// Check if source with this name already exists
 	for _, source := range settings.Sources {
 		if source.Name == name {

@@ -32,14 +32,6 @@ Example:
 	RunE: func(cmd *cobra.Command, args []string) error {
 		log.Debug("Starting list command")
 
-		// Load settings to get cache directory
-		s, err := settings.LoadSettings()
-		if err != nil {
-			log.Error("Failed to load settings", "error", err)
-			return fmt.Errorf("failed to load settings: %w", err)
-		}
-		log.Debug("Using cache directory", "path", s.CacheDir)
-
 		sources, err := settings.ListSources()
 		if err != nil {
 			log.Error("Failed to list sources", "error", err)

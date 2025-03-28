@@ -25,30 +25,9 @@ and enabled by default.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		url := args[0]
 
-		// Load settings to check for existing sources
-		s, err := settings.LoadSettings()
-		if err != nil {
-			log.Error("Failed to load settings", "error", err)
-			return fmt.Errorf("failed to load settings: %w", err)
-		}
-
 		// If name is not provided, derive it from URL
 		if name == "" {
 			name = sources.DeriveNameFromURL(url)
-		}
-
-		// Check if source type is implemented
-		if !sources.IsImplemented(sources.SourceType(sourceType)) {
-			log.Warn("Unsupported source type for update", "name", name, "type", sourceType)
-			return fmt.Errorf("unsupported source type: %s", sourceType)
-		}
-
-		// Check if source with this name already exists
-		for _, source := range s.Sources {
-			if source.Name == name {
-				log.Error("Source already exists", "name", name)
-				return fmt.Errorf("source '%s' already exists", name)
-			}
 		}
 
 		if err := settings.AddSource(url, name, sourceType); err != nil {
