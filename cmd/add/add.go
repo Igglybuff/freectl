@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"freectl/internal/repository"
-
+	"freectl/internal/sources"
 	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
 )
@@ -33,7 +33,7 @@ Examples:
 
 		// If no name is provided, derive it from the URL
 		if name == "" {
-			name = repository.DeriveNameFromURL(url)
+			name = sources.DeriveNameFromURL(url)
 		}
 
 		if err := repository.AddRepository(cacheDir, url, name, repoType); err != nil {

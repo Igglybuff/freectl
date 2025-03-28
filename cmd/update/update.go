@@ -6,6 +6,7 @@ import (
 
 	"freectl/internal/config"
 	"freectl/internal/repository"
+	"freectl/internal/sources"
 
 	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
@@ -44,14 +45,13 @@ var UpdateCmd = &cobra.Command{
 			}
 
 			log.Debug("Updating repository", "name", repo.Name)
-			duration, err := repository.UpdateRepo(repo.Path)
-			if err != nil {
+			if err := sources.UpdateGitRepo(repo.Path); err != nil {
 				log.Error("Failed to update repository", "name", repo.Name, "error", err)
 				fmt.Printf("Failed to update %s: %v\n", repo.Name, err)
 				failed++
 				continue
 			}
-			log.Debug("Successfully updated repository", "name", repo.Name, "duration", duration)
+			log.Debug("Successfully updated repository", "name", repo.Name)
 			updated++
 		}
 

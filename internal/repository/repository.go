@@ -3,9 +3,7 @@ package repository
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"freectl/internal/settings"
@@ -21,13 +19,6 @@ type Repository struct {
 	URL     string             `json:"url"`
 	Enabled bool               `json:"enabled"`
 	Type    sources.SourceType `json:"type"`
-}
-
-// AddRepositoryRequest represents the request to add a new repository
-type AddRepositoryRequest struct {
-	URL  string             `json:"url"`
-	Name string             `json:"name"`
-	Type sources.SourceType `json:"type"`
 }
 
 // GetRepoPath returns the path to a repository
@@ -49,31 +40,6 @@ func GetRepoPath(cacheDir, repoName string) string {
 	return repoPath
 }
 
-// GetGitRemoteURL returns the remote URL of a Git repository
-func GetGitRemoteURL(repoPath string) (string, error) {
-	cmd := exec.Command("git", "-C", repoPath, "remote", "get-url", "origin")
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return "", fmt.Errorf("failed to get remote URL: %s", string(output))
-	}
-	return strings.TrimSpace(string(output)), nil
-}
-
-// ValidateRepository checks if a repository exists and is valid
-func ValidateRepository(cacheDir, name string) error {
-	repoPath := filepath.Join(cacheDir, name)
-	if _, err := os.Stat(repoPath); os.IsNotExist(err) {
-		return fmt.Errorf("repository %s not found", name)
-	}
-
-	// Check if it's a valid Git repository
-	if _, err := os.Stat(filepath.Join(repoPath, ".git")); os.IsNotExist(err) {
-		return fmt.Errorf("repository %s is not a valid Git repository", name)
-	}
-
-	return nil
-}
-
 // AddRepository adds a new repository to the cache
 func AddRepository(cacheDir string, url string, name string, repoType string) error {
 	if url == "" {
@@ -82,9 +48,7 @@ func AddRepository(cacheDir string, url string, name string, repoType string) er
 
 	// If no name is provided, derive it from the URL
 	if name == "" {
-		name = filepath.Base(url)
-		// Remove .git extension if present
-		name = strings.TrimSuffix(name, ".git")
+		name = sources.DeriveNameFromURL(url)
 	}
 
 	// If no type is provided, default to git
@@ -165,7 +129,7 @@ func List(cacheDir string) ([]Repository, error) {
 		log.Debug("Processing repository", "name", entry.Name(), "path", repoPath)
 
 		// Get the remote URL
-		url, err := GetGitRemoteURL(repoPath)
+		url, err := sources.GetGitRemoteURL(repoPath)
 		if err != nil {
 			log.Error("Failed to get repository URL", "name", entry.Name(), "error", err)
 		}
@@ -211,7 +175,7 @@ func Delete(cacheDir string, name string) error {
 	}
 
 	// Delete the repository directory
-	if err := os.RemoveAll(repoPath); err != nil {
+	if err := sources.DeleteGitRepo(repoPath); err != nil {
 		return fmt.Errorf("failed to delete repository: %w", err)
 	}
 
@@ -248,7 +212,7 @@ func ToggleEnabled(cacheDir string, name string) error {
 	}
 
 	// Get the remote URL
-	url, err := GetGitRemoteURL(repoPath)
+	url, err := sources.GetGitRemoteURL(repoPath)
 	if err != nil {
 		log.Error("Failed to get repository URL", "name", name, "error", err)
 	}
@@ -311,23 +275,6 @@ func IsEnabled(cacheDir string, name string) (bool, error) {
 	return true, nil
 }
 
-// DeriveNameFromURL extracts a repository name from a Git URL
-func DeriveNameFromURL(url string) string {
-	// Remove .git extension if present
-	url = strings.TrimSuffix(url, ".git")
-
-	// Get the last part of the URL
-	name := filepath.Base(url)
-
-	// If the name is empty (e.g., for URLs ending in /), try to get the parent directory
-	if name == "" {
-		url = strings.TrimSuffix(url, "/")
-		name = filepath.Base(url)
-	}
-
-	return name
-}
-
 // UpdateRepo updates or clones all repositories in the specified cache directory.
 // It returns the duration of the operation and any error that occurred.
 func UpdateRepo(cacheDir string) (time.Duration, error) {
@@ -349,10 +296,7 @@ func UpdateRepo(cacheDir string) (time.Duration, error) {
 		log.Info("Updating repository", "name", repo.Name)
 
 		// Update existing repository
-		cmd := exec.Command("git", "-C", repo.Path, "pull")
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
+		if err := sources.UpdateGitRepo(repo.Path); err != nil {
 			log.Error("Failed to update repository", "name", repo.Name, "error", err)
 			continue
 		}
