@@ -263,7 +263,7 @@ function createResultHTML(result, showScore = true) {
                                 </svg>
                             </button>
                             <div class="kebab-menu-content">
-                                <button class="add-repo-btn" data-url="${result.url}">Add repository</button>
+                                <button class="add-repo-btn" data-url="${result.url}">Add data source</button>
                                 <button class="scan-virustotal-btn" data-url="${result.url}">Scan with VirusTotal</button>
                             </div>
                         </div>

@@ -16,7 +16,7 @@ export function loadRepositoryFilter() {
 
             const searchFilter = document.getElementById('repoFilter');
             const favoritesFilter = document.getElementById('favoriteRepoFilter');
-            const options = '<option value="">All repositories</option>' +
+            const options = '<option value="">All data sources</option>' +
                 data.repositories
                     .filter(repo => repo.enabled)
                     .map(repo => `<option value="${repo.name}">${repo.name}</option>`)
@@ -27,7 +27,7 @@ export function loadRepositoryFilter() {
         })
         .catch(error => {
             console.error('Error:', error);
-            const errorOption = '<option value="">Error loading repositories</option>';
+            const errorOption = '<option value="">Error loading data sources</option>';
             document.getElementById('repoFilter').innerHTML = errorOption;
             document.getElementById('favoriteRepoFilter').innerHTML = errorOption;
         });

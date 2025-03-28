@@ -184,13 +184,13 @@ document.addEventListener('DOMContentLoaded', function() {
             updateFavoritesDisplay();
         });
 
-        // Add event listener for add repository button
+        // Add event listener for add data source button
         document.getElementById('addRepo').addEventListener('click', addRepository);
 
         // Add event listener for update button
         document.getElementById('updateRepo').addEventListener('click', updateRepository);
 
-        // Add event listener for repository selection in stats
+        // Add event listener for data source selection in stats
         document.getElementById('statsRepo').addEventListener('change', loadStats);
     });
 }); 

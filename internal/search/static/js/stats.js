@@ -14,7 +14,7 @@ export function loadRepositories() {
             if (!select) return;
             
             // Add "All repositories" as the first option
-            select.innerHTML = '<option value="">All repositories</option>' + 
+            select.innerHTML = '<option value="">All data sources</option>' +
                 repos.map(repo => 
                     `<option value="${repo.name}">${repo.name}</option>`
                 ).join('');
@@ -27,7 +27,7 @@ export function loadRepositories() {
             showToast('Failed to load repositories', true);
             const select = document.getElementById('statsRepo');
             if (select) {
-                select.innerHTML = '<option value="">Error loading repositories</option>';
+                select.innerHTML = '<option value="">Error loading data sources</option>';
             }
         });
 }
