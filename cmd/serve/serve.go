@@ -12,7 +12,6 @@ import (
 	"sync"
 	"text/template"
 
-	"freectl/internal/config"
 	"freectl/internal/search"
 	"freectl/internal/settings"
 	"freectl/internal/sources"
@@ -49,15 +48,8 @@ func startServer() error {
 		return err
 	}
 
-	// Ensure cache directory is set from config
-	s.CacheDir = config.CacheDir
-	if err := settings.SaveSettings(s); err != nil {
-		log.Error("Failed to save settings", "error", err)
-		return err
-	}
-
 	// Create cache directory if it doesn't exist
-	if err := os.MkdirAll(config.CacheDir, 0755); err != nil {
+	if err := os.MkdirAll(s.CacheDir, 0755); err != nil {
 		log.Error("Failed to create cache directory", "error", err)
 		return err
 	}
@@ -188,15 +180,15 @@ func handleSearch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Perform search
-	results, err := search.Search(query, config.CacheDir, sourceName, settings)
+	log.Info("Starting search", "query", query, "source", sourceName)
+	results, err := search.Search(query, sourceName, settings)
 	if err != nil {
-		// Only return error for actual errors, not for missing source
-		if !strings.Contains(err.Error(), "source not found") {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		results = []search.Result{}
+		log.Error("Search failed", "error", err)
+		http.Error(w, fmt.Sprintf("Search failed: %s", err.Error()), http.StatusInternalServerError)
+		return
 	}
+
+	log.Info("Search completed", "results", len(results))
 
 	// Deduplicate results based on URL and filter by category if specified
 	seen := make(map[string]bool)

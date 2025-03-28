@@ -169,16 +169,16 @@ func isContentFile(path string) bool {
 }
 
 // Search performs a fuzzy search across all markdown files in the sources
-func Search(query string, cacheDir string, sourceName string, settings settings.Settings) ([]Result, error) {
-	// Get list of sources
-	sourceList, err := sources.List(cacheDir)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get sources: %w", err)
+func Search(query string, sourceName string, s settings.Settings) ([]Result, error) {
+	// Get list of sources from settings
+	sourceList := s.Sources
+	if sourceList == nil {
+		return nil, fmt.Errorf("no sources found in settings")
 	}
 
-	log.Info("Found sources", "count", len(sourceList), "cacheDir", cacheDir)
+	log.Info("Found sources", "count", len(sourceList), "cacheDir", s.CacheDir)
 	if len(sourceList) == 0 {
-		return nil, fmt.Errorf("no sources found in %s", cacheDir)
+		return nil, fmt.Errorf("no sources found in %s", s.CacheDir)
 	}
 
 	// Filter by source name if specified
@@ -303,7 +303,7 @@ func Search(query string, cacheDir string, sourceName string, settings settings.
 							if len(matches) > 0 {
 								log.Debug("Found match",
 									"score", matches[0].Score,
-									"minScore", settings.MinFuzzyScore,
+									"minScore", s.MinFuzzyScore,
 									"name", linkText,
 									"description", description,
 									"line", cleanLine,
@@ -312,7 +312,7 @@ func Search(query string, cacheDir string, sourceName string, settings settings.
 									"allMatches", len(matches))
 
 								// Check if the score meets the minimum threshold
-								if matches[0].Score >= settings.MinFuzzyScore {
+								if matches[0].Score >= s.MinFuzzyScore {
 									mu.Lock()
 									allResults = append(allResults, Result{
 										URL:         url,
@@ -331,7 +331,7 @@ func Search(query string, cacheDir string, sourceName string, settings settings.
 								} else {
 									log.Debug("Result below minimum score threshold",
 										"score", matches[0].Score,
-										"minScore", settings.MinFuzzyScore,
+										"minScore", s.MinFuzzyScore,
 										"name", linkText)
 								}
 							}

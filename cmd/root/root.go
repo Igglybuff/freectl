@@ -12,7 +12,6 @@ import (
 	"freectl/cmd/serve"
 	"freectl/cmd/stats"
 	"freectl/cmd/update"
-	"freectl/internal/config"
 
 	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
@@ -51,8 +50,6 @@ func init() {
 	defaultCacheDir := filepath.Join(homeDir, ".local", "cache", "freectl")
 	log.Debug("Setting default cache directory", "path", defaultCacheDir)
 
-	// Add persistent flags
-	RootCmd.PersistentFlags().StringVar(&config.CacheDir, "cache-dir", defaultCacheDir, "Directory to store cached repositories")
 	log.Debug("Root command initialization complete")
 }
 

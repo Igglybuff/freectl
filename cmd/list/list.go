@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"freectl/internal/config"
 	"freectl/internal/settings"
 
 	"github.com/charmbracelet/log"
@@ -32,7 +31,14 @@ Example:
   freectl list`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		log.Debug("Starting list command")
-		log.Debug("Using cache directory", "path", config.CacheDir)
+
+		// Load settings to get cache directory
+		s, err := settings.LoadSettings()
+		if err != nil {
+			log.Error("Failed to load settings", "error", err)
+			return fmt.Errorf("failed to load settings: %w", err)
+		}
+		log.Debug("Using cache directory", "path", s.CacheDir)
 
 		sources, err := settings.ListSources()
 		if err != nil {

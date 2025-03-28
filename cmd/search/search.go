@@ -2,11 +2,8 @@ package search
 
 import (
 	"fmt"
-	"os"
-	"strings"
 
 	"freectl/internal/common"
-	"freectl/internal/config"
 	"freectl/internal/search"
 	"freectl/internal/settings"
 	"freectl/internal/tui"
@@ -47,33 +44,25 @@ Examples:
   freectl search "kanban" --source "awesome-selfhosted"
   
   # Search with multiple words and limit results
-  freectl search --limit 20 "free movies streaming"
-  
-  # Search in a custom cache directory
-  freectl search --cache-dir /path/to/cache "torrent"`,
+  freectl search --limit 20 "free movies streaming"`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		query := strings.Join(args, " ")
-		limit, _ := cmd.Flags().GetInt("limit")
-		cacheDir, _ := cmd.Flags().GetString("cache-dir")
-		sourceName, _ := cmd.Flags().GetString("source")
-
-		// Validate cache directory
-		if cacheDir == "" {
-			cacheDir = config.CacheDir
-		}
-		if _, err := os.Stat(cacheDir); os.IsNotExist(err) {
-			return fmt.Errorf("cache directory does not exist: %s", cacheDir)
+		if len(args) == 0 {
+			return fmt.Errorf("search query required")
 		}
 
-		// Load settings
-		settings, err := settings.LoadSettings()
+		query := args[0]
+		log.Debug("Starting search", "query", query)
+
+		// Load settings to get cache directory
+		s, err := settings.LoadSettings()
 		if err != nil {
+			log.Error("Failed to load settings", "error", err)
 			return fmt.Errorf("failed to load settings: %w", err)
 		}
 
-		log.Info("Starting search", "query", query, "source", sourceName, "cacheDir", cacheDir)
-		results, err := search.Search(query, cacheDir, sourceName, settings)
+		// Perform search
+		results, err := search.Search(query, sourceName, s)
 		if err != nil {
 			return fmt.Errorf("search failed: %w", err)
 		}
@@ -85,6 +74,7 @@ Examples:
 		}
 
 		// Limit results
+		limit, _ := cmd.Flags().GetInt("limit")
 		if limit > 0 && limit < len(results) {
 			log.Info("Limiting results", "limit", limit, "total", len(results))
 			results = results[:limit]
@@ -97,13 +87,13 @@ Examples:
 		tuiResults := make([]tui.SearchResult, len(results))
 		for i, r := range results {
 			tuiResults[i] = tui.SearchResult{
-				Category:    r.Category,
-				Link:         r.URL,
-				Name:        r.Name,
-				Line:        r.Line,
-				Score:       r.Score,
-				Source:  r.Source,
-				IsInvalid:   common.IsInvalidCategory(r.Category),
+				Category:  r.Category,
+				Link:      r.URL,
+				Name:      r.Name,
+				Line:      r.Line,
+				Score:     r.Score,
+				Source:    r.Source,
+				IsInvalid: common.IsInvalidCategory(r.Category),
 			}
 			log.Debug("Converted result",
 				"index", i,

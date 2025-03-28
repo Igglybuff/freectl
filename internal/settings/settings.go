@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"freectl/internal/config"
 	"freectl/internal/sources"
 
 	"github.com/charmbracelet/log"
@@ -36,7 +35,7 @@ func DefaultSettings() Settings {
 		SearchDelay:    300,
 		ShowScores:     true,
 		ResultsPerPage: 10,
-		CacheDir:       config.CacheDir,
+		CacheDir:       "~/.local/cache/freectl",
 		AutoUpdate:     true,
 		TruncateTitles: true,
 		MaxTitleLength: 100,

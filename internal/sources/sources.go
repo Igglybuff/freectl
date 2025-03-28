@@ -196,18 +196,18 @@ func Update(cacheDir string) (time.Duration, error) {
 	for _, source := range sources {
 		log.Info("Updating source", "name", source.Name)
 
-		// Update existing source based on type
-		switch source.Type {
-		case SourceTypeGit:
-			if err := UpdateGitRepo(source.Path); err != nil {
-				log.Error("Failed to update source", "name", source.Name, "error", err)
-				continue
-			}
-		default:
-			log.Warn("Unsupported source type for update", "name", source.Name, "type", source.Type)
+		if err := UpdateGitRepo(source.Path); err != nil {
+			log.Error("Failed to update source", "name", source.Name, "error", err)
+			continue
 		}
+
 		log.Info("Source updated successfully", "name", source.Name)
 	}
 
 	return time.Since(startTime), nil
+}
+
+// IsImplemented returns true if the source type is implemented
+func IsImplemented(sourceType SourceType) bool {
+	return sourceType == SourceTypeGit
 }

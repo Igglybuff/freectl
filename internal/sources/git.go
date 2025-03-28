@@ -9,14 +9,6 @@ import (
 	"time"
 )
 
-// GitRepo represents a Git repository
-type GitRepo struct {
-	Name    string `json:"name"`
-	Path    string `json:"path"`
-	URL     string `json:"url"`
-	Enabled bool   `json:"enabled"`
-}
-
 // GetGitRemoteURL returns the remote URL of a Git repository
 func GetGitRemoteURL(repoPath string) (string, error) {
 	cmd := exec.Command("git", "-C", repoPath, "remote", "get-url", "origin")

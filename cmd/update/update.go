@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"freectl/internal/config"
+	"freectl/internal/settings"
 	"freectl/internal/sources"
 
 	"github.com/charmbracelet/log"
@@ -20,8 +20,8 @@ content from each source.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		startTime := time.Now()
 
-		// Get list of sources
-		sourceList, err := sources.List(config.CacheDir)
+		// Get list of sources from settings
+		sourceList, err := settings.ListSources()
 		if err != nil {
 			log.Error("Failed to list sources", "error", err)
 			return fmt.Errorf("failed to list sources: %w", err)
@@ -32,19 +32,19 @@ content from each source.`,
 			return nil
 		}
 
-		// Update each source
+		// Update each enabled source
 		for _, source := range sourceList {
+			if !source.Enabled {
+				log.Info("Skipping disabled source", "name", source.Name)
+				continue
+			}
+
 			log.Info("Updating source", "name", source.Name)
 
 			// Update existing source based on type
-			switch source.Type {
-			case sources.SourceTypeGit:
-				if err := sources.UpdateGitRepo(source.Path); err != nil {
-					log.Error("Failed to update source", "name", source.Name, "error", err)
-					continue
-				}
-			default:
-				log.Warn("Unsupported source type for update", "name", source.Name, "type", source.Type)
+			if err := sources.UpdateGitRepo(source.Path); err != nil {
+				log.Error("Failed to update source", "name", source.Name, "error", err)
+				continue
 			}
 			log.Info("Source updated successfully", "name", source.Name)
 		}
