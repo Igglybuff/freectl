@@ -1,6 +1,6 @@
 import { showToast } from './ui.js';
 import { getDisplayText } from './ui.js';
-import { getRepositoryColor } from './ui.js';
+import { getSourceColor } from './ui.js';
 import { getCurrentSettings } from './settings.js';
 import { toggleFavorite } from './favorites.js';
 import { addKebabMenuListeners } from './ui.js';
@@ -179,7 +179,7 @@ export function updatePagination() {
 // Create result HTML
 function createResultHTML(result, showScore = true) {
     const isFavorite = document.querySelector(`.favorite-btn[data-link="${result.url}"]`)?.classList.contains('active');
-    const repoColor = getRepositoryColor(result.repository, new Map());
+    const sourceColor = getSourceColor(result.source, new Map());
     const currentSettings = getCurrentSettings();
     
     // Check if category is invalid
@@ -247,14 +247,14 @@ function createResultHTML(result, showScore = true) {
                             `<div class="warning-tag">⚠️ Invalid category</div>` :
                             `<div class="category-tag">${result.category || 'n/a'}</div>`
                         }
-                        <div class="repo-tag" style="background-color: ${repoColor}">${result.repository}</div>
+                        <div class="source-tag" style="background-color: ${sourceColor}">${result.source}</div>
                         <span class="result-domain">${getDisplayText(result.url)}</span>
                         <button class="favorite-btn ${isFavorite ? 'active' : ''}" 
                                 data-link="${result.url}"
                                 data-name="${escapedName}"
                                 data-description="${escapedDescription}"
                                 data-category="${(result.category || '').replace(/"/g, '&quot;')}"
-                                data-repository="${result.repository.replace(/"/g, '&quot;')}"
+                                data-source="${result.source.replace(/"/g, '&quot;')}"
                                 ><svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></button>
                         <div class="kebab-menu">
                             <button class="kebab-menu-btn" title="More options">
@@ -263,7 +263,7 @@ function createResultHTML(result, showScore = true) {
                                 </svg>
                             </button>
                             <div class="kebab-menu-content">
-                                <button class="add-repo-btn" data-url="${result.url}">Add data source</button>
+                                <button class="add-source-btn" data-url="${result.url}">Add data source</button>
                                 <button class="scan-virustotal-btn" data-url="${result.url}">Scan with VirusTotal</button>
                             </div>
                         </div>
@@ -294,7 +294,7 @@ export function performSearch(page = 1) {
     }
 
     const resultsPerPage = getCurrentSettings() ? getCurrentSettings().resultsPerPage : 10;
-    const selectedRepo = document.getElementById('repoFilter').value;
+    const selectedSource = document.getElementById('sourceFilter').value;
     const selectedCategory = document.getElementById('categoryFilter').value;
     currentQuery = query;
     currentPage = page;
@@ -304,8 +304,8 @@ export function performSearch(page = 1) {
     document.getElementById('pagination').innerHTML = '';
     
     let url = `/search?q=${encodeURIComponent(query)}&page=${page}&per_page=${resultsPerPage}`;
-    if (selectedRepo) {
-        url += `&repo=${encodeURIComponent(selectedRepo)}`;
+    if (selectedSource) {
+        url += `&source=${encodeURIComponent(selectedSource)}`;
     }
     if (selectedCategory) {
         url += `&category=${encodeURIComponent(selectedCategory)}`;
@@ -320,7 +320,7 @@ export function performSearch(page = 1) {
         })
         .then(data => {
             if (!data || !data.results || data.results.length === 0) {
-                resultsDiv.innerHTML = '<div class="no-results">No results found. Go to Settings to update your repositories.</div>';
+                resultsDiv.innerHTML = '<div class="no-results">No results found. Go to Settings to update your sources.</div>';
                 return;
             }
 

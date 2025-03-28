@@ -13,8 +13,8 @@ import (
 	"time"
 
 	"freectl/internal/common"
-	"freectl/internal/repository"
 	"freectl/internal/settings"
+	"freectl/internal/sources"
 
 	"github.com/charmbracelet/log"
 	"github.com/sahilm/fuzzy"
@@ -33,12 +33,12 @@ type Result struct {
 	Line        string `json:"-"`
 	Score       int    `json:"-"`
 	Category    string `json:"title"`
-	Repository  string `json:"repository"`
+	Source      string `json:"source"`
 }
 
-// CheckRepoAge checks if the repository needs updating
-func CheckRepoAge(repoPath string) (bool, error) {
-	cmd := exec.Command("git", "-C", repoPath, "log", "-1", "--format=%ct")
+// CheckSourceAge checks if the source needs updating
+func CheckSourceAge(sourcePath string) (bool, error) {
+	cmd := exec.Command("git", "-C", sourcePath, "log", "-1", "--format=%ct")
 	output, err := cmd.Output()
 	if err != nil {
 		return false, fmt.Errorf("failed to get last commit timestamp: %w", err)
@@ -53,9 +53,9 @@ func CheckRepoAge(repoPath string) (bool, error) {
 	return time.Since(lastCommit) > 7*24*time.Hour, nil
 }
 
-// PromptForUpdate asks the user if they want to update the repository
+// PromptForUpdate asks the user if they want to update the source
 func PromptForUpdate() bool {
-	fmt.Print("Repository is more than a week old. Would you like to update it? [Y/n] ")
+	fmt.Print("Source is more than a week old. Would you like to update it? [Y/n] ")
 	reader := bufio.NewReader(os.Stdin)
 	response, err := reader.ReadString('\n')
 	if err != nil {
@@ -168,62 +168,57 @@ func isContentFile(path string) bool {
 	return true
 }
 
-// Search performs a fuzzy search across all markdown files in the repository
-func Search(query string, cacheDir string, repoName string, settings settings.Settings) ([]Result, error) {
-	// Get list of repositories
-	repos, err := repository.List(cacheDir)
+// Search performs a fuzzy search across all markdown files in the sources
+func Search(query string, cacheDir string, sourceName string, settings settings.Settings) ([]Result, error) {
+	// Get list of sources
+	sourceList, err := sources.List(cacheDir)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get repositories: %w", err)
+		return nil, fmt.Errorf("failed to get sources: %w", err)
 	}
 
-	log.Info("Found repositories", "count", len(repos), "cacheDir", cacheDir)
-	if len(repos) == 0 {
-		return nil, fmt.Errorf("no repositories found in %s", cacheDir)
+	log.Info("Found sources", "count", len(sourceList), "cacheDir", cacheDir)
+	if len(sourceList) == 0 {
+		return nil, fmt.Errorf("no sources found in %s", cacheDir)
 	}
 
-	// Filter by repository name if specified
-	if repoName != "" {
-		var filteredRepos []repository.Repository
-		for _, repo := range repos {
-			if repo.Name == repoName {
-				filteredRepos = append(filteredRepos, repo)
+	// Filter by source name if specified
+	if sourceName != "" {
+		var filteredSources []sources.Source
+		for _, source := range sourceList {
+			if source.Name == sourceName {
+				filteredSources = append(filteredSources, source)
 				break
 			}
 		}
-		if len(filteredRepos) == 0 {
-			return nil, fmt.Errorf("repository '%s' not found", repoName)
+		if len(filteredSources) == 0 {
+			return nil, fmt.Errorf("source '%s' not found", sourceName)
 		}
-		repos = filteredRepos
-		log.Info("Filtered repositories", "count", len(repos), "repoName", repoName)
+		sourceList = filteredSources
+		log.Info("Filtered sources", "count", len(sourceList), "sourceName", sourceName)
 	}
 
-	// Filter out disabled repositories
-	var enabledRepos []repository.Repository
-	for _, repo := range repos {
-		enabled, err := repository.IsEnabled(repo.Name)
-		if err != nil {
-			log.Error("Failed to check repository status", "name", repo.Name, "error", err)
-			continue
-		}
-		if enabled {
-			enabledRepos = append(enabledRepos, repo)
-			log.Debug("Repository enabled", "name", repo.Name)
+	// Filter out disabled sources
+	var enabledSources []sources.Source
+	for _, source := range sourceList {
+		if source.Enabled {
+			enabledSources = append(enabledSources, source)
+			log.Debug("Source enabled", "name", source.Name)
 		} else {
-			log.Debug("Repository disabled", "name", repo.Name)
+			log.Debug("Source disabled", "name", source.Name)
 		}
 	}
-	log.Info("Enabled repositories", "count", len(enabledRepos))
+	log.Info("Enabled sources", "count", len(enabledSources))
 
 	var allResults []Result
 	var mu sync.Mutex
 
-	// Search in each enabled repository
-	for _, repo := range enabledRepos {
-		repoPath := repo.Path
-		log.Info("Searching in repository", "name", repo.Name, "path", repoPath)
+	// Search in each enabled source
+	for _, source := range enabledSources {
+		sourcePath := source.Path
+		log.Info("Searching in source", "name", source.Name, "path", sourcePath)
 
-		// Walk through all markdown files in the repository
-		err := filepath.Walk(repoPath, func(path string, info os.FileInfo, err error) error {
+		// Walk through all markdown files in the source
+		err := filepath.Walk(sourcePath, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
 				log.Error("Error accessing path", "path", path, "error", err)
 				return nil // Skip this file but continue walking
@@ -313,7 +308,7 @@ func Search(query string, cacheDir string, repoName string, settings settings.Se
 									"description", description,
 									"line", cleanLine,
 									"category", lastHeading,
-									"repository", repo.Name,
+									"source", source.Name,
 									"allMatches", len(matches))
 
 								// Check if the score meets the minimum threshold
@@ -326,7 +321,7 @@ func Search(query string, cacheDir string, repoName string, settings settings.Se
 										Line:        cleanLine,
 										Score:       matches[0].Score,
 										Category:    lastHeading,
-										Repository:  repo.Name,
+										Source:      source.Name, // Keep this field name for backward compatibility
 									})
 									mu.Unlock()
 									log.Debug("Added result to allResults",
@@ -348,7 +343,7 @@ func Search(query string, cacheDir string, repoName string, settings settings.Se
 		})
 
 		if err != nil {
-			log.Error("Error walking repository", "repository", repo.Name, "error", err)
+			log.Error("Error walking source", "source", source.Name, "error", err)
 			continue
 		}
 	}

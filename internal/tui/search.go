@@ -35,7 +35,7 @@ type SearchResult struct {
 	Name       string
 	Line       string
 	Score      int
-	Repository string
+	Source     string
 	IsInvalid  bool
 }
 
@@ -53,7 +53,7 @@ func (i SearchResult) Description() string {
 	if !i.IsInvalid {
 		categoryName = i.Category
 	}
-	return fmt.Sprintf("Category: %s | Repository: %s | URL: %s | Score: %d", categoryName, i.Repository, i.Link, i.Score)
+	return fmt.Sprintf("Category: %s | Source: %s | URL: %s | Score: %d", categoryName, i.Source, i.Link, i.Score)
 }
 
 func (i SearchResult) FilterValue() string {

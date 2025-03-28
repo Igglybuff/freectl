@@ -677,7 +677,7 @@ body {
     font-size: 14px;
 }
 
-.repo-selection {
+.source-selection {
     margin-bottom: 24px;
     width: 100%;
     display: flex;
@@ -685,7 +685,7 @@ body {
     align-items: center;
 }
 
-.repo-select {
+.source-select {
     width: 100%;
     padding: 10px;
     font-size: 16px;
@@ -703,13 +703,13 @@ body {
     padding-right: 40px;
 }
 
-.repo-select:hover {
+.source-select:hover {
     border-color: var(--accent-color);
     color: var(--text-color);
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
 }
 
-.repo-select:focus {
+.source-select:focus {
     outline: none;
     border-color: var(--accent-color);
     box-shadow: 0 0 0 2px var(--accent-color-transparent);
@@ -717,7 +717,7 @@ body {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
 }
 
-.repo-tag {
+.source-tag {
     padding: 4px 8px;
     border-radius: 4px;
     font-size: 12px;
@@ -728,15 +728,15 @@ body {
     transition: opacity 0.2s;
 }
 
-.repo-tag:hover {
+.source-tag:hover {
     opacity: 0.9;
 }
 
-.repo-list {
+.source-list {
     margin-top: 10px;
 }
 
-.repo-item {
+.source-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -748,32 +748,32 @@ body {
     transition: background-color 0.2s, border-color 0.2s;
 }
 
-.repo-item:hover {
+.source-item:hover {
     background-color: var(--bg-hover);
     border-color: var(--accent-color);
 }
 
-.repo-info {
+.source-info {
     flex: 1;
 }
 
-.repo-name {
+.source-name {
     font-weight: 500;
     color: var(--text-color);
     margin-bottom: 4px;
 }
 
-.repo-path {
+.source-path {
     font-size: 12px;
     color: var(--text-secondary);
 }
 
-.repo-actions {
+.source-actions {
     display: flex;
     gap: 8px;
 }
 
-.repo-button {
+.source-button {
     padding: 6px 12px;
     border: none;
     border-radius: 4px;
@@ -782,27 +782,27 @@ body {
     transition: background-color 0.2s;
 }
 
-.repo-button.delete {
+.source-button.delete {
     background-color: var(--error-color);
     color: white;
 }
 
-.repo-button.delete:hover {
+.source-button.delete:hover {
     background-color: var(--error-color);
     opacity: 0.9;
 }
 
-.repo-button.toggle {
+.source-button.toggle {
     background-color: var(--accent-color);
     color: white;
 }
 
-.repo-button.toggle:hover {
+.source-button.toggle:hover {
     background-color: var(--accent-color);
     opacity: 0.9;
 }
 
-.repo-button.toggle.disabled {
+.source-button.toggle.disabled {
     background-color: var(--text-secondary);
 }
 
@@ -857,7 +857,7 @@ body {
     display: block;
 }
 
-.add-repo-btn {
+.add-source-btn {
     display: block;
     width: 100%;
     padding: 8px 16px;
@@ -870,7 +870,7 @@ body {
     transition: background-color 0.2s;
 }
 
-.add-repo-btn:hover {
+.add-source-btn:hover {
     background-color: var(--bg-hover);
 }
 
@@ -892,7 +892,7 @@ body {
 }
 
 /* Add loading state styles for both buttons */
-.add-repo-btn.loading,
+.add-source-btn.loading,
 .scan-virustotal-btn.loading {
     opacity: 0.7;
     cursor: wait;
@@ -913,12 +913,12 @@ body {
         grid-template-columns: 1fr;
     }
 
-    .repo-selection {
+    .source-selection {
         margin-bottom: 20px;
         justify-content: center;
     }
 
-    .repo-select {
+    .source-select {
         width: 100%;
         max-width: 300px;
     }
@@ -1214,7 +1214,7 @@ body {
     margin-top: 8px;
 }
 
-.add-repo-form {
+.add-source-form {
     max-width: 600px;
     margin: 20px auto;
     padding: 20px;
@@ -1223,7 +1223,7 @@ body {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.add-repo-form h2 {
+.add-source-form h2 {
     margin-bottom: 20px;
     color: var(--text-primary);
 }
@@ -1254,7 +1254,7 @@ body {
     border-color: var(--accent-color);
 }
 
-.add-repo-form button {
+.add-source-form button {
     width: 100%;
     padding: 10px;
     background: var(--accent-color);
@@ -1265,6 +1265,6 @@ body {
     font-size: 16px;
 }
 
-.add-repo-form button:hover {
+.add-source-form button:hover {
     background: var(--accent-hover);
 } 

@@ -1,7 +1,7 @@
 import { initializeTheme, toggleTheme } from './theme.js';
 import { loadSettings, saveSettings, resetSettings, getCurrentSettings } from './settings.js';
-import { loadRepositoryFilter, addRepository, loadRepositoryList, deleteRepository, toggleRepository, updateRepository } from './repositories.js';
-import { loadRepositories as loadStatsRepositories, loadStats } from './stats.js';
+import { loadSourceFilter, addSource, loadSourceList, deleteSource, toggleSource, updateSource } from './sources.js';
+import { loadSources as loadStatsSources, loadStats } from './stats.js';
 import { loadFavorites, updateFavoritesDisplay, toggleFavorite } from './favorites.js';
 import { validateSearchInput, performSearch, updateCategoryFilter } from './search.js';
 
@@ -35,12 +35,12 @@ function showTab(tabName) {
 
     // Load data specific to each tab
     if (tabName === 'stats') {
-        loadStatsRepositories();
+        loadStatsSources();
     } else if (tabName === 'favorites') {
         loadFavorites();
     } else if (tabName === 'settings') {
         loadSettings();
-        loadRepositoryList();
+        loadSourceList();
     }
 }
 
@@ -55,17 +55,17 @@ document.querySelectorAll('.tab-button').forEach(button => {
 document.addEventListener('DOMContentLoaded', function() {
     // Load settings first
     loadSettings().then(() => {
-        loadRepositoryFilter();
+        loadSourceFilter();
         
         // Add event listener for theme toggle
         document.getElementById('themeToggle').addEventListener('click', toggleTheme);
         
-        // Add event listener for repository filter changes
-        document.getElementById('repoFilter').addEventListener('change', function() {
+        // Add event listener for source filter changes
+        document.getElementById('sourceFilter').addEventListener('change', function() {
             performSearch(1);
         });
 
-        document.getElementById('favoriteRepoFilter').addEventListener('change', function() {
+        document.getElementById('favoriteSourceFilter').addEventListener('change', function() {
             updateFavoritesDisplay();
         });
 
@@ -104,8 +104,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 const name = favoriteBtn.dataset.name;
                 const description = favoriteBtn.dataset.description;
                 const category = favoriteBtn.dataset.category;
-                const repository = favoriteBtn.dataset.repository;
-                toggleFavorite(link, description, category, repository, name);
+                const source = favoriteBtn.dataset.source;
+                toggleFavorite(link, description, category, source, name);
             }
         });
 
@@ -185,12 +185,12 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         // Add event listener for add data source button
-        document.getElementById('addRepo').addEventListener('click', addRepository);
+        document.getElementById('addSource').addEventListener('click', addSource);
 
         // Add event listener for update button
-        document.getElementById('updateRepo').addEventListener('click', updateRepository);
+        document.getElementById('updateSource').addEventListener('click', updateSource);
 
         // Add event listener for data source selection in stats
-        document.getElementById('statsRepo').addEventListener('change', loadStats);
+        document.getElementById('statsSource').addEventListener('change', loadStats);
     });
 }); 

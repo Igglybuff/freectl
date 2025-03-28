@@ -46,7 +46,7 @@
                            title="Search query cannot contain < or > characters"
                            required>
                     <div class="filter-group">
-                        <select id="repoFilter" class="filter-select">
+                        <select id="sourceFilter" class="filter-select">
                             <option value="">All data sources</option>
                         </select>
                         <select id="categoryFilter" class="filter-select">
@@ -66,7 +66,7 @@
                 <div class="search-controls">
                     <input type="text" class="search-box" id="favoritesSearchInput" placeholder="Search favorites...">
                     <div class="filter-group">
-                        <select id="favoriteRepoFilter" class="filter-select">
+                        <select id="favoriteSourceFilter" class="filter-select">
                             <option value="">All data sources</option>
                         </select>
                         <select id="favoriteCategoryFilter" class="filter-select">
@@ -81,8 +81,8 @@
     <div id="statsTab" class="tab">
         <div class="page-container">
             <div class="stats-container">
-                <div class="repo-selection">
-                    <select id="statsRepo" class="repo-select">
+                <div class="source-selection">
+                    <select id="statsSource" class="source-select">
                         <option value="">Loading data sources...</option>
                     </select>
                 </div>
@@ -95,7 +95,7 @@
                             <div class="stat-label">Total links</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-value" id="repoSize">-</div>
+                            <div class="stat-value" id="sourceSize">-</div>
                             <div class="stat-label">Data source size</div>
                         </div>
                     </div>
@@ -212,25 +212,25 @@
                         </div>
                     </div>
                     <div class="settings-buttons">
-                        <button id="updateRepo" class="settings-button">Update data sources</button>
+                        <button id="updateSource" class="settings-button">Update data sources</button>
                     </div>
                 </div>
 
                 <div class="settings-section">
                     <h3>Add data source</h3>
-                    <div class="add-repo-form">
+                    <div class="add-source-form">
                         <h2>Add Data Source</h2>
                         <div class="form-group">
-                            <label for="repoUrl">URL:</label>
-                            <input type="text" id="repoUrl" placeholder="https://github.com/user/repo">
+                            <label for="sourceUrl">URL:</label>
+                            <input type="text" id="sourceUrl" placeholder="https://github.com/user/source">
                         </div>
                         <div class="form-group">
-                            <label for="repoName">Name (optional):</label>
-                            <input type="text" id="repoName" placeholder="Custom name for the repository">
+                            <label for="sourceName">Name (optional):</label>
+                            <input type="text" id="sourceName" placeholder="Custom name for the source">
                         </div>
                         <div class="form-group">
-                            <label for="repoType">Type:</label>
-                            <select id="repoType">
+                            <label for="sourceType">Type:</label>
+                            <select id="sourceType">
                                 <option value="git">Git Repository</option>
                                 <option value="reddit_wiki">Reddit Wiki</option>
                                 <option value="opml">OPML Feed</option>
@@ -239,13 +239,13 @@
                                 <option value="obsidian">Obsidian Vault</option>
                             </select>
                         </div>
-                        <button onclick="addRepository()">Add</button>
+                        <button id="addSource">Add</button>
                     </div>
                 </div>
 
                 <div class="settings-section">
                     <h3>Manage data sources</h3>
-                    <div id="repoList" class="repo-list">
+                    <div id="sourceList" class="source-list">
                         Loading data sources...
                     </div>
                 </div>

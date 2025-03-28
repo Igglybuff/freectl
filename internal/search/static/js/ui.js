@@ -34,21 +34,21 @@ export function updateHeaderText(text) {
     document.getElementById('pageTitle').textContent = text;
 }
 
-// Generate a consistent color for a repository name
-export function getRepositoryColor(repoName, repositoryColors) {
-    if (repositoryColors.has(repoName)) {
-        return repositoryColors.get(repoName);
+// Generate a consistent color for a source name
+export function getSourceColor(sourceName, sourceColors) {
+    if (sourceColors.has(sourceName)) {
+        return sourceColors.get(sourceName);
     }
 
-    // Generate a color based on the repository name
+    // Generate a color based on the source name
     // We'll use HSL to ensure good contrast and saturation
-    const hash = repoName.split('').reduce((acc, char) => {
+    const hash = sourceName.split('').reduce((acc, char) => {
         return char.charCodeAt(0) + ((acc << 5) - acc);
     }, 0);
     
     const hue = Math.abs(hash % 360);
     const color = `hsl(${hue}, 70%, 40%)`;
-    repositoryColors.set(repoName, color);
+    sourceColors.set(sourceName, color);
     return color;
 }
 
@@ -94,14 +94,14 @@ export function addKebabMenuListeners() {
     document._kebabMenuOutsideListener = clickOutsideListener;
     document.addEventListener('click', clickOutsideListener);
 
-    // Remove existing repository button listeners
-    document.querySelectorAll('.add-repo-btn').forEach(button => {
+    // Remove existing source button listeners
+    document.querySelectorAll('.add-source-btn').forEach(button => {
         const newButton = button.cloneNode(true);
         button.parentNode.replaceChild(newButton, button);
     });
 
-    // Handle add repository action
-    document.querySelectorAll('.add-repo-btn').forEach(button => {
+    // Handle add source action
+    document.querySelectorAll('.add-source-btn').forEach(button => {
         button.addEventListener('click', function(e) {
             e.stopPropagation();
             const url = this.dataset.url;
@@ -112,8 +112,8 @@ export function addKebabMenuListeners() {
             // Add loading state
             this.classList.add('loading');
             
-            // Make POST request to add repository
-            fetch('/repositories/add', {
+            // Make POST request to add source
+            fetch('/sources/add', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -123,15 +123,15 @@ export function addKebabMenuListeners() {
             .then(response => response.json())
             .then(data => {
                 if (!data.success) {
-                    throw new Error(data.error || 'Failed to add repository');
+                    throw new Error(data.error || 'Failed to add source');
                 }
-                showToast('Repository added successfully');
+                showToast('Source added successfully');
                 // Close the kebab menu
                 this.closest('.kebab-menu-content').classList.remove('show');
             })
             .catch(error => {
                 console.error('Error:', error);
-                showToast(`Failed to add repository: ${error.message}`, true);
+                showToast(`Failed to add source: ${error.message}`, true);
             })
             .finally(() => {
                 // Remove loading state

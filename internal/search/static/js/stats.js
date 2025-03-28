@@ -1,45 +1,45 @@
 import { showToast } from './ui.js';
 import { formatBytes } from './ui.js';
-import { getRepositoryColor } from './ui.js';
+import { getSourceColor } from './ui.js';
 
-let selectedRepos = new Set();
+let selectedSources = new Set();
 let allStats = new Map();
 
-// Load repositories into stats dropdown
-export function loadRepositories() {
+// Load sources into stats dropdown
+export function loadSources() {
     fetch('/list')
         .then(response => response.json())
-        .then(repos => {
-            const select = document.getElementById('statsRepo');
+        .then(sources => {
+            const select = document.getElementById('statsSource');
             if (!select) return;
             
-            // Add "All repositories" as the first option
+            // Add "All sources" as the first option
             select.innerHTML = '<option value="">All data sources</option>' +
-                repos.map(repo => 
-                    `<option value="${repo.name}">${repo.name}</option>`
+                sources.map(source => 
+                    `<option value="${source.name}">${source.name}</option>`
                 ).join('');
             
             // Load combined stats by default
             loadStats();
         })
         .catch(error => {
-            console.error('Error loading repositories:', error);
-            showToast('Failed to load repositories', true);
-            const select = document.getElementById('statsRepo');
+            console.error('Error loading sources:', error);
+            showToast('Failed to load sources', true);
+            const select = document.getElementById('statsSource');
             if (select) {
                 select.innerHTML = '<option value="">Error loading data sources</option>';
             }
         });
 }
 
-// Load stats for selected repository or all repositories
+// Load stats for selected source or all sources
 export function loadStats() {
-    const repoName = document.getElementById('statsRepo')?.value;
+    const sourceName = document.getElementById('statsSource')?.value;
     
     // Show loading state
     const elements = {
         totalLinks: document.getElementById('totalLinks'),
-        repoSize: document.getElementById('repoSize'),
+        sourceSize: document.getElementById('sourceSize'),
         httpsCount: document.getElementById('https-count'),
         httpCount: document.getElementById('http-count'),
         topCategories: document.getElementById('topCategories'),
@@ -51,17 +51,17 @@ export function loadStats() {
 
     // Set loading states
     elements.totalLinks.textContent = '...';
-    elements.repoSize.textContent = '...';
+    elements.sourceSize.textContent = '...';
     elements.httpsCount.textContent = '...';
     elements.httpCount.textContent = '...';
     elements.topCategories.innerHTML = 'Loading...';
     elements.topDomains.innerHTML = 'Loading...';
 
-    // If no repository is selected, load combined stats
-    if (!repoName) {
+    // If no source is selected, load combined stats
+    if (!sourceName) {
         fetch('/list')
             .then(response => response.json())
-            .then(repos => {
+            .then(sources => {
                 const combinedStats = {
                     TotalLinks: 0,
                     TotalSize: 0,
@@ -70,9 +70,9 @@ export function loadStats() {
                     ProtocolStats: { https: 0, http: 0 }
                 };
 
-                // Load stats for each repository
-                const promises = repos.map(repo => 
-                    fetch(`/stats?repo=${encodeURIComponent(repo.name)}`)
+                // Load stats for each source
+                const promises = sources.map(source => 
+                    fetch(`/stats?source=${encodeURIComponent(source.name)}`)
                         .then(response => response.json())
                         .then(data => {
                             // Safely add total links and size
@@ -116,8 +116,8 @@ export function loadStats() {
                             }
                         })
                         .catch(error => {
-                            console.error(`Error loading stats for ${repo.name}:`, error);
-                            // Continue with other repositories even if one fails
+                            console.error(`Error loading stats for ${source.name}:`, error);
+                            // Continue with other sources even if one fails
                             return null;
                         })
                 );
@@ -135,15 +135,15 @@ export function loadStats() {
                     });
             })
             .catch(error => {
-                console.error('Error loading repositories:', error);
-                showToast('Failed to load repositories', true);
+                console.error('Error loading sources:', error);
+                showToast('Failed to load sources', true);
                 clearStats();
             });
         return;
     }
 
-    // Load stats for specific repository
-    fetch(`/stats?repo=${encodeURIComponent(repoName)}`)
+    // Load stats for specific source
+    fetch(`/stats?source=${encodeURIComponent(sourceName)}`)
         .then(response => {
             if (!response.ok) {
                 throw new Error('Failed to load stats');
@@ -151,15 +151,15 @@ export function loadStats() {
             return response.json();
         })
         .then(data => {
-            // Store stats for this repository
-            allStats.set(repoName, data);
+            // Store stats for this source
+            allStats.set(sourceName, data);
             
             // Update UI with stats
             updateStatsDisplay(data);
         })
         .catch(error => {
             console.error('Error loading stats:', error);
-            showToast('Failed to load repository stats', true);
+            showToast('Failed to load source stats', true);
             clearStats();
         });
 }
@@ -167,9 +167,9 @@ export function loadStats() {
 function updateStatsDisplay(data) {
     // Update general stats
     const totalLinks = document.getElementById('totalLinks');
-    const repoSize = document.getElementById('repoSize');
+    const sourceSize = document.getElementById('sourceSize');
     if (totalLinks) totalLinks.textContent = (data.TotalLinks || 0).toLocaleString();
-    if (repoSize) repoSize.textContent = formatBytes(data.TotalSize || 0);
+    if (sourceSize) sourceSize.textContent = formatBytes(data.TotalSize || 0);
     
     // Update protocol stats
     const httpsCount = data.ProtocolStats?.https || 0;
@@ -226,7 +226,7 @@ function updateStatsDisplay(data) {
 function clearStats() {
     const elements = {
         totalLinks: document.getElementById('totalLinks'),
-        repoSize: document.getElementById('repoSize'),
+        sourceSize: document.getElementById('sourceSize'),
         httpsCount: document.getElementById('https-count'),
         httpCount: document.getElementById('http-count'),
         topCategories: document.getElementById('topCategories'),
@@ -234,17 +234,17 @@ function clearStats() {
     };
 
     if (elements.totalLinks) elements.totalLinks.textContent = '-';
-    if (elements.repoSize) elements.repoSize.textContent = '-';
+    if (elements.sourceSize) elements.sourceSize.textContent = '-';
     if (elements.httpsCount) elements.httpsCount.textContent = '-';
     if (elements.httpCount) elements.httpCount.textContent = '-';
-    if (elements.topCategories) elements.topCategories.innerHTML = 'Please select a repository';
-    if (elements.topDomains) elements.topDomains.innerHTML = 'Please select a repository';
+    if (elements.topCategories) elements.topCategories.innerHTML = 'Please select a source';
+    if (elements.topDomains) elements.topDomains.innerHTML = 'Please select a source';
 }
 
 // Initialize event listeners
 document.addEventListener('DOMContentLoaded', () => {
-    const repoSelect = document.getElementById('statsRepo');
-    if (repoSelect) {
-        repoSelect.addEventListener('change', loadStats);
+    const sourceSelect = document.getElementById('statsSource');
+    if (sourceSelect) {
+        sourceSelect.addEventListener('change', loadStats);
     }
 }); 

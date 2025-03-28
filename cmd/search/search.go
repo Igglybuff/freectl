@@ -16,16 +16,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var repoName string
+var sourceName string
 
 var SearchCmd = &cobra.Command{
 	Use:   "search [query]",
-	Short: "Search through all cached repositories",
-	Long: `Search through all cached repositories for resources.
-If no repository is specified with --repo, searches across all repositories.
+	Short: "Search through all cached sourcesitories",
+	Long: `Search through all cached sourcesitories for resources.
+If no source is specified with --source, searches across all sourcesitories.
 
 The search will:
-1. Look through all markdown files in each repository
+1. Look through all markdown files in each source
 2. Find lines containing URLs (http://, https://, or www.)
 3. Use fuzzy matching to find relevant results
 4. Sort results by relevance score
@@ -40,11 +40,11 @@ Controls:
   enter - Select result
 
 Examples:
-  # Search across all repositories
+  # Search across all sourcesitories
   freectl search "torrent"
   
-  # Search in a specific repository
-  freectl search "kanban" --repo "awesome-selfhosted"
+  # Search in a specific source
+  freectl search "kanban" --source "awesome-selfhosted"
   
   # Search with multiple words and limit results
   freectl search --limit 20 "free movies streaming"
@@ -56,7 +56,7 @@ Examples:
 		query := strings.Join(args, " ")
 		limit, _ := cmd.Flags().GetInt("limit")
 		cacheDir, _ := cmd.Flags().GetString("cache-dir")
-		repoName, _ := cmd.Flags().GetString("repo")
+		sourceName, _ := cmd.Flags().GetString("source")
 
 		// Validate cache directory
 		if cacheDir == "" {
@@ -72,8 +72,8 @@ Examples:
 			return fmt.Errorf("failed to load settings: %w", err)
 		}
 
-		log.Info("Starting search", "query", query, "repo", repoName, "cacheDir", cacheDir)
-		results, err := search.Search(query, cacheDir, repoName, settings)
+		log.Info("Starting search", "query", query, "source", sourceName, "cacheDir", cacheDir)
+		results, err := search.Search(query, cacheDir, sourceName, settings)
 		if err != nil {
 			return fmt.Errorf("search failed: %w", err)
 		}
@@ -102,7 +102,7 @@ Examples:
 				Name:        r.Name,
 				Line:        r.Line,
 				Score:       r.Score,
-				Repository:  r.Repository,
+				Source:  r.Source,
 				IsInvalid:   common.IsInvalidCategory(r.Category),
 			}
 			log.Debug("Converted result",
@@ -112,7 +112,7 @@ Examples:
 				"category", r.Category,
 				"url", r.URL,
 				"score", r.Score,
-				"repository", r.Repository)
+				"source", r.Source)
 		}
 
 		log.Info("Starting TUI", "results", len(tuiResults))
@@ -127,6 +127,6 @@ Examples:
 }
 
 func init() {
-	SearchCmd.Flags().StringVarP(&repoName, "repo", "r", "", "Search in a specific repository")
+	SearchCmd.Flags().StringVarP(&sourceName, "source", "r", "", "Search in a specific source")
 	SearchCmd.Flags().IntP("limit", "l", 0, "Maximum number of results to show (default: 10)")
 }

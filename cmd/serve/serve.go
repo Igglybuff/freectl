@@ -13,10 +13,10 @@ import (
 	"text/template"
 
 	"freectl/internal/config"
-	"freectl/internal/repository"
 	"freectl/internal/search"
 	"freectl/internal/settings"
 	"freectl/internal/stats"
+	"freectl/internal/sources"
 
 	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
@@ -26,8 +26,8 @@ var port int
 
 var ServeCmd = &cobra.Command{
 	Use:   "serve",
-	Short: "Start a web interface for searching cached repositories",
-	Long:  `Starts an HTTP server that provides a web interface for searching cached repositories at http://localhost:8080`,
+	Short: "Start a web interface for searching cached sources",
+	Long:  `Starts an HTTP server that provides a web interface for searching cached sources at http://localhost:8080`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return startServer()
 	},
@@ -73,10 +73,10 @@ func startServer() error {
 	http.HandleFunc("/update", handleUpdate)
 	http.HandleFunc("/list", handleList)
 	http.HandleFunc("/settings", handleSettings)
-	http.HandleFunc("/repositories/add", handleAddRepository)
-	http.HandleFunc("/repositories/list", handleListRepositories)
-	http.HandleFunc("/repositories/delete", handleDeleteRepository)
-	http.HandleFunc("/repositories/toggle", handleToggleRepository)
+	http.HandleFunc("/sources/add", handleAddSource)
+	http.HandleFunc("/sources/list", handleListSource)
+	http.HandleFunc("/sources/delete", handleDeleteSource)
+	http.HandleFunc("/sources/toggle", handleToggleSource)
 	http.HandleFunc("/scan/virustotal", handleVirusTotalScan)
 
 	log.Infof("Starting server at http://localhost:%d", port)
@@ -176,8 +176,8 @@ func handleSearch(w http.ResponseWriter, r *http.Request) {
 		perPage = 10
 	}
 
-	// Get repository and category filters from query parameters
-	repoName := r.URL.Query().Get("repo")
+	// Get source and category filters from query parameters
+	sourceName := r.URL.Query().Get("source")
 	category := r.URL.Query().Get("category")
 
 	// Load settings
@@ -189,10 +189,10 @@ func handleSearch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Perform search
-	results, err := search.Search(query, config.CacheDir, repoName, settings)
+	results, err := search.Search(query, config.CacheDir, sourceName, settings)
 	if err != nil {
-		// Only return error for actual errors, not for missing repository
-		if !strings.Contains(err.Error(), "repository not found") {
+		// Only return error for actual errors, not for missing source
+		if !strings.Contains(err.Error(), "source not found") {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -211,7 +211,7 @@ func handleSearch(w http.ResponseWriter, r *http.Request) {
 				URL:         r.URL,
 				Name:        r.Name,
 				Score:       r.Score,
-				Repository:  r.Repository,
+				Source:  r.Source,
 			})
 		}
 	}
@@ -345,16 +345,16 @@ func handleStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get repository name from query parameters
-	repoName := r.URL.Query().Get("repo")
-	if repoName == "" {
-		http.Error(w, "Repository name is required", http.StatusBadRequest)
+	// Get source name from query parameters
+	sourceName := r.URL.Query().Get("source")
+	if sourceName == "" {
+		http.Error(w, "Source name is required", http.StatusBadRequest)
 		return
 	}
 
-	repoPath := repository.GetRepoPath(config.CacheDir, repoName)
-	if _, err := os.Stat(repoPath); os.IsNotExist(err) {
-		http.Error(w, fmt.Sprintf("Repository '%s' not found", repoName), http.StatusNotFound)
+	sourcePath := sources.GetSourcePath(config.CacheDir, sourceName)
+	if _, err := os.Stat(sourcePath); os.IsNotExist(err) {
+		http.Error(w, fmt.Sprintf("Source '%s' not found", sourceName), http.StatusNotFound)
 		return
 	}
 
@@ -364,7 +364,7 @@ func handleStats(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var wg sync.WaitGroup
-	err := filepath.Walk(repoPath, func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(sourcePath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -379,7 +379,7 @@ func handleStats(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Error walking repository: %v", err), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Error walking source: %v", err), http.StatusInternalServerError)
 		return
 	}
 
@@ -395,9 +395,9 @@ func handleUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	duration, err := repository.UpdateRepo(config.CacheDir)
+	duration, err := sources.Update(config.CacheDir)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to update repositories: %v", err), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Failed to update sources: %v", err), http.StatusInternalServerError)
 		return
 	}
 
@@ -414,14 +414,14 @@ func handleList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repos, err := repository.List(config.CacheDir)
+	sources, err := sources.List(config.CacheDir)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(repos)
+	json.NewEncoder(w).Encode(sources)
 }
 
 func handleSettings(w http.ResponseWriter, r *http.Request) {
@@ -473,7 +473,7 @@ func handleSettings(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func handleAddRepository(w http.ResponseWriter, r *http.Request) {
+func handleAddSource(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -484,7 +484,7 @@ func handleAddRepository(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Info("Received repository add request",
+	log.Info("Received source add request",
 		"method", r.Method,
 		"content_type", r.Header.Get("Content-Type"),
 		"accept", r.Header.Get("Accept"))
@@ -505,12 +505,8 @@ func handleAddRepository(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := repository.AddRepository(config.CacheDir, repository.AddRepositoryRequest{
-		URL:  req.URL,
-		Name: req.Name,
-		Type: req.Type,
-	}); err != nil {
-		log.Error("Failed to add repository", "error", err)
+	if err := sources.Add(config.CacheDir, req.URL, req.Name, req.Type); err != nil {
+		log.Error("Failed to add source", "error", err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]interface{}{
@@ -520,15 +516,15 @@ func handleAddRepository(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Info("Repository added successfully")
+	log.Info("Source added successfully")
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
-		"message": "Repository added successfully",
+		"message": "Source added successfully",
 	})
 }
 
-func handleListRepositories(w http.ResponseWriter, r *http.Request) {
+func handleListSource(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -539,9 +535,9 @@ func handleListRepositories(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repos, err := repository.List(config.CacheDir)
+	sources, err := sources.List(config.CacheDir)
 	if err != nil {
-		log.Error("Failed to list repositories", "error", err)
+		log.Error("Failed to list sources", "error", err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]interface{}{
@@ -554,11 +550,11 @@ func handleListRepositories(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success":      true,
-		"repositories": repos,
+		"sources": sources,
 	})
 }
 
-func handleDeleteRepository(w http.ResponseWriter, r *http.Request) {
+func handleDeleteSource(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -583,8 +579,8 @@ func handleDeleteRepository(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := repository.Delete(config.CacheDir, req.Name); err != nil {
-		log.Error("Failed to delete repository", "error", err)
+	if err := sources.Delete(config.CacheDir, req.Name); err != nil {
+		log.Error("Failed to delete source", "error", err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]interface{}{
@@ -597,11 +593,11 @@ func handleDeleteRepository(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
-		"message": "Repository deleted successfully",
+		"message": "Source deleted successfully",
 	})
 }
 
-func handleToggleRepository(w http.ResponseWriter, r *http.Request) {
+func handleToggleSource(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -626,8 +622,8 @@ func handleToggleRepository(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := repository.ToggleEnabled(req.Name); err != nil {
-		log.Error("Failed to toggle repository", "error", err)
+	if err := settings.ToggleSourceEnabled(req.Name); err != nil {
+		log.Error("Failed to toggle source", "error", err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]interface{}{
@@ -638,14 +634,14 @@ func handleToggleRepository(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get the updated enabled status
-	enabled, err := repository.IsEnabled(req.Name)
+	enabled, err := settings.IsSourceEnabled(req.Name)
 	if err != nil {
-		log.Error("Failed to get repository status", "error", err)
+		log.Error("Failed to get source status", "error", err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": false,
-			"error":   fmt.Sprintf("Failed to get repository status: %s", err.Error()),
+			"error":   fmt.Sprintf("Failed to get source status: %s", err.Error()),
 		})
 		return
 	}
@@ -662,7 +658,7 @@ func handleToggleRepository(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
 		"enabled": enabled,
-		"message": fmt.Sprintf("Repository %s successfully", status),
+		"message": fmt.Sprintf("Source %s successfully", status),
 	})
 }
 
@@ -708,5 +704,5 @@ type SearchResult struct {
 	URL         string `json:"url"`
 	Name        string `json:"name"`
 	Score       int    `json:"score"`
-	Repository  string `json:"repository"`
+	Source  string `json:"source"`
 }
