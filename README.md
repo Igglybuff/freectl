@@ -181,26 +181,52 @@ go build
 
 #### Features
 
+##### Core
+
+- [ ] support for reddit megathreads
+- [ ] support for HackerNews top 5000
+- [ ] support for blogroll/OPML import
+- [ ] support for bookmarks import (HTML/XML)
+- [ ] support for Hoarder/Linkwarden sync
+- [ ] support for personal knowledge stores (Obsidian vaults etc.)
+- [ ] support for open directories
+- [ ] support for other useful data sources
+- [ ] support for book databases
+- [ ] implement a search index using [bleve](https://github.com/blevesearch/bleve) as an alternative to fuzzy-search
+- [ ] advanced search queries
+- [ ] rest API
+- [ ] user authentication
+- [ ] custom markdown parsing rules for non-standard repos
+
+##### Improvements
+
+- [ ] alternative search results layout + link previews
+- [ ] mobile-compatible web UI
+- [ ] search history
+- [ ] search suggestions/autocomplete
+- [ ] support for sending links to Hoarder/LinkWarden
 - [ ] make the repository tag clickable in search results
-- [ ] add support for bulk-adding repos, either with multi-line paste or by adding a list-of-lists
+- [ ] support for bulk-adding repos
 - [ ] implement virustotal URL scanning (vt-go is unmaintained so will have to make my own)
 - [ ] add reachability check button to quickly see if a link is dead
 - [ ] add share button
-- [ ] make the web UI prettier because it's very boring
-- [ ] make the web UI mobile-compatible
-- [ ] rest API
+- [ ] export favourites as OPML/CSV/JSON/HTML
 - [ ] add a --config arg to use a custom config file path
 - [ ] add a `set` command to add CLI support for changing settings like the web UI can
 - [ ] add viper to configure settings via environment variables
-- [ ] support for multiple users + trusted reverse proxies + transparent auth via http header
-- [ ] some way to integrate RSS support?
-- [ ] favicon
+- [ ] add a favicon
+- [ ] UI improvements
+
+##### SDLC
+
 - [ ] set up github actions CI pipeline with multi-arch release
 - [ ] create AUR pkg
-- [ ] implement configurable & shareable custom parsing rules for non-standard repos
 - [ ] SAST scan in CI
 - [ ] pre-commit hooks
-- [ ] website
+
+##### Meta
+
+- [ ] publish a website
 - [ ] post about this on reddit or whatever
 - [ ] get bored, give up, leave unmaintained for 3-5 years, and archive the repository
 
