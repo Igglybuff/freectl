@@ -26,7 +26,8 @@ and enabled by default.`,
 		url := args[0]
 
 		// If name is not provided, derive it from URL
-		if name == "" {
+		// TODO: this only works for git repos, we should use a more generic method
+		if name == "" && sourceType == "git" {
 			name = sources.DeriveNameFromURL(url)
 		}
 
@@ -41,6 +42,6 @@ and enabled by default.`,
 }
 
 func init() {
-	AddCmd.Flags().StringVarP(&name, "name", "n", "", "Name for the source (default: derived from URL)")
-	AddCmd.Flags().StringVarP(&sourceType, "type", "t", "git", "Type of source (default: git)")
+	AddCmd.Flags().StringVarP(&name, "name", "n", "", "Name for the source")
+	AddCmd.Flags().StringVarP(&sourceType, "type", "t", "", "Type of source")
 }

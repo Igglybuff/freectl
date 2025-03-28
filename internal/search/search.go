@@ -255,6 +255,10 @@ func Search(query string, sourceName string, s settings.Settings) ([]Result, err
 					lastHeading = common.CleanCategory(strings.TrimSpace(strings.TrimPrefix(line, "## ")))
 					continue
 				}
+				if strings.HasPrefix(line, "### ") {
+					lastHeading = common.CleanCategory(strings.TrimSpace(strings.TrimPrefix(line, "### ")))
+					continue
+				}
 
 				// Skip empty lines or heading lines
 				if line == "" || strings.HasPrefix(line, "#") {

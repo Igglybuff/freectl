@@ -23,14 +23,14 @@ type SourceType string
 
 // Allowed source types
 const (
-	SourceTypeGit SourceType = "git"
+	SourceTypeGit        SourceType = "git"
+	SourceTypeRedditWiki SourceType = "reddit_wiki"
 
 	// not implemented yet
-	SourceTypeRedditWiki SourceType = "reddit_wiki"
-	SourceTypeOPML       SourceType = "opml"
-	SourceTypeBookmarks  SourceType = "bookmarks"
-	SourceTypeHN500      SourceType = "hn500"
-	SourceTypeObsidian   SourceType = "obsidian"
+	SourceTypeOPML      SourceType = "opml"
+	SourceTypeBookmarks SourceType = "bookmarks"
+	SourceTypeHN500     SourceType = "hn500"
+	SourceTypeObsidian  SourceType = "obsidian"
 )
 
 // Add adds a new source by calling source-specific Add functions
@@ -88,12 +88,10 @@ func Add(cacheDir string, url string, name string, sourceType string) error {
 		sourceType = string(SourceTypeGit)
 	}
 
-	// Check if the source type is implemented
-	switch SourceType(sourceType) {
-	case SourceTypeGit:
-		// These types are implemented
-	default:
-		return fmt.Errorf("source type '%s' is not implemented yet", sourceType)
+	// Check if source type is implemented
+	if !IsImplemented(SourceType(sourceType)) {
+		log.Warn("Unsupported source type for update", "name", name, "type", sourceType)
+		return fmt.Errorf("unsupported source type: %s", sourceType)
 	}
 
 	// Create a source object
@@ -209,5 +207,5 @@ func Update(cacheDir string) (time.Duration, error) {
 
 // IsImplemented returns true if the source type is implemented
 func IsImplemented(sourceType SourceType) bool {
-	return sourceType == SourceTypeGit
+	return sourceType == SourceTypeGit || sourceType == SourceTypeRedditWiki
 }
