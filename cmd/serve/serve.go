@@ -527,36 +527,9 @@ func handleAddSource(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Load settings to check for existing sources
-	s, err := settings.LoadSettings()
-	if err != nil {
-		log.Error("Failed to load settings", "error", err)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success": false,
-			"error":   fmt.Sprintf("Failed to load settings: %s", err.Error()),
-		})
-		return
-	}
-
 	// If name is not provided, derive it from URL
 	if req.Name == "" {
 		req.Name = sources.DeriveNameFromURL(req.URL)
-	}
-
-	// Check if source with this name already exists
-	for _, source := range s.Sources {
-		if source.Name == req.Name {
-			log.Error("Source already exists", "name", req.Name)
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(map[string]interface{}{
-				"success": false,
-				"error":   fmt.Sprintf("Source '%s' already exists", req.Name),
-			})
-			return
-		}
 	}
 
 	if err := settings.AddSource(req.URL, req.Name, req.Type); err != nil {

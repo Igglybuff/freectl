@@ -126,6 +126,13 @@ func AddSource(url, name, sourceType string) error {
 		return fmt.Errorf("failed to load settings: %w", err)
 	}
 
+	// Check if source with this name already exists
+	for _, source := range settings.Sources {
+		if source.Name == name {
+			return fmt.Errorf("source '%s' already exists", name)
+		}
+	}
+
 	// Create source
 	source := sources.Source{
 		Name:    name,
