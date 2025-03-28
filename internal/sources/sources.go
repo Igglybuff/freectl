@@ -23,14 +23,14 @@ type SourceType string
 
 // Allowed source types
 const (
-	SourceTypeGit        SourceType = "git"
-	SourceTypeRedditWiki SourceType = "reddit_wiki"
+	SourceTypeGit SourceType = "git"
 
 	// not implemented yet
-	SourceTypeOPML      SourceType = "opml"
-	SourceTypeBookmarks SourceType = "bookmarks"
-	SourceTypeHN500     SourceType = "hn500"
-	SourceTypeObsidian  SourceType = "obsidian"
+	SourceTypeRedditWiki SourceType = "reddit_wiki"
+	SourceTypeOPML       SourceType = "opml"
+	SourceTypeBookmarks  SourceType = "bookmarks"
+	SourceTypeHN500      SourceType = "hn500"
+	SourceTypeObsidian   SourceType = "obsidian"
 )
 
 // Add adds a new source by calling source-specific Add functions
@@ -86,6 +86,14 @@ func Add(cacheDir string, url string, name string, sourceType string) error {
 	// If no type is provided, default to git
 	if sourceType == "" {
 		sourceType = string(SourceTypeGit)
+	}
+
+	// Check if the source type is implemented
+	switch SourceType(sourceType) {
+	case SourceTypeGit:
+		// These types are implemented
+	default:
+		return fmt.Errorf("source type '%s' is not implemented yet", sourceType)
 	}
 
 	// Create a source object

@@ -15,8 +15,8 @@ import (
 	"freectl/internal/config"
 	"freectl/internal/search"
 	"freectl/internal/settings"
-	"freectl/internal/stats"
 	"freectl/internal/sources"
+	"freectl/internal/stats"
 
 	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
@@ -71,7 +71,6 @@ func startServer() error {
 	http.HandleFunc("/favorites/remove", handleRemoveFavorite)
 	http.HandleFunc("/stats", handleStats)
 	http.HandleFunc("/update", handleUpdate)
-	http.HandleFunc("/list", handleList)
 	http.HandleFunc("/settings", handleSettings)
 	http.HandleFunc("/sources/add", handleAddSource)
 	http.HandleFunc("/sources/list", handleListSource)
@@ -211,7 +210,7 @@ func handleSearch(w http.ResponseWriter, r *http.Request) {
 				URL:         r.URL,
 				Name:        r.Name,
 				Score:       r.Score,
-				Source:  r.Source,
+				Source:      r.Source,
 			})
 		}
 	}
@@ -352,19 +351,41 @@ func handleStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sourcePath := sources.GetSourcePath(config.CacheDir, sourceName)
-	if _, err := os.Stat(sourcePath); os.IsNotExist(err) {
-		http.Error(w, fmt.Sprintf("Source '%s' not found", sourceName), http.StatusNotFound)
+	// Load settings to verify source exists and get cache directory
+	s, err := settings.LoadSettings()
+	if err != nil {
+		log.Error("Failed to load settings", "error", err)
+		http.Error(w, fmt.Sprintf("Failed to load settings: %s", err.Error()), http.StatusInternalServerError)
 		return
 	}
 
-	s := &stats.Stats{
+	// Verify source exists in settings
+	found := false
+	for _, source := range s.Sources {
+		if source.Name == sourceName {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		http.Error(w, fmt.Sprintf("Source '%s' not found in settings", sourceName), http.StatusNotFound)
+		return
+	}
+
+	sourcePath := filepath.Join(s.CacheDir, sourceName)
+	if _, err := os.Stat(sourcePath); os.IsNotExist(err) {
+		http.Error(w, fmt.Sprintf("Source '%s' not found in cache", sourceName), http.StatusNotFound)
+		return
+	}
+
+	stats := &stats.Stats{
 		DomainsCount:  make(map[string]int),
 		ProtocolStats: make(map[string]int),
 	}
 
 	var wg sync.WaitGroup
-	err := filepath.Walk(sourcePath, func(path string, info os.FileInfo, err error) error {
+	err = filepath.Walk(sourcePath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -372,7 +393,7 @@ func handleStats(w http.ResponseWriter, r *http.Request) {
 			wg.Add(1)
 			go func(p string) {
 				defer wg.Done()
-				s.ProcessFile(p)
+				stats.ProcessFile(p)
 			}(path)
 		}
 		return nil
@@ -386,7 +407,7 @@ func handleStats(w http.ResponseWriter, r *http.Request) {
 	wg.Wait()
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(s)
+	json.NewEncoder(w).Encode(stats)
 }
 
 func handleUpdate(w http.ResponseWriter, r *http.Request) {
@@ -395,7 +416,32 @@ func handleUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	duration, err := sources.Update(config.CacheDir)
+	// Load settings to get cache directory and verify sources
+	s, err := settings.LoadSettings()
+	if err != nil {
+		log.Error("Failed to load settings", "error", err)
+		http.Error(w, fmt.Sprintf("Failed to load settings: %s", err.Error()), http.StatusInternalServerError)
+		return
+	}
+
+	// Get list of sources from settings
+	sourceList, err := settings.ListSources()
+	if err != nil {
+		log.Error("Failed to list sources", "error", err)
+		http.Error(w, fmt.Sprintf("Failed to list sources: %s", err.Error()), http.StatusInternalServerError)
+		return
+	}
+
+	if len(sourceList) == 0 {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"message": "No sources found. Please add a source using 'freectl add'",
+		})
+		return
+	}
+
+	duration, err := sources.Update(s.CacheDir)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to update sources: %v", err), http.StatusInternalServerError)
 		return
@@ -406,22 +452,6 @@ func handleUpdate(w http.ResponseWriter, r *http.Request) {
 		"success":  true,
 		"duration": duration.String(),
 	})
-}
-
-func handleList(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	sources, err := sources.List(config.CacheDir)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(sources)
 }
 
 func handleSettings(w http.ResponseWriter, r *http.Request) {
@@ -505,7 +535,39 @@ func handleAddSource(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := sources.Add(config.CacheDir, req.URL, req.Name, req.Type); err != nil {
+	// Load settings to check for existing sources
+	s, err := settings.LoadSettings()
+	if err != nil {
+		log.Error("Failed to load settings", "error", err)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"error":   fmt.Sprintf("Failed to load settings: %s", err.Error()),
+		})
+		return
+	}
+
+	// If name is not provided, derive it from URL
+	if req.Name == "" {
+		req.Name = sources.DeriveNameFromURL(req.URL)
+	}
+
+	// Check if source with this name already exists
+	for _, source := range s.Sources {
+		if source.Name == req.Name {
+			log.Error("Source already exists", "name", req.Name)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success": false,
+				"error":   fmt.Sprintf("Source '%s' already exists", req.Name),
+			})
+			return
+		}
+	}
+
+	if err := settings.AddSource(req.URL, req.Name, req.Type); err != nil {
 		log.Error("Failed to add source", "error", err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
@@ -535,21 +597,31 @@ func handleListSource(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sources, err := sources.List(config.CacheDir)
+	// Get sources from settings
+	sources, err := settings.ListSources()
 	if err != nil {
 		log.Error("Failed to list sources", "error", err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": false,
-			"error":   err.Error(),
+			"error":   fmt.Sprintf("Failed to list sources: %w", err),
+		})
+		return
+	}
+
+	if len(sources) == 0 {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"sources": []interface{}{},
 		})
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"success":      true,
+		"success": true,
 		"sources": sources,
 	})
 }
@@ -566,7 +638,8 @@ func handleDeleteSource(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-		Name string `json:"name"`
+		Name  string `json:"name"`
+		Force bool   `json:"force"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		log.Error("Failed to decode request body", "error", err)
@@ -579,17 +652,100 @@ func handleDeleteSource(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := sources.Delete(config.CacheDir, req.Name); err != nil {
-		log.Error("Failed to delete source", "error", err)
+	// Load settings to get cache directory
+	s, err := settings.LoadSettings()
+	if err != nil {
+		log.Error("Failed to load settings", "error", err)
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": false,
-			"error":   err.Error(),
+			"error":   fmt.Sprintf("Failed to load settings: %w", err),
 		})
 		return
 	}
 
+	// List sources to verify the source exists in settings
+	sources, err := settings.ListSources()
+	if err != nil {
+		log.Error("Failed to list sources", "error", err)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"error":   fmt.Sprintf("Failed to list sources: %w", err),
+		})
+		return
+	}
+
+	found := false
+	for _, source := range sources {
+		if source.Name == req.Name {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		log.Error("Source not found in settings", "name", req.Name)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"error":   fmt.Sprintf("Source '%s' not found in settings", req.Name),
+		})
+		return
+	}
+
+	// Try to delete from cache first
+	sourcePath := filepath.Join(s.CacheDir, req.Name)
+	if _, err := os.Stat(sourcePath); err == nil {
+		// Source exists in cache, try to delete it
+		if err := os.RemoveAll(sourcePath); err != nil {
+			log.Error("Failed to delete source from cache", "name", req.Name, "error", err)
+			if !req.Force {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusInternalServerError)
+				json.NewEncoder(w).Encode(map[string]interface{}{
+					"success": false,
+					"error":   fmt.Sprintf("Failed to delete source from cache: %w", err),
+				})
+				return
+			}
+			// If force is true, continue even if cache deletion fails
+			log.Info("Force flag used, continuing despite cache deletion failure")
+		} else {
+			log.Info("Successfully deleted source from cache", "name", req.Name)
+		}
+	} else if !os.IsNotExist(err) {
+		// Error other than "not exists"
+		log.Error("Error checking source path", "name", req.Name, "error", err)
+		if !req.Force {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success": false,
+				"error":   fmt.Sprintf("Error checking source path: %w", err),
+			})
+			return
+		}
+		// If force is true, continue even if there's an error checking the path
+		log.Info("Force flag used, continuing despite path check error")
+	}
+
+	// Always try to remove from settings
+	if err := settings.DeleteSource(req.Name, req.Force); err != nil {
+		log.Error("Failed to delete source from settings", "error", err)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"error":   fmt.Sprintf("Failed to delete source from settings: %w", err),
+		})
+		return
+	}
+
+	log.Info("Successfully deleted source", "name", req.Name)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
@@ -704,5 +860,5 @@ type SearchResult struct {
 	URL         string `json:"url"`
 	Name        string `json:"name"`
 	Score       int    `json:"score"`
-	Source  string `json:"source"`
+	Source      string `json:"source"`
 }

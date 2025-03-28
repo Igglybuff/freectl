@@ -5,38 +5,34 @@ import { getSourceColor } from './ui.js';
 let selectedSources = new Set();
 let allStats = new Map();
 
-// Load sources into stats dropdown
+// Load sources into the source selector
 export function loadSources() {
-    fetch('/list')
+    fetch('/sources/list')
         .then(response => response.json())
-        .then(sources => {
-            const select = document.getElementById('statsSource');
-            if (!select) return;
-            
+        .then(data => {
+            if (!data.success) {
+                throw new Error(data.error || 'Failed to load sources');
+            }
+
+            const sourceSelect = document.getElementById('statsSource');
             // Add "All sources" as the first option
-            select.innerHTML = '<option value="">All data sources</option>' +
-                sources.map(source => 
-                    `<option value="${source.name}">${source.name}</option>`
-                ).join('');
-            
+            sourceSelect.innerHTML = '<option value="">All sources</option>' +
+                data.sources
+                    .filter(source => source.enabled)
+                    .map(source => `<option value="${source.name}">${source.name}</option>`)
+                    .join('');
+
             // Load combined stats by default
             loadStats();
         })
         .catch(error => {
-            console.error('Error loading sources:', error);
-            showToast('Failed to load sources', true);
-            const select = document.getElementById('statsSource');
-            if (select) {
-                select.innerHTML = '<option value="">Error loading data sources</option>';
-            }
+            console.error('Error:', error);
+            document.getElementById('statsSource').innerHTML = '<option value="">Error loading sources</option>';
         });
 }
 
 // Load stats for selected source or all sources
-export function loadStats() {
-    const sourceName = document.getElementById('statsSource')?.value;
-    
-    // Show loading state
+export function loadStats(sourceName) {
     const elements = {
         totalLinks: document.getElementById('totalLinks'),
         sourceSize: document.getElementById('sourceSize'),
@@ -59,9 +55,13 @@ export function loadStats() {
 
     // If no source is selected, load combined stats
     if (!sourceName) {
-        fetch('/list')
+        fetch('/sources/list')
             .then(response => response.json())
-            .then(sources => {
+            .then(data => {
+                if (!data.success) {
+                    throw new Error(data.error || 'Failed to load sources');
+                }
+
                 const combinedStats = {
                     TotalLinks: 0,
                     TotalSize: 0,
@@ -71,56 +71,63 @@ export function loadStats() {
                 };
 
                 // Load stats for each source
-                const promises = sources.map(source => 
-                    fetch(`/stats?source=${encodeURIComponent(source.name)}`)
-                        .then(response => response.json())
-                        .then(data => {
-                            // Safely add total links and size
-                            combinedStats.TotalLinks += data.TotalLinks || 0;
-                            combinedStats.TotalSize += data.TotalSize || 0;
-                            
-                            // Safely combine categories
-                            if (data.Categories && Array.isArray(data.Categories)) {
-                                data.Categories.forEach(cat => {
-                                    if (!cat || !cat.Name) return;
-                                    
-                                    let found = false;
-                                    for (let i = 0; i < combinedStats.Categories.length; i++) {
-                                        if (combinedStats.Categories[i].Name === cat.Name) {
-                                            combinedStats.Categories[i].LinkCount += cat.LinkCount || 0;
-                                            found = true;
-                                            break;
+                const promises = data.sources
+                    .filter(source => source.enabled)
+                    .map(source => 
+                        fetch(`/stats?source=${encodeURIComponent(source.name)}`)
+                            .then(response => {
+                                if (!response.ok) {
+                                    throw new Error(`Failed to load stats for ${source.name}`);
+                                }
+                                return response.json();
+                            })
+                            .then(data => {
+                                // Safely add total links and size
+                                combinedStats.TotalLinks += data.TotalLinks || 0;
+                                combinedStats.TotalSize += data.TotalSize || 0;
+                                
+                                // Safely combine categories
+                                if (data.Categories && Array.isArray(data.Categories)) {
+                                    data.Categories.forEach(cat => {
+                                        if (!cat || !cat.Name) return;
+                                        
+                                        let found = false;
+                                        for (let i = 0; i < combinedStats.Categories.length; i++) {
+                                            if (combinedStats.Categories[i].Name === cat.Name) {
+                                                combinedStats.Categories[i].LinkCount += cat.LinkCount || 0;
+                                                found = true;
+                                                break;
+                                            }
                                         }
-                                    }
-                                    if (!found) {
-                                        combinedStats.Categories.push({
-                                            Name: cat.Name,
-                                            LinkCount: cat.LinkCount || 0
-                                        });
-                                    }
-                                });
-                            }
+                                        if (!found) {
+                                            combinedStats.Categories.push({
+                                                Name: cat.Name,
+                                                LinkCount: cat.LinkCount || 0
+                                            });
+                                        }
+                                    });
+                                }
 
-                            // Safely combine domains
-                            if (data.DomainsCount && typeof data.DomainsCount === 'object') {
-                                Object.entries(data.DomainsCount).forEach(([domain, count]) => {
-                                    if (!domain) return;
-                                    combinedStats.DomainsCount[domain] = (combinedStats.DomainsCount[domain] || 0) + (count || 0);
-                                });
-                            }
+                                // Safely combine domains
+                                if (data.DomainsCount && typeof data.DomainsCount === 'object') {
+                                    Object.entries(data.DomainsCount).forEach(([domain, count]) => {
+                                        if (!domain) return;
+                                        combinedStats.DomainsCount[domain] = (combinedStats.DomainsCount[domain] || 0) + (count || 0);
+                                    });
+                                }
 
-                            // Safely combine protocols
-                            if (data.ProtocolStats && typeof data.ProtocolStats === 'object') {
-                                combinedStats.ProtocolStats.https += data.ProtocolStats.https || 0;
-                                combinedStats.ProtocolStats.http += data.ProtocolStats.http || 0;
-                            }
-                        })
-                        .catch(error => {
-                            console.error(`Error loading stats for ${source.name}:`, error);
-                            // Continue with other sources even if one fails
-                            return null;
-                        })
-                );
+                                // Safely combine protocols
+                                if (data.ProtocolStats && typeof data.ProtocolStats === 'object') {
+                                    combinedStats.ProtocolStats.https += data.ProtocolStats.https || 0;
+                                    combinedStats.ProtocolStats.http += data.ProtocolStats.http || 0;
+                                }
+                            })
+                            .catch(error => {
+                                console.error(`Error loading stats for ${source.name}:`, error);
+                                // Continue with other sources even if one fails
+                                return null;
+                            })
+                    );
 
                 Promise.all(promises)
                     .then(() => {
@@ -245,6 +252,8 @@ function clearStats() {
 document.addEventListener('DOMContentLoaded', () => {
     const sourceSelect = document.getElementById('statsSource');
     if (sourceSelect) {
-        sourceSelect.addEventListener('change', loadStats);
+        sourceSelect.addEventListener('change', function() {
+            loadStats(this.value);
+        });
     }
 }); 

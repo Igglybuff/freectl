@@ -994,7 +994,7 @@ body {
 .setting-item input[type="number"],
 .setting-item input[type="text"] {
     padding: 10px;
-    font-size: 16px;
+    font-size: 14px;
     border: 1px solid var(--border-color);
     border-radius: 6px;
     background-color: var(--bg-secondary) !important;
@@ -1002,7 +1002,7 @@ body {
     transition: border-color 0.2s, box-shadow 0.2s;
     width: 100%;
     box-sizing: border-box;
-    height: 40px;
+    height: 36px;
     -webkit-appearance: none;
     -moz-appearance: textfield;
     appearance: none;

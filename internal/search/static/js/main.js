@@ -190,7 +190,5 @@ document.addEventListener('DOMContentLoaded', function() {
         // Add event listener for update button
         document.getElementById('updateSource').addEventListener('click', updateSource);
 
-        // Add event listener for data source selection in stats
-        document.getElementById('statsSource').addEventListener('change', loadStats);
     });
 }); 

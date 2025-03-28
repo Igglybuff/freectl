@@ -1,4 +1,5 @@
 import { showToast } from './ui.js';
+import { loadStats } from './stats.js';
 
 // Load sources into the filter dropdown
 export function loadSourceFilter() {
@@ -38,6 +39,7 @@ export function addSource() {
     const urlInput = document.getElementById('sourceUrl');
     const nameInput = document.getElementById('sourceName');
     const typeInput = document.getElementById('sourceType');
+    const addButton = document.getElementById('addSource');
     const url = urlInput.value.trim();
     const name = nameInput.value.trim();
     const type = typeInput ? typeInput.value.trim() : 'git';
@@ -46,6 +48,10 @@ export function addSource() {
         showToast('Source URL is required', true);
         return;
     }
+
+    // Disable button and show loading state
+    addButton.disabled = true;
+    addButton.textContent = 'Adding source...';
 
     fetch('/sources/add', {
         method: 'POST',
@@ -69,6 +75,11 @@ export function addSource() {
         .catch(error => {
             console.error('Error:', error);
             showToast(`Failed to add source: ${error.message}`, true);
+        })
+        .finally(() => {
+            // Re-enable button and restore text
+            addButton.disabled = false;
+            addButton.textContent = 'Add';
         });
 }
 
