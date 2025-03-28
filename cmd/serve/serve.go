@@ -492,6 +492,7 @@ func handleAddRepository(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		URL  string `json:"url"`
 		Name string `json:"name"`
+		Type string `json:"type"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		log.Error("Failed to decode request body", "error", err)
@@ -504,7 +505,7 @@ func handleAddRepository(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := repository.AddRepository(config.CacheDir, req.URL, req.Name); err != nil {
+	if err := repository.AddRepository(config.CacheDir, req.URL, req.Name, req.Type); err != nil {
 		log.Error("Failed to add repository", "error", err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)

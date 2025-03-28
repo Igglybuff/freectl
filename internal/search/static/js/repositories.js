@@ -37,8 +37,10 @@ export function loadRepositoryFilter() {
 export function addRepository() {
     const urlInput = document.getElementById('repoUrl');
     const nameInput = document.getElementById('repoName');
+    const typeInput = document.getElementById('repoType');
     const url = urlInput.value.trim();
     const name = nameInput.value.trim();
+    const type = typeInput ? typeInput.value.trim() : 'git';
 
     if (!url) {
         showToast('Repository URL is required', true);
@@ -50,7 +52,7 @@ export function addRepository() {
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ url, name }),
+        body: JSON.stringify({ url, name, type }),
     })
         .then(response => response.json())
         .then(data => {
@@ -60,6 +62,7 @@ export function addRepository() {
             showToast('Repository added successfully');
             urlInput.value = '';
             nameInput.value = '';
+            if (typeInput) typeInput.value = 'git';
             loadRepositoryList();
             loadRepositoryFilter(); // Refresh repository filters
         })

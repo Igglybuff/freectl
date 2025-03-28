@@ -9,22 +9,25 @@ import (
 	"time"
 
 	"freectl/internal/settings"
+	"freectl/internal/sources"
 
 	"github.com/charmbracelet/log"
 )
 
 // Repository represents a cached repository
 type Repository struct {
-	Name    string `json:"name"`
-	Path    string `json:"path"`
-	URL     string `json:"url"`
-	Enabled bool   `json:"enabled"`
+	Name    string             `json:"name"`
+	Path    string             `json:"path"`
+	URL     string             `json:"url"`
+	Enabled bool               `json:"enabled"`
+	Type    sources.SourceType `json:"type"`
 }
 
 // AddRepositoryRequest represents the request to add a new repository
 type AddRepositoryRequest struct {
-	URL  string `json:"url"`
-	Name string `json:"name"`
+	URL  string             `json:"url"`
+	Name string             `json:"name"`
+	Type sources.SourceType `json:"type"`
 }
 
 // GetRepoPath returns the path to a repository
@@ -72,7 +75,7 @@ func ValidateRepository(cacheDir, name string) error {
 }
 
 // AddRepository adds a new repository to the cache
-func AddRepository(cacheDir string, url string, name string) error {
+func AddRepository(cacheDir string, url string, name string, repoType string) error {
 	if url == "" {
 		return fmt.Errorf("repository URL is required")
 	}
@@ -84,22 +87,47 @@ func AddRepository(cacheDir string, url string, name string) error {
 		name = strings.TrimSuffix(name, ".git")
 	}
 
-	// Get the repository path
+	// If no type is provided, default to git
+	if repoType == "" {
+		repoType = string(sources.SourceTypeGit)
+	}
+
+	// Create a source object
+	source := sources.Source{
+		Name: name,
+		URL:  url,
+		Type: sources.SourceType(repoType),
+	}
+
+	// Add the source using the appropriate handler
+	if err := source.Add(cacheDir); err != nil {
+		return fmt.Errorf("failed to add repository: %w", err)
+	}
+
+	// Load current settings
+	s, err := settings.LoadSettings()
+	if err != nil {
+		return fmt.Errorf("failed to load settings: %w", err)
+	}
+
+	// Create repository path
 	repoPath := filepath.Join(cacheDir, name)
 
-	// Check if repository already exists
-	if _, err := os.Stat(repoPath); !os.IsNotExist(err) {
-		return fmt.Errorf("repository %s already exists", name)
+	// Add repository to settings
+	s.Repositories = append(s.Repositories, settings.RepositoryState{
+		Name:    name,
+		Path:    repoPath,
+		URL:     url,
+		Enabled: true, // Default to enabled
+		Type:    sources.SourceType(repoType),
+	})
+
+	// Save updated settings
+	if err := settings.SaveSettings(s); err != nil {
+		return fmt.Errorf("failed to save settings: %w", err)
 	}
 
-	// Clone the repository
-	log.Info("Cloning repository", "url", url, "name", name)
-	cmd := exec.Command("git", "clone", "--depth", "1", url, repoPath)
-	if output, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("failed to clone repository: %s", string(output))
-	}
-
-	log.Info("Repository added successfully", "name", name)
+	log.Info("Repository added successfully", "name", name, "type", repoType)
 	return nil
 }
 
@@ -144,10 +172,12 @@ func List(cacheDir string) ([]Repository, error) {
 		log.Debug("Got repository URL", "name", entry.Name(), "url", url)
 
 		// Check if we have state for this repository in settings
-		enabled := true // Default to enabled
+		enabled := true                   // Default to enabled
+		repoType := sources.SourceTypeGit // Default to git
 		for _, repoState := range s.Repositories {
 			if repoState.Name == entry.Name() {
 				enabled = repoState.Enabled
+				repoType = repoState.Type
 				break
 			}
 		}
@@ -157,6 +187,7 @@ func List(cacheDir string) ([]Repository, error) {
 			Path:    repoPath,
 			URL:     url,
 			Enabled: enabled,
+			Type:    repoType,
 		})
 		log.Debug("Added repository to list", "name", entry.Name())
 	}
@@ -237,7 +268,8 @@ func ToggleEnabled(cacheDir string, name string) error {
 			Name:    name,
 			Path:    repoPath,
 			URL:     url,
-			Enabled: false, // Toggle from default enabled state
+			Enabled: false,                 // Toggle from default enabled state
+			Type:    sources.SourceTypeGit, // Default to git
 		})
 	}
 
@@ -250,7 +282,8 @@ func ToggleEnabled(cacheDir string, name string) error {
 	if !s.Repositories[len(s.Repositories)-1].Enabled {
 		status = "disabled"
 	}
-	log.Info("Repository "+status+" successfully", "name", name)
+
+	log.Info("Repository status updated", "name", name, "status", status)
 	return nil
 }
 

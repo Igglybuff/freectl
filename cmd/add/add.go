@@ -10,7 +10,8 @@ import (
 )
 
 var (
-	name string
+	name     string
+	repoType string
 )
 
 var AddCmd = &cobra.Command{
@@ -20,8 +21,8 @@ var AddCmd = &cobra.Command{
 The repository must be a Git repository accessible via HTTPS.
 
 Examples:
-  # Add a repository with a custom name
-  freectl add https://github.com/awesome-selfhosted/awesome-selfhosted --name "awesome-selfhosted"
+  # Add a repository with a custom name and type
+  freectl add https://github.com/awesome-selfhosted/awesome-selfhosted --name "awesome-selfhosted" --type git
   
   # Add a repository using the default name (derived from the URL)
   freectl add https://github.com/user/repo`,
@@ -35,15 +36,16 @@ Examples:
 			name = repository.DeriveNameFromURL(url)
 		}
 
-		if err := repository.AddRepository(cacheDir, url, name); err != nil {
+		if err := repository.AddRepository(cacheDir, url, name, repoType); err != nil {
 			return fmt.Errorf("failed to add repository: %w", err)
 		}
 
-		log.Info("Repository added successfully", "name", name)
+		log.Info("Repository added successfully", "name", name, "type", repoType)
 		return nil
 	},
 }
 
 func init() {
 	AddCmd.Flags().StringVarP(&name, "name", "n", "", "Name for the repository (default: derived from URL)")
+	AddCmd.Flags().StringVarP(&repoType, "type", "t", "git", "Type of repository (default: git)")
 }

@@ -218,20 +218,28 @@
 
                 <div class="settings-section">
                     <h3>Add data source</h3>
-                    <div class="settings-grid">
-                        <div class="setting-item">
-                            <label for="repoUrl">Source URL:</label>
+                    <div class="add-repo-form">
+                        <h2>Add Data Source</h2>
+                        <div class="form-group">
+                            <label for="repoUrl">URL:</label>
                             <input type="text" id="repoUrl" placeholder="https://github.com/user/repo">
-                            <span class="setting-description">URL of the data source to add</span>
                         </div>
-                        <div class="setting-item">
-                            <label for="repoName">Source name:</label>
-                            <input type="text" id="repoName" placeholder="source-name">
-                            <span class="setting-description">Name to identify the data source (optional, defaults to source name)</span>
+                        <div class="form-group">
+                            <label for="repoName">Name (optional):</label>
+                            <input type="text" id="repoName" placeholder="Custom name for the repository">
                         </div>
-                    </div>
-                    <div class="settings-buttons">
-                        <button id="addRepo" class="settings-button">Add data source</button>
+                        <div class="form-group">
+                            <label for="repoType">Type:</label>
+                            <select id="repoType">
+                                <option value="git">Git Repository</option>
+                                <option value="reddit_wiki">Reddit Wiki</option>
+                                <option value="opml">OPML Feed</option>
+                                <option value="bookmarks">Browser Bookmarks</option>
+                                <option value="hn500">HN 500</option>
+                                <option value="obsidian">Obsidian Vault</option>
+                            </select>
+                        </div>
+                        <button onclick="addRepository()">Add</button>
                     </div>
                 </div>
 

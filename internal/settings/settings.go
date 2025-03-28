@@ -7,16 +7,18 @@ import (
 	"path/filepath"
 
 	"freectl/internal/config"
+	"freectl/internal/sources"
 
 	"github.com/charmbracelet/log"
 )
 
 // RepositoryState represents the state of a cached repository
 type RepositoryState struct {
-	Name    string `json:"name"`
-	Path    string `json:"path"`
-	URL     string `json:"url"`
-	Enabled bool   `json:"enabled"`
+	Name    string             `json:"name"`
+	Path    string             `json:"path"`
+	URL     string             `json:"url"`
+	Enabled bool               `json:"enabled"`
+	Type    sources.SourceType `json:"type"`
 }
 
 // Settings represents the user settings

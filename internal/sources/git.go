@@ -3,6 +3,7 @@ package sources
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 )
 
@@ -18,12 +19,24 @@ func AddGitRepo(cacheDir string, source Source) error {
 		return fmt.Errorf("failed to create repository directory: %w", err)
 	}
 
-	// TODO: Implement git clone/pull logic
-	// This should:
-	// 1. Check if the repo already exists
-	// 2. If it exists, pull latest changes
-	// 3. If it doesn't exist, clone it
-	// 4. Handle authentication if needed
+	// Check if the repository already exists
+	if _, err := os.Stat(filepath.Join(repoDir, ".git")); err == nil {
+		// Repository exists, pull latest changes
+		cmd := exec.Command("git", "-C", repoDir, "pull")
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("failed to pull latest changes: %w", err)
+		}
+	} else {
+		// Repository doesn't exist, clone it
+		cmd := exec.Command("git", "clone", source.URL, repoDir)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("failed to clone repository: %w", err)
+		}
+	}
 
 	return nil
 }
