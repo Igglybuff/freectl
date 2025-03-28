@@ -1,11 +1,14 @@
 package stats
 
 import (
+	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 
 	"freectl/internal/common"
+	"freectl/internal/settings"
 )
 
 type CategoryStats struct {
@@ -21,6 +24,51 @@ type Stats struct {
 	DomainsCount  map[string]int
 	ProtocolStats map[string]int
 	mu            sync.Mutex
+}
+
+// SourceStats represents basic statistics for a source
+type SourceStats struct {
+	TotalSize int64
+	FileCount int64
+}
+
+// GetSourceStats returns basic statistics for a source
+func GetSourceStats(name string) (*SourceStats, error) {
+	settings, err := settings.LoadSettings()
+	if err != nil {
+		return nil, err
+	}
+
+	// Find the source in settings
+	var sourcePath string
+	for _, source := range settings.Sources {
+		if source.Name == name {
+			sourcePath = source.Path
+			break
+		}
+	}
+
+	if sourcePath == "" {
+		return nil, fmt.Errorf("source '%s' not found in settings", name)
+	}
+
+	stats := &SourceStats{}
+	err = filepath.Walk(sourcePath, func(_ string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() {
+			stats.TotalSize += info.Size()
+			stats.FileCount++
+		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to calculate source stats: %w", err)
+	}
+
+	return stats, nil
 }
 
 func (s *Stats) ProcessFile(path string) {

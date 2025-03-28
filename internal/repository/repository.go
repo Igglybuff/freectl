@@ -3,6 +3,7 @@ package repository
 import (
 	"time"
 
+	"freectl/internal/settings"
 	"freectl/internal/sources"
 )
 
@@ -59,13 +60,13 @@ func Delete(cacheDir string, name string) error {
 }
 
 // ToggleEnabled enables or disables a repository
-func ToggleEnabled(cacheDir string, name string) error {
-	return sources.ToggleEnabled(cacheDir, name)
+func ToggleEnabled(name string) error {
+	return settings.ToggleSourceEnabled(name)
 }
 
 // IsEnabled checks if a repository is enabled
-func IsEnabled(cacheDir string, name string) (bool, error) {
-	return sources.IsEnabled(cacheDir, name)
+func IsEnabled(name string) (bool, error) {
+	return settings.IsSourceEnabled(name)
 }
 
 // UpdateRepo updates a repository

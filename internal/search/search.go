@@ -200,7 +200,7 @@ func Search(query string, cacheDir string, repoName string, settings settings.Se
 	// Filter out disabled repositories
 	var enabledRepos []repository.Repository
 	for _, repo := range repos {
-		enabled, err := repository.IsEnabled(cacheDir, repo.Name)
+		enabled, err := repository.IsEnabled(repo.Name)
 		if err != nil {
 			log.Error("Failed to check repository status", "name", repo.Name, "error", err)
 			continue

@@ -10,19 +10,20 @@ import (
 	"time"
 
 	"freectl/internal/config"
-	"freectl/internal/repository"
+	"freectl/internal/settings"
 
 	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
 )
 
+// ListCmd represents the list command
 var ListCmd = &cobra.Command{
 	Use:   "list",
-	Short: "List all cached repositories",
-	Long: `List all repositories that are currently cached locally.
-For each repository, shows:
+	Short: "List all sources",
+	Long: `List all sources in the cache directory. For each source, shows:
 - Name
 - URL
+- Type
 - Last update time
 - Size on disk
 - Enabled status
@@ -33,49 +34,53 @@ Example:
 		log.Debug("Starting list command")
 		log.Debug("Using cache directory", "path", config.CacheDir)
 
-		repos, err := repository.List(config.CacheDir)
+		sources, err := settings.ListSources()
 		if err != nil {
-			log.Error("Failed to list repositories", "error", err)
-			return fmt.Errorf("failed to list repositories: %w", err)
+			log.Error("Failed to list sources", "error", err)
+			return fmt.Errorf("failed to list sources: %w", err)
 		}
 
-		log.Debug("Successfully retrieved repositories", "count", len(repos))
+		log.Debug("Successfully retrieved sources", "count", len(sources))
 
-		if len(repos) == 0 {
-			fmt.Println("No repositories found. Add one using 'freectl add'")
+		if len(sources) == 0 {
+			fmt.Println("No sources found. Add one using 'freectl add'")
 			return nil
 		}
 
 		// Calculate maximum widths
 		maxName := len("NAME")
 		maxURL := len("URL")
+		maxType := len("TYPE")
 		maxUpdate := len("LAST UPDATE")
 		maxSize := len("SIZE")
 		maxStatus := len("STATUS")
 
 		// Collect all data first to calculate widths
-		type repoData struct {
+		type sourceData struct {
 			name       string
 			url        string
+			sourceType string
 			lastUpdate string
 			size       string
 			status     string
 		}
-		repoDataList := make([]repoData, 0, len(repos))
+		sourceDataList := make([]sourceData, 0, len(sources))
 
-		for _, repo := range repos {
-			// Get last commit time
+		for _, source := range sources {
+			// Get last commit time for Git sources
 			lastUpdate := "unknown"
-			cmd := exec.Command("git", "-C", repo.Path, "log", "-1", "--format=%ct")
-			if output, err := cmd.Output(); err == nil {
-				if unix, err := strconv.ParseInt(strings.TrimSpace(string(output)), 10, 64); err == nil {
-					lastUpdate = time.Unix(unix, 0).Format("2006-01-02 15:04:05")
+			if source.Type == "git" {
+				cmd := exec.Command("git", "-C", source.Path, "log", "-1", "--format=%ct")
+				if output, err := cmd.Output(); err == nil {
+					if unix, err := strconv.ParseInt(strings.TrimSpace(string(output)), 10, 64); err == nil {
+						lastUpdate = time.Unix(unix, 0).Format("2006-01-02 15:04:05")
+					}
 				}
 			}
 
-			// Get repository size
+			// Get source size
 			var size int64
-			err := filepath.Walk(repo.Path, func(_ string, info os.FileInfo, err error) error {
+			err := filepath.Walk(source.Path, func(_ string, info os.FileInfo, err error) error {
 				if err != nil {
 					return err
 				}
@@ -85,7 +90,7 @@ Example:
 				return nil
 			})
 			if err != nil {
-				log.Error("Error calculating repository size", "repository", repo.Name, "error", err)
+				log.Error("Error calculating source size", "source", source.Name, "error", err)
 			}
 
 			// Format size
@@ -96,25 +101,29 @@ Example:
 
 			// Get status
 			status := "Enabled"
-			if !repo.Enabled {
+			if !source.Enabled {
 				status = "Disabled"
 			}
 
 			// Store data and update max widths
-			data := repoData{
-				name:       repo.Name,
-				url:        repo.URL,
+			data := sourceData{
+				name:       source.Name,
+				url:        source.URL,
+				sourceType: string(source.Type),
 				lastUpdate: lastUpdate,
 				size:       sizeStr,
 				status:     status,
 			}
-			repoDataList = append(repoDataList, data)
+			sourceDataList = append(sourceDataList, data)
 
-			if len(repo.Name) > maxName {
-				maxName = len(repo.Name)
+			if len(source.Name) > maxName {
+				maxName = len(source.Name)
 			}
-			if len(repo.URL) > maxURL {
-				maxURL = len(repo.URL)
+			if len(source.URL) > maxURL {
+				maxURL = len(source.URL)
+			}
+			if len(string(source.Type)) > maxType {
+				maxType = len(string(source.Type))
 			}
 			if len(lastUpdate) > maxUpdate {
 				maxUpdate = len(lastUpdate)
@@ -130,23 +139,26 @@ Example:
 		// Add padding
 		maxName += 3
 		maxURL += 3
+		maxType += 3
 		maxUpdate += 3
 		maxSize += 3
 		maxStatus += 3
 
 		// Print table header
-		fmt.Printf("%-*s %-*s %-*s %-*s %-*s\n",
+		fmt.Printf("%-*s %-*s %-*s %-*s %-*s %-*s\n",
 			maxName, "NAME",
 			maxURL, "URL",
+			maxType, "TYPE",
 			maxUpdate, "LAST UPDATE",
 			maxSize, "SIZE",
 			maxStatus, "STATUS")
 
-		// Print each repository
-		for _, data := range repoDataList {
-			fmt.Printf("%-*s %-*s %-*s %-*s %-*s\n",
+		// Print each source
+		for _, data := range sourceDataList {
+			fmt.Printf("%-*s %-*s %-*s %-*s %-*s %-*s\n",
 				maxName, data.name,
 				maxURL, data.url,
+				maxType, data.sourceType,
 				maxUpdate, data.lastUpdate,
 				maxSize, data.size,
 				maxStatus, data.status)

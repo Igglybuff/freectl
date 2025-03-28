@@ -626,7 +626,7 @@ func handleToggleRepository(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := repository.ToggleEnabled(config.CacheDir, req.Name); err != nil {
+	if err := repository.ToggleEnabled(req.Name); err != nil {
 		log.Error("Failed to toggle repository", "error", err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
@@ -638,7 +638,7 @@ func handleToggleRepository(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get the updated enabled status
-	enabled, err := repository.IsEnabled(config.CacheDir, req.Name)
+	enabled, err := repository.IsEnabled(req.Name)
 	if err != nil {
 		log.Error("Failed to get repository status", "error", err)
 		w.Header().Set("Content-Type", "application/json")

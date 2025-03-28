@@ -5,67 +5,52 @@ import (
 	"time"
 
 	"freectl/internal/config"
-	"freectl/internal/repository"
 	"freectl/internal/sources"
 
 	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
 )
 
+// UpdateCmd represents the update command
 var UpdateCmd = &cobra.Command{
 	Use:   "update",
-	Short: "Update all cached repositories",
-	Long:  `Updates all repositories that are currently cached locally by pulling the latest changes from their remote sources.`,
+	Short: "Update all sources",
+	Long: `Update all sources in the cache directory. This will fetch the latest
+content from each source.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		log.Debug("Starting update command")
-		log.Debug("Using cache directory", "path", config.CacheDir)
+		startTime := time.Now()
 
-		// Get list of repositories
-		repos, err := repository.List(config.CacheDir)
+		// Get list of sources
+		sourceList, err := sources.List(config.CacheDir)
 		if err != nil {
-			log.Error("Failed to list repositories", "error", err)
-			return fmt.Errorf("failed to get repositories: %w", err)
+			log.Error("Failed to list sources", "error", err)
+			return fmt.Errorf("failed to list sources: %w", err)
 		}
 
-		log.Debug("Found repositories to update", "count", len(repos))
-
-		if len(repos) == 0 {
-			fmt.Println("No repositories found to update.")
+		if len(sourceList) == 0 {
+			log.Info("No sources found. Please add a source using 'freectl add'")
 			return nil
 		}
 
-		start := time.Now()
-		updated := 0
-		failed := 0
+		// Update each source
+		for _, source := range sourceList {
+			log.Info("Updating source", "name", source.Name)
 
-		for _, repo := range repos {
-			if !repo.Enabled {
-				log.Debug("Skipping disabled repository", "name", repo.Name)
-				continue
+			// Update existing source based on type
+			switch source.Type {
+			case sources.SourceTypeGit:
+				if err := sources.UpdateGitRepo(source.Path); err != nil {
+					log.Error("Failed to update source", "name", source.Name, "error", err)
+					continue
+				}
+			default:
+				log.Warn("Unsupported source type for update", "name", source.Name, "type", source.Type)
 			}
-
-			log.Debug("Updating repository", "name", repo.Name)
-			if err := sources.UpdateGitRepo(repo.Path); err != nil {
-				log.Error("Failed to update repository", "name", repo.Name, "error", err)
-				fmt.Printf("Failed to update %s: %v\n", repo.Name, err)
-				failed++
-				continue
-			}
-			log.Debug("Successfully updated repository", "name", repo.Name)
-			updated++
+			log.Info("Source updated successfully", "name", source.Name)
 		}
 
-		duration := time.Since(start)
-		log.Debug("Update command completed",
-			"duration", duration,
-			"updated", updated,
-			"failed", failed)
-
-		if failed > 0 {
-			return fmt.Errorf("failed to update %d repositories", failed)
-		}
-
-		fmt.Printf("Updated %d repositories in %s\n", updated, duration)
+		duration := time.Since(startTime)
+		log.Info("Update completed", "duration", duration)
 		return nil
 	},
 }

@@ -10,6 +10,7 @@ import (
 	"freectl/cmd/list"
 	"freectl/cmd/search"
 	"freectl/cmd/serve"
+	"freectl/cmd/stats"
 	"freectl/cmd/update"
 	"freectl/internal/config"
 
@@ -38,6 +39,7 @@ func init() {
 	RootCmd.AddCommand(search.SearchCmd)
 	RootCmd.AddCommand(serve.ServeCmd)
 	RootCmd.AddCommand(update.UpdateCmd)
+	RootCmd.AddCommand(stats.StatsCmd)
 
 	// Set default cache directory
 	homeDir, err := os.UserHomeDir()
