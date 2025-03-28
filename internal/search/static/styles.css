@@ -759,13 +759,23 @@ body {
 
 .source-name {
     font-weight: 500;
-    color: var(--text-color);
     margin-bottom: 4px;
+    color: var(--link-color);
+    text-decoration: none;
+    display: block;
 }
 
-.source-path {
+.source-name:hover {
+    text-decoration: underline;
+}
+
+.source-type {
+    display: inline-block;
     font-size: 12px;
-    color: var(--text-secondary);
+    padding: 2px 8px;
+    border-radius: 4px;
+    background-color: var(--category-bg);
+    color: var(--category-text);
 }
 
 .source-actions {

@@ -92,8 +92,8 @@ export function loadSourceList() {
             sourceList.innerHTML = data.sources.map(source => `
                 <div class="source-item">
                     <div class="source-info">
-                        <div class="source-name">${source.name}</div>
-                        <div class="source-path">${source.path}</div>
+                        <a href="${source.url}" class="source-name" target="_blank" rel="noopener noreferrer">${source.name}</a>
+                        <div class="source-type">${formatSourceType(source.type)}</div>
                     </div>
                     <div class="source-actions">
                         <button class="source-button toggle ${source.enabled ? '' : 'disabled'}" data-action="toggle" data-name="${source.name}">
@@ -207,4 +207,17 @@ export function updateSource() {
         updateButton.disabled = false;
         updateButton.textContent = 'Update sources';
     });
+}
+
+// Helper function to format source type for display
+function formatSourceType(type) {
+    const typeMap = {
+        'git': 'Git repository',
+        'reddit_wiki': 'Reddit wiki',
+        'opml': 'OPML feed',
+        'bookmarks': 'Browser bookmarks',
+        'hn500': 'HackerNews top 500',
+        'obsidian': 'Obsidian vault'
+    };
+    return typeMap[type] || type;
 } 
