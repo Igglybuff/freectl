@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"freectl/internal/repository"
-	"freectl/internal/sources"
+
 	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
 )
@@ -14,33 +14,28 @@ var (
 	repoType string
 )
 
+// AddCmd represents the add command
 var AddCmd = &cobra.Command{
-	Use:   "add [repository-url]",
-	Short: "Add a new repository to the cache",
-	Long: `Add a new repository to the cache. The repository will be cloned and indexed for searching.
-The repository must be a Git repository accessible via HTTPS.
-
-Examples:
-  # Add a repository with a custom name and type
-  freectl add https://github.com/awesome-selfhosted/awesome-selfhosted --name "awesome-selfhosted" --type git
-  
-  # Add a repository using the default name (derived from the URL)
-  freectl add https://github.com/user/repo`,
+	Use:   "add [url]",
+	Short: "Add a new repository",
+	Long: `Add a new repository to the cache. The repository will be cloned
+and enabled by default.`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		url := args[0]
-		cacheDir, _ := cmd.Flags().GetString("cache-dir")
+		cacheDir := cmd.Flag("cache-dir").Value.String()
 
-		// If no name is provided, derive it from the URL
-		if name == "" {
-			name = sources.DeriveNameFromURL(url)
+		req := repository.AddRepositoryRequest{
+			Name: name,
+			URL:  url,
+			Type: repoType,
 		}
 
-		if err := repository.AddRepository(cacheDir, url, name, repoType); err != nil {
+		if err := repository.AddRepository(cacheDir, req); err != nil {
+			log.Error("Failed to add repository", "error", err)
 			return fmt.Errorf("failed to add repository: %w", err)
 		}
 
-		log.Info("Repository added successfully", "name", name, "type", repoType)
 		return nil
 	},
 }

@@ -505,7 +505,11 @@ func handleAddRepository(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := repository.AddRepository(config.CacheDir, req.URL, req.Name, req.Type); err != nil {
+	if err := repository.AddRepository(config.CacheDir, repository.AddRepositoryRequest{
+		URL:  req.URL,
+		Name: req.Name,
+		Type: req.Type,
+	}); err != nil {
 		log.Error("Failed to add repository", "error", err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
