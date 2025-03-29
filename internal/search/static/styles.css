@@ -802,6 +802,16 @@ body {
     opacity: 0.9;
 }
 
+.source-button.edit {
+    background-color: var(--text-secondary);
+    color: white;
+}
+
+.source-button.edit:hover {
+    background-color: var(--text-secondary);
+    opacity: 0.9;
+}
+
 .source-button.toggle {
     background-color: var(--accent-color);
     color: white;

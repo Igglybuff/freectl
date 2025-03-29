@@ -110,6 +110,7 @@ export function loadSourceList() {
                         <button class="source-button toggle ${source.enabled ? '' : 'disabled'}" data-action="toggle" data-name="${source.name}">
                             ${source.enabled ? 'Disable' : 'Enable'}
                         </button>
+                        <button class="source-button edit" data-action="edit" data-name="${source.name}">Edit</button>
                         <button class="source-button delete" data-action="delete" data-name="${source.name}">Delete</button>
                     </div>
                 </div>
@@ -124,13 +125,15 @@ export function loadSourceList() {
                         toggleSource(name);
                     } else if (action === 'delete') {
                         deleteSource(name);
+                    } else if (action === 'edit') {
+                        editSource(name);
                     }
                 });
             });
         })
         .catch(error => {
             console.error('Error:', error);
-            sourceList.innerHTML = `<div class="error-message">Failed to load sources: ${error.message}</div>`;
+            sourceList.innerHTML = `<div class="error">Failed to load sources: ${error.message}</div>`;
         });
 }
 
@@ -218,6 +221,42 @@ export function updateSource() {
         updateButton.disabled = false;
         updateButton.textContent = 'Update sources';
     });
+}
+
+// Edit source
+export function editSource(name) {
+    const newName = prompt(`Enter new name for source '${name}':`);
+    if (!newName) {
+        return; // User cancelled or entered empty string
+    }
+
+    if (newName === name) {
+        return; // No change
+    }
+
+    fetch('/sources/edit', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+            oldName: name,
+            newName: newName 
+        }),
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) {
+                throw new Error(data.error || 'Failed to edit source');
+            }
+            showToast('Source renamed successfully');
+            loadSourceList();
+            loadSourceFilter(); // Refresh source filters
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast(`Failed to rename source: ${error.message}`, true);
+        });
 }
 
 // Helper function to format source type for display

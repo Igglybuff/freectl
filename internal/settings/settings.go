@@ -245,6 +245,44 @@ func ToggleSourceEnabled(name string) error {
 	return nil
 }
 
+// RenameSource renames a source in the settings
+func RenameSource(oldName, newName string) error {
+	// Load current settings
+	settings, err := LoadSettings()
+	if err != nil {
+		return fmt.Errorf("failed to load settings: %w", err)
+	}
+
+	// Check if new name already exists
+	for _, source := range settings.Sources {
+		if source.Name == newName {
+			return fmt.Errorf("source '%s' already exists", newName)
+		}
+	}
+
+	// Find and rename the source
+	found := false
+	for i := range settings.Sources {
+		if settings.Sources[i].Name == oldName {
+			settings.Sources[i].Name = newName
+			settings.Sources[i].Path = filepath.Join(filepath.Dir(settings.Sources[i].Path), newName)
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		return fmt.Errorf("source '%s' not found", oldName)
+	}
+
+	// Save updated settings
+	if err := SaveSettings(settings); err != nil {
+		return fmt.Errorf("failed to save settings: %w", err)
+	}
+
+	return nil
+}
+
 // IsSourceEnabled checks if a source is enabled
 func IsSourceEnabled(name string) (bool, error) {
 	settings, err := LoadSettings()

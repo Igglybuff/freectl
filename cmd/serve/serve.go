@@ -68,6 +68,7 @@ func startServer() error {
 	http.HandleFunc("/sources/list", handleListSource)
 	http.HandleFunc("/sources/delete", handleDeleteSource)
 	http.HandleFunc("/sources/toggle", handleToggleSource)
+	http.HandleFunc("/sources/edit", handleEditSource)
 	http.HandleFunc("/scan/virustotal", handleVirusTotalScan)
 
 	log.Infof("Starting server at http://localhost:%d", port)
@@ -760,6 +761,85 @@ func handleToggleSource(w http.ResponseWriter, r *http.Request) {
 		"success": true,
 		"enabled": enabled,
 		"message": fmt.Sprintf("Source %s successfully", status),
+	})
+}
+
+func handleEditSource(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"error":   "Method not allowed",
+		})
+		return
+	}
+
+	var req struct {
+		OldName string `json:"oldName"`
+		NewName string `json:"newName"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Error("Failed to decode request body", "error", err)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"error":   fmt.Sprintf("Invalid request: %s", err.Error()),
+		})
+		return
+	}
+
+	// Load settings to get cache directory
+	s, err := settings.LoadSettings()
+	if err != nil {
+		log.Error("Failed to load settings", "error", err)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"error":   fmt.Sprintf("Failed to load settings: %w", err),
+		})
+		return
+	}
+
+	// First rename in settings
+	if err := settings.RenameSource(req.OldName, req.NewName); err != nil {
+		log.Error("Failed to rename source in settings", "error", err)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"error":   fmt.Sprintf("Failed to rename source: %w", err),
+		})
+		return
+	}
+
+	// Then rename the directory if it exists
+	oldPath := filepath.Join(s.CacheDir, req.OldName)
+	newPath := filepath.Join(s.CacheDir, req.NewName)
+	if _, err := os.Stat(oldPath); err == nil {
+		if err := os.Rename(oldPath, newPath); err != nil {
+			log.Error("Failed to rename source directory", "error", err)
+			// Try to revert the settings change
+			if revertErr := settings.RenameSource(req.NewName, req.OldName); revertErr != nil {
+				log.Error("Failed to revert settings after directory rename failure", "error", revertErr)
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success": false,
+				"error":   fmt.Sprintf("Failed to rename source directory: %w", err),
+			})
+			return
+		}
+	}
+
+	log.Info("Successfully renamed source", "oldName", req.OldName, "newName", req.NewName)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"message": "Source renamed successfully",
 	})
 }
 
