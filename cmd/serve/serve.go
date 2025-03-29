@@ -138,14 +138,22 @@ func handleSearch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Load settings first for validation
+	settings, err := settings.LoadSettings()
+	if err != nil {
+		log.Error("Failed to load settings", "error", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
 	// Validate query length
-	if len(query) > 1000 {
+	if len(query) > settings.MaxQueryLength {
 		http.Error(w, "Search query too long", http.StatusBadRequest)
 		return
 	}
 
 	// Validate minimum length
-	if len(strings.TrimSpace(query)) < 2 {
+	if len(strings.TrimSpace(query)) < settings.MinQueryLength {
 		http.Error(w, "Search query too short", http.StatusBadRequest)
 		return
 	}
@@ -170,14 +178,6 @@ func handleSearch(w http.ResponseWriter, r *http.Request) {
 	// Get source and category filters from query parameters
 	sourceName := r.URL.Query().Get("source")
 	category := r.URL.Query().Get("category")
-
-	// Load settings
-	settings, err := settings.LoadSettings()
-	if err != nil {
-		log.Error("Failed to load settings", "error", err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
-		return
-	}
 
 	// Perform search
 	log.Info("Starting search", "query", query, "source", sourceName)

@@ -55,6 +55,13 @@ export function loadSettings() {
 
 // Save settings
 export function saveSettings() {
+    // Get current settings to preserve sources
+    const existingSettings = getCurrentSettings();
+    if (!existingSettings) {
+        showToast('Failed to save settings: No current settings found', 'error');
+        return;
+    }
+
     const settings = {
         minQueryLength: parseInt(document.getElementById('minQueryLength').value),
         maxQueryLength: parseInt(document.getElementById('maxQueryLength').value),
@@ -66,7 +73,8 @@ export function saveSettings() {
         truncateTitles: document.getElementById('truncateTitles').checked,
         maxTitleLength: parseInt(document.getElementById('maxTitleLength').value),
         customHeader: document.getElementById('customHeader').value,
-        minFuzzyScore: parseInt(document.getElementById('minFuzzyScore').value)
+        minFuzzyScore: parseInt(document.getElementById('minFuzzyScore').value),
+        sources: existingSettings.sources || [] // Preserve the sources array
     };
 
     fetch('/settings', {
@@ -78,7 +86,7 @@ export function saveSettings() {
     })
     .then(response => response.json())
     .then(savedSettings => {
-        currentSettings = savedSettings;
+        currentSettings = savedSettings; // This updates the module-level variable
         updateHeaderText(savedSettings.customHeader);
         showToast('Settings saved successfully');
     })

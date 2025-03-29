@@ -1,16 +1,13 @@
 package search
 
 import (
-	"bufio"
 	"embed"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
-	"time"
 
 	"freectl/internal/common"
 	"freectl/internal/settings"
@@ -34,36 +31,6 @@ type Result struct {
 	Score       int    `json:"-"`
 	Category    string `json:"title"`
 	Source      string `json:"source"`
-}
-
-// CheckSourceAge checks if the source needs updating
-func CheckSourceAge(sourcePath string) (bool, error) {
-	cmd := exec.Command("git", "-C", sourcePath, "log", "-1", "--format=%ct")
-	output, err := cmd.Output()
-	if err != nil {
-		return false, fmt.Errorf("failed to get last commit timestamp: %w", err)
-	}
-
-	var timestamp int64
-	if _, err := fmt.Sscanf(string(output), "%d", &timestamp); err != nil {
-		return false, fmt.Errorf("failed to parse timestamp: %w", err)
-	}
-
-	lastCommit := time.Unix(timestamp, 0)
-	return time.Since(lastCommit) > 7*24*time.Hour, nil
-}
-
-// PromptForUpdate asks the user if they want to update the source
-func PromptForUpdate() bool {
-	fmt.Print("Source is more than a week old. Would you like to update it? [Y/n] ")
-	reader := bufio.NewReader(os.Stdin)
-	response, err := reader.ReadString('\n')
-	if err != nil {
-		return false
-	}
-
-	response = strings.ToLower(strings.TrimSpace(response))
-	return response == "" || response == "y" || response == "yes"
 }
 
 // isLinkHeavyReadme checks if a README.md file contains a significant number of links
@@ -168,6 +135,192 @@ func isContentFile(path string) bool {
 	return true
 }
 
+// parseHeading extracts heading text and level from a line
+func parseHeading(line string) (text string, level int) {
+	switch {
+	case strings.HasPrefix(line, "### "):
+		return strings.TrimSpace(strings.TrimPrefix(line, "### ")), 3
+	case strings.HasPrefix(line, "## "):
+		return strings.TrimSpace(strings.TrimPrefix(line, "## ")), 2
+	case strings.HasPrefix(line, "# "):
+		return strings.TrimSpace(strings.TrimPrefix(line, "# ")), 1
+	default:
+		return "", 0
+	}
+}
+
+// cleanHeadingText removes markdown formatting from heading text
+func cleanHeadingText(text string) string {
+	// Remove markdown formatting like ** and []
+	text = strings.TrimPrefix(text, "**")
+	text = strings.TrimSuffix(text, "**")
+	if start := strings.Index(text, "["); start != -1 {
+		if end := strings.Index(text, "]"); end != -1 {
+			text = text[:start] + text[start+1:end] + text[end+1:]
+		}
+	}
+	return strings.TrimSpace(text)
+}
+
+// extractLinkText gets the text portion of a markdown link
+func extractLinkText(line string) string {
+	if start := strings.Index(line, "["); start != -1 {
+		if end := strings.Index(line[start:], "]"); end != -1 {
+			return line[start+1 : start+end]
+		}
+	}
+	return ""
+}
+
+// cleanLine removes common markdown formatting and special characters
+func cleanLine(line string) string {
+	// Remove blockquote markers if present
+	line = strings.TrimPrefix(strings.TrimSpace(line), ">")
+	line = strings.TrimSpace(line)
+
+	// Remove bullet points if present
+	if strings.HasPrefix(line, "*") || strings.HasPrefix(line, "-") {
+		line = strings.TrimPrefix(line, "*")
+		line = strings.TrimPrefix(line, "-")
+		line = strings.TrimSpace(line)
+	}
+
+	// Replace HTML entities with spaces
+	line = strings.ReplaceAll(line, "&nbsp;", " ")
+	return strings.TrimSpace(line)
+}
+
+// processHeading handles a heading line, updating lastHeading and checking for links
+func processHeading(line string, source sources.Source, query string, minScore int, allResults *[]Result, mu *sync.Mutex) string {
+	headingText, _ := parseHeading(line)
+	lastHeading := common.CleanCategory(headingText)
+
+	// Check for links in heading
+	if strings.Contains(line, "http") || strings.Contains(line, "www.") {
+		cleanHeading := cleanHeadingText(headingText)
+		cleanLine := common.CleanMarkdown(line)
+		url := common.ExtractURL(cleanLine)
+		if url != "" {
+			linkText := extractLinkText(line)
+			if linkText == "" {
+				linkText = cleanHeading
+			}
+			processLink(url, linkText, cleanLine, cleanHeading, source.Name, query, minScore, allResults, mu)
+		}
+	}
+
+	return lastHeading
+}
+
+// processContentLine handles a non-heading line, looking for links
+func processContentLine(line, lastHeading string, source sources.Source, query string, minScore int, allResults *[]Result, mu *sync.Mutex) {
+	if !strings.Contains(line, "http") && !strings.Contains(line, "www.") {
+		return
+	}
+
+	cleanedLine := cleanLine(line)
+	cleanedLine = common.CleanMarkdown(cleanedLine)
+	url := common.ExtractURL(cleanedLine)
+	if url == "" {
+		return
+	}
+
+	// Extract link text - try different formats
+	linkText := extractLinkText(line)
+
+	// If no markdown format found, try to extract text near the URL
+	if linkText == "" {
+		urlIndex := strings.Index(cleanedLine, url)
+		if urlIndex > 0 {
+			// Try to get text before the URL
+			beforeURL := strings.TrimSpace(cleanedLine[:urlIndex])
+			if beforeURL != "" {
+				linkText = beforeURL
+			}
+		}
+		// If still no text, use the domain name
+		if linkText == "" {
+			domain := common.ExtractDomain(url)
+			if domain != "" {
+				linkText = domain
+			} else {
+				linkText = url
+			}
+		}
+	}
+
+	processLink(url, linkText, cleanedLine, lastHeading, source.Name, query, minScore, allResults, mu)
+}
+
+// processLink handles the processing and adding of a link to the results
+func processLink(url, linkText, cleanLine, category, sourceName, query string, minScore int, allResults *[]Result, mu *sync.Mutex) {
+	// Extract description - try different patterns
+	var description string
+
+	// First try: everything after a dash
+	parts := strings.SplitN(cleanLine, "-", 2)
+	if len(parts) > 1 {
+		description = strings.TrimSpace(parts[1])
+	} else {
+		// Second try: everything after the URL
+		urlIndex := strings.Index(cleanLine, url)
+		if urlIndex != -1 {
+			afterURL := cleanLine[urlIndex+len(url):]
+			// Remove any remaining markdown syntax
+			afterURL = strings.TrimPrefix(afterURL, ")")
+			afterURL = strings.TrimSpace(afterURL)
+			if afterURL != "" {
+				description = afterURL
+			} else {
+				description = url // Default to URL if no description found
+			}
+		} else {
+			description = url
+		}
+	}
+
+	// Clean the description
+	description = common.CleanDescription(description)
+
+	// Search in both the description and the full line
+	matches := fuzzy.Find(query, []string{description, cleanLine})
+	if len(matches) > 0 {
+		log.Debug("Found match",
+			"score", matches[0].Score,
+			"minScore", minScore,
+			"name", linkText,
+			"description", description,
+			"line", cleanLine,
+			"category", category,
+			"source", sourceName,
+			"allMatches", len(matches))
+
+		// Check if the score meets the minimum threshold
+		if matches[0].Score >= minScore {
+			mu.Lock()
+			*allResults = append(*allResults, Result{
+				URL:         url,
+				Name:        linkText,
+				Description: description,
+				Line:        cleanLine,
+				Score:       matches[0].Score,
+				Category:    category,
+				Source:      sourceName,
+			})
+			mu.Unlock()
+			log.Debug("Added result to allResults",
+				"totalResults", len(*allResults),
+				"score", matches[0].Score,
+				"name", linkText)
+		} else {
+			log.Debug("Result below minimum score threshold",
+				"score", matches[0].Score,
+				"minScore", minScore,
+				"name", linkText)
+		}
+	}
+}
+
 // Search performs a fuzzy search across all markdown files in the sources
 func Search(query string, sourceName string, s settings.Settings) ([]Result, error) {
 	// Get list of sources from settings
@@ -244,104 +397,22 @@ func Search(query string, sourceName string, s settings.Settings) ([]Result, err
 
 			lines := strings.Split(string(content), "\n")
 			var lastHeading string
-			linkCount := 0
+
 			for _, line := range lines {
-				// Track headings for categories
-				if strings.HasPrefix(line, "# ") {
-					lastHeading = common.CleanCategory(strings.TrimSpace(strings.TrimPrefix(line, "# ")))
-					continue
-				}
-				if strings.HasPrefix(line, "## ") {
-					lastHeading = common.CleanCategory(strings.TrimSpace(strings.TrimPrefix(line, "## ")))
-					continue
-				}
-				if strings.HasPrefix(line, "### ") {
-					lastHeading = common.CleanCategory(strings.TrimSpace(strings.TrimPrefix(line, "### ")))
+				// Skip empty lines and horizontal rules
+				trimmedLine := strings.TrimSpace(line)
+				if trimmedLine == "" || trimmedLine == "---" || trimmedLine == "&nbsp;" {
 					continue
 				}
 
-				// Skip empty lines or heading lines
-				if line == "" || strings.HasPrefix(line, "#") {
+				// Check if it's a heading
+				if _, level := parseHeading(line); level > 0 {
+					lastHeading = processHeading(line, source, query, s.MinFuzzyScore, &allResults, &mu)
 					continue
 				}
 
-				// Look for bullet points with links
-				if strings.HasPrefix(strings.TrimSpace(line), "*") || strings.HasPrefix(strings.TrimSpace(line), "-") {
-					line = strings.TrimSpace(line)
-					line = strings.TrimPrefix(line, "*")
-					line = strings.TrimPrefix(line, "-")
-					line = strings.TrimSpace(line)
-
-					// Look for markdown link pattern: [text](url)
-					if strings.Contains(line, "](http") || strings.Contains(line, "](https") || strings.Contains(line, "](www.") {
-						linkCount++
-						cleanLine := common.CleanMarkdown(line)
-						url := common.ExtractURL(cleanLine)
-						if url != "" {
-							log.Debug("Found link in file",
-								"path", path,
-								"line", line,
-								"url", url)
-
-							// Extract description - everything after the URL and dash
-							parts := strings.SplitN(cleanLine, "-", 2)
-							description := url // Default to URL if no description
-
-							// First try to get the link text [text](url)
-							start := strings.Index(line, "[")
-							end := strings.Index(line, "]")
-							linkText := ""
-							if start != -1 && end != -1 && start < end {
-								linkText = line[start+1 : end]
-							}
-
-							if len(parts) > 1 {
-								description = strings.TrimSpace(parts[1])
-							}
-
-							// Clean the description
-							description = common.CleanDescription(description)
-
-							// Search in both the description and the full line
-							matches := fuzzy.Find(query, []string{description, cleanLine})
-							if len(matches) > 0 {
-								log.Debug("Found match",
-									"score", matches[0].Score,
-									"minScore", s.MinFuzzyScore,
-									"name", linkText,
-									"description", description,
-									"line", cleanLine,
-									"category", lastHeading,
-									"source", source.Name,
-									"allMatches", len(matches))
-
-								// Check if the score meets the minimum threshold
-								if matches[0].Score >= s.MinFuzzyScore {
-									mu.Lock()
-									allResults = append(allResults, Result{
-										URL:         url,
-										Name:        linkText,
-										Description: description,
-										Line:        cleanLine,
-										Score:       matches[0].Score,
-										Category:    lastHeading,
-										Source:      source.Name, // Keep this field name for backward compatibility
-									})
-									mu.Unlock()
-									log.Debug("Added result to allResults",
-										"totalResults", len(allResults),
-										"score", matches[0].Score,
-										"name", linkText)
-								} else {
-									log.Debug("Result below minimum score threshold",
-										"score", matches[0].Score,
-										"minScore", s.MinFuzzyScore,
-										"name", linkText)
-								}
-							}
-						}
-					}
-				}
+				// Process regular content line
+				processContentLine(line, lastHeading, source, query, s.MinFuzzyScore, &allResults, &mu)
 			}
 			return nil
 		})

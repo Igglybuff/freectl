@@ -42,19 +42,30 @@ func ExtractDomain(url string) string {
 	return url
 }
 
-// CleanCategory removes all characters except alphanumeric and single spaces from category names
+// CleanCategory removes all characters except alphanumeric, hyphens, and single spaces from category names
 func CleanCategory(category string) string {
 	var result strings.Builder
 	lastWasSpace := false
+	lastWasHyphen := false
+
 	for _, char := range category {
 		if char == ' ' {
-			if !lastWasSpace {
+			if !lastWasSpace && !lastWasHyphen {
 				result.WriteRune(char)
 			}
+			lastWasSpace = true
+			lastWasHyphen = false
+		} else if char == '-' {
+			if !lastWasSpace && !lastWasHyphen {
+				result.WriteRune(char)
+			}
+			lastWasSpace = false
+			lastWasHyphen = true
 		} else if (char >= 'A' && char <= 'Z') || (char >= 'a' && char <= 'z') || (char >= '0' && char <= '9') {
 			result.WriteRune(char)
+			lastWasSpace = false
+			lastWasHyphen = false
 		}
-		lastWasSpace = char == ' '
 	}
 	return strings.TrimSpace(result.String())
 }
