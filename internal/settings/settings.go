@@ -173,7 +173,7 @@ func AddSource(url, name, sourceType string) error {
 	return nil
 }
 
-// DeleteSource removes a source from settings and deletes it from disk
+// DeleteSource removes a source from settings
 func DeleteSource(name string, force bool) error {
 	// Load current settings
 	settings, err := LoadSettings()
@@ -182,42 +182,26 @@ func DeleteSource(name string, force bool) error {
 	}
 
 	// Find the source in settings
-	var sourceToDelete *sources.Source
-	for i, source := range settings.Sources {
-		if source.Name == name {
-			sourceToDelete = &settings.Sources[i]
-			break
-		}
-	}
-
-	if sourceToDelete == nil {
-		return fmt.Errorf("source '%s' not found in settings", name)
-	}
-
-	// Remove from settings first
+	found := false
 	newSources := make([]sources.Source, 0)
 	for _, source := range settings.Sources {
 		if source.Name != name {
 			newSources = append(newSources, source)
+		} else {
+			found = true
 		}
 	}
+
+	if !found {
+		return fmt.Errorf("source '%s' not found", name)
+	}
+
+	// Update settings with the source removed
 	settings.Sources = newSources
 
 	// Save updated settings
 	if err := SaveSettings(settings); err != nil {
 		return fmt.Errorf("failed to save settings: %w", err)
-	}
-
-	// Now perform the actual deletion if not forcing
-	if !force {
-		if err := sources.Delete(settings.CacheDir, name); err != nil {
-			// If deletion fails, revert the settings change
-			settings.Sources = append(settings.Sources, *sourceToDelete)
-			if revertErr := SaveSettings(settings); revertErr != nil {
-				log.Error("Failed to revert settings after deletion failure", "error", revertErr)
-			}
-			return fmt.Errorf("failed to delete source: %w", err)
-		}
 	}
 
 	return nil

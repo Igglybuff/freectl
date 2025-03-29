@@ -192,6 +192,7 @@ go build
 - [ ] support for open directories
 - [ ] support for other useful data sources
 - [ ] support for book databases
+- [ ] "library" page with curated data sources
 - [ ] implement a search index using [bleve](https://github.com/blevesearch/bleve) as an alternative to fuzzy-search
 - [ ] advanced search queries
 - [ ] rest API

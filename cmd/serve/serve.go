@@ -662,44 +662,8 @@ func handleDeleteSource(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Try to delete from cache first
-	sourcePath := filepath.Join(s.CacheDir, req.Name)
-	if _, err := os.Stat(sourcePath); err == nil {
-		// Source exists in cache, try to delete it
-		if err := os.RemoveAll(sourcePath); err != nil {
-			log.Error("Failed to delete source from cache", "name", req.Name, "error", err)
-			if !req.Force {
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusInternalServerError)
-				json.NewEncoder(w).Encode(map[string]interface{}{
-					"success": false,
-					"error":   fmt.Sprintf("Failed to delete source from cache: %w", err),
-				})
-				return
-			}
-			// If force is true, continue even if cache deletion fails
-			log.Info("Force flag used, continuing despite cache deletion failure")
-		} else {
-			log.Info("Successfully deleted source from cache", "name", req.Name)
-		}
-	} else if !os.IsNotExist(err) {
-		// Error other than "not exists"
-		log.Error("Error checking source path", "name", req.Name, "error", err)
-		if !req.Force {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(map[string]interface{}{
-				"success": false,
-				"error":   fmt.Sprintf("Error checking source path: %w", err),
-			})
-			return
-		}
-		// If force is true, continue even if there's an error checking the path
-		log.Info("Force flag used, continuing despite path check error")
-	}
-
-	// Always try to remove from settings
-	if err := settings.DeleteSource(req.Name, req.Force); err != nil {
+	// First try to delete from settings
+	if err := settings.DeleteSource(req.Name, true); err != nil {
 		log.Error("Failed to delete source from settings", "error", err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
@@ -708,6 +672,22 @@ func handleDeleteSource(w http.ResponseWriter, r *http.Request) {
 			"error":   fmt.Sprintf("Failed to delete source from settings: %w", err),
 		})
 		return
+	}
+
+	// Then try to delete from cache if it exists
+	sourcePath := filepath.Join(s.CacheDir, req.Name)
+	if _, err := os.Stat(sourcePath); err == nil {
+		// Source exists in cache, try to delete it
+		if err := os.RemoveAll(sourcePath); err != nil {
+			log.Error("Failed to delete source from cache", "name", req.Name, "error", err)
+			// Don't fail the request if cache deletion fails - the source is already removed from settings
+			log.Warn("Source was removed from settings but cache deletion failed", "name", req.Name)
+		} else {
+			log.Info("Successfully deleted source from cache", "name", req.Name)
+		}
+	} else if !os.IsNotExist(err) {
+		// Log any error other than "not exists" but don't fail the request
+		log.Warn("Error checking source path", "name", req.Name, "error", err)
 	}
 
 	log.Info("Successfully deleted source", "name", req.Name)
