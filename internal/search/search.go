@@ -277,18 +277,22 @@ func Search(query string, sourceName string, s settings.Settings) ([]Result, err
 			// Parse the markdown content
 			doc := md.Parser().Parse(text.NewReader(content))
 
-			// Track current heading and context
-			var currentHeading string
+			// Track headings by level
+			headings := make(map[int]string)
+			var currentLevel int
 			var currentContext string
 			var contextNode ast.Node
+			var insideHeading bool
 
 			// Walk through the AST
 			ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 				if !entering {
-					// Clear context when leaving a block node
 					if n == contextNode {
 						currentContext = ""
 						contextNode = nil
+					}
+					if _, ok := n.(*ast.Heading); ok {
+						insideHeading = false
 					}
 					return ast.WalkContinue, nil
 				}
@@ -296,13 +300,14 @@ func Search(query string, sourceName string, s settings.Settings) ([]Result, err
 				switch v := n.(type) {
 				case *ast.Heading:
 					headingText := getNodeText(v, content)
-					currentHeading = common.CleanCategory(headingText)
-					// Set context for links in headings
+					cleanHeading := common.CleanCategory(headingText)
+					currentLevel = v.Level
+					headings[currentLevel] = cleanHeading
 					currentContext = headingText
 					contextNode = v
+					insideHeading = true
 
 				case *ast.Paragraph, *ast.ListItem:
-					// Set context for links in this block
 					currentContext = getNodeText(v, content)
 					contextNode = v
 
@@ -325,10 +330,9 @@ func Search(query string, sourceName string, s settings.Settings) ([]Result, err
 						return ast.WalkContinue, nil
 					}
 
-					// Use the current context as description, preserving markdown formatting
+					// Use the current context as description
 					var description string
 					if currentContext != "" {
-						// Use cleanDescription to preserve markdown links
 						description = common.CleanDescription(currentContext)
 					} else {
 						description = linkText
@@ -337,9 +341,28 @@ func Search(query string, sourceName string, s settings.Settings) ([]Result, err
 					// Search in both description and link text
 					matches := fuzzy.Find(query, []string{description, linkText})
 					if len(matches) > 0 && matches[0].Score >= s.MinFuzzyScore {
-						// Skip localhost URLs
 						if isLocalURL(url) {
 							return ast.WalkContinue, nil
+						}
+
+						// Find the nearest parent heading
+						category := "n/a"
+						// If we're inside a heading, look for the parent heading
+						if insideHeading {
+							for level := currentLevel - 1; level >= 1; level-- {
+								if parent, ok := headings[level]; ok {
+									category = common.CleanCategory(parent)
+									break
+								}
+							}
+						} else {
+							// Otherwise, look for the nearest heading
+							for level := currentLevel; level >= 1; level-- {
+								if parent, ok := headings[level]; ok {
+									category = common.CleanCategory(parent)
+									break
+								}
+							}
 						}
 
 						mu.Lock()
@@ -349,7 +372,7 @@ func Search(query string, sourceName string, s settings.Settings) ([]Result, err
 							Description: description,
 							Line:        description,
 							Score:       matches[0].Score,
-							Category:    currentHeading,
+							Category:    category,
 							Source:      source.Name,
 						})
 						mu.Unlock()

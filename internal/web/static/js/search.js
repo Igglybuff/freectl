@@ -74,10 +74,9 @@ export function updateCategoryFilter(results, selectedCategory = '') {
     
     const options = ['<option value="">All categories</option>'];
     Array.from(allSearchCategories).sort().forEach(category => {
-        const value = category === 'n/a' ? '' : category;
-        // Only mark as selected if it exactly matches the selectedCategory
+        // Keep the n/a value instead of converting it to empty string
         const selected = category === selectedCategory;
-        options.push(`<option value="${value}"${selected ? ' selected' : ''}>${category}</option>`);
+        options.push(`<option value="${category}"${selected ? ' selected' : ''}>${category}</option>`);
     });
     
     categoryFilter.innerHTML = options.join('');
