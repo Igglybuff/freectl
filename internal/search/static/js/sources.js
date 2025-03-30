@@ -86,10 +86,15 @@ export function addSource() {
 // Load source list
 export function loadSourceList() {
     const sourceList = document.getElementById('sourceList');
-    sourceList.innerHTML = 'Loading sources...';
+    sourceList.innerHTML = 'Loading data sources...';
 
     fetch('/sources/list')
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to load sources');
+            }
+            return response.json();
+        })
         .then(data => {
             if (!data.success) {
                 throw new Error(data.error || 'Failed to load sources');
@@ -100,41 +105,163 @@ export function loadSourceList() {
                 return;
             }
 
-            sourceList.innerHTML = data.sources.map(source => `
-                <div class="source-item">
-                    <div class="source-info">
-                        <a href="${source.url}" class="source-name" target="_blank" rel="noopener noreferrer">${source.name}</a>
-                        <div class="source-type">${formatSourceType(source.type)}</div>
-                    </div>
-                    <div class="source-actions">
-                        <button class="source-button toggle ${source.enabled ? '' : 'disabled'}" data-action="toggle" data-name="${source.name}">
-                            ${source.enabled ? 'Disable' : 'Enable'}
-                        </button>
-                        <button class="source-button edit" data-action="edit" data-name="${source.name}">Edit</button>
-                        <button class="source-button delete" data-action="delete" data-name="${source.name}">Delete</button>
-                    </div>
-                </div>
-            `).join('');
+            sourceList.innerHTML = '';
+            data.sources.forEach(source => {
+                const sourceItem = document.createElement('div');
+                sourceItem.className = 'source-item';
+                sourceItem.dataset.source = source.name;
 
-            // Add event listeners to the buttons
-            sourceList.querySelectorAll('.source-button').forEach(button => {
-                button.addEventListener('click', (e) => {
-                    const action = e.target.dataset.action;
-                    const name = e.target.dataset.name;
-                    if (action === 'toggle') {
-                        toggleSource(name);
-                    } else if (action === 'delete') {
-                        deleteSource(name);
-                    } else if (action === 'edit') {
-                        editSource(name);
+                const nameContainer = document.createElement('div');
+                nameContainer.className = 'source-name-container';
+
+                const sourceLink = document.createElement('a');
+                sourceLink.href = source.url || '#';
+                sourceLink.className = 'source-name';
+                sourceLink.textContent = source.name;
+                sourceLink.onclick = (e) => {
+                    if (source.url) {
+                        e.preventDefault();
+                        window.open(source.url, '_blank', 'noopener,noreferrer');
+                    }
+                };
+
+                const editInput = document.createElement('input');
+                editInput.type = 'text';
+                editInput.className = 'source-name-edit';
+                editInput.value = source.name;
+                editInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        saveEditing(sourceItem);
+                    } else if (e.key === 'Escape') {
+                        cancelEditing(sourceItem);
                     }
                 });
+
+                nameContainer.appendChild(sourceLink);
+                nameContainer.appendChild(editInput);
+
+                const buttonContainer = document.createElement('div');
+                buttonContainer.className = 'source-buttons';
+
+                const editButton = document.createElement('button');
+                editButton.className = 'source-button edit';
+                editButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>`;
+                editButton.title = 'Edit source name';
+                editButton.onclick = () => startEditing(sourceItem);
+
+                const saveButton = document.createElement('button');
+                saveButton.className = 'source-button save';
+                saveButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 6L9 17l-5-5"/>
+                </svg>`;
+                saveButton.title = 'Save changes';
+                saveButton.style.display = 'none';
+                saveButton.onclick = () => saveEditing(sourceItem);
+
+                const cancelButton = document.createElement('button');
+                cancelButton.className = 'source-button cancel';
+                cancelButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 6L6 18"/>
+                    <path d="M6 6l12 12"/>
+                </svg>`;
+                cancelButton.title = 'Cancel editing';
+                cancelButton.style.display = 'none';
+                cancelButton.onclick = () => cancelEditing(sourceItem);
+
+                const deleteButton = document.createElement('button');
+                deleteButton.className = 'source-button delete';
+                deleteButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>`;
+                deleteButton.title = 'Delete source';
+                deleteButton.onclick = () => deleteSource(source.name);
+
+                buttonContainer.appendChild(editButton);
+                buttonContainer.appendChild(saveButton);
+                buttonContainer.appendChild(cancelButton);
+                buttonContainer.appendChild(deleteButton);
+
+                sourceItem.appendChild(nameContainer);
+                sourceItem.appendChild(buttonContainer);
+                sourceList.appendChild(sourceItem);
             });
         })
         .catch(error => {
-            console.error('Error:', error);
+            console.error('Error loading sources:', error);
             sourceList.innerHTML = `<div class="error">Failed to load sources: ${error.message}</div>`;
         });
+}
+
+function startEditing(sourceItem) {
+    sourceItem.classList.add('editing');
+    const input = sourceItem.querySelector('.source-name-edit');
+    const editButton = sourceItem.querySelector('.edit');
+    const saveButton = sourceItem.querySelector('.save');
+    const cancelButton = sourceItem.querySelector('.cancel');
+    
+    editButton.style.display = 'none';
+    saveButton.style.display = 'inline-block';
+    cancelButton.style.display = 'inline-block';
+    
+    input.focus();
+    input.select();
+}
+
+function cancelEditing(sourceItem) {
+    sourceItem.classList.remove('editing');
+    const input = sourceItem.querySelector('.source-name-edit');
+    const sourceLink = sourceItem.querySelector('.source-name');
+    const editButton = sourceItem.querySelector('.edit');
+    const saveButton = sourceItem.querySelector('.save');
+    const cancelButton = sourceItem.querySelector('.cancel');
+    
+    input.value = sourceLink.textContent;
+    editButton.style.display = 'inline-block';
+    saveButton.style.display = 'none';
+    cancelButton.style.display = 'none';
+}
+
+function saveEditing(sourceItem) {
+    const input = sourceItem.querySelector('.source-name-edit');
+    const oldName = sourceItem.dataset.source;
+    const newName = input.value.trim();
+
+    if (newName === '') {
+        showError('Source name cannot be empty');
+        return;
+    }
+
+    if (newName === oldName) {
+        cancelEditing(sourceItem);
+        return;
+    }
+
+    fetch('/sources/edit', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            oldName: oldName,
+            newName: newName
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Failed to rename source');
+        }
+        loadSourceList();
+        showSuccess('Source renamed successfully');
+    })
+    .catch(error => {
+        console.error('Error renaming source:', error);
+        showError('Failed to rename source');
+        cancelEditing(sourceItem);
+    });
 }
 
 // Delete source
@@ -221,42 +348,6 @@ export function updateSource() {
         updateButton.disabled = false;
         updateButton.textContent = 'Update sources';
     });
-}
-
-// Edit source
-export function editSource(name) {
-    const newName = prompt(`Enter new name for source '${name}':`);
-    if (!newName) {
-        return; // User cancelled or entered empty string
-    }
-
-    if (newName === name) {
-        return; // No change
-    }
-
-    fetch('/sources/edit', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-            oldName: name,
-            newName: newName 
-        }),
-    })
-        .then(response => response.json())
-        .then(data => {
-            if (!data.success) {
-                throw new Error(data.error || 'Failed to edit source');
-            }
-            showToast('Source renamed successfully');
-            loadSourceList();
-            loadSourceFilter(); // Refresh source filters
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showToast(`Failed to rename source: ${error.message}`, true);
-        });
 }
 
 // Helper function to format source type for display
