@@ -1,7 +1,6 @@
 package search
 
 import (
-	"embed"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -16,12 +15,6 @@ import (
 	"github.com/charmbracelet/log"
 	"github.com/sahilm/fuzzy"
 )
-
-//go:embed templates/index.html
-var TemplateFS embed.FS
-
-//go:embed static/*
-var StaticFS embed.FS
 
 type Result struct {
 	URL         string `json:"url"`
