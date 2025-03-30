@@ -125,6 +125,10 @@ export function loadSourceList() {
                     }
                 };
 
+                const sourceType = document.createElement('span');
+                sourceType.className = 'source-type';
+                sourceType.textContent = formatSourceType(source.type);
+
                 const editInput = document.createElement('input');
                 editInput.type = 'text';
                 editInput.className = 'source-name-edit';
@@ -137,7 +141,12 @@ export function loadSourceList() {
                     }
                 });
 
-                nameContainer.appendChild(sourceLink);
+                const sourceInfo = document.createElement('div');
+                sourceInfo.className = 'source-info';
+                sourceInfo.appendChild(sourceLink);
+                sourceInfo.appendChild(sourceType);
+
+                nameContainer.appendChild(sourceInfo);
                 nameContainer.appendChild(editInput);
 
                 const buttonContainer = document.createElement('div');
@@ -361,4 +370,12 @@ function formatSourceType(type) {
         'obsidian': 'Obsidian vault'
     };
     return typeMap[type] || type;
+}
+
+function showError(message) {
+    showToast(message, true);
+}
+
+function showSuccess(message) {
+    showToast(message, false);
 } 
