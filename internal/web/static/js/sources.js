@@ -112,6 +112,9 @@ export function loadSourceList() {
                 console.log('Source:', source); // Debug log for each source
                 const sourceItem = document.createElement('div');
                 sourceItem.className = 'source-item';
+                if (!source.enabled) {
+                    sourceItem.classList.add('disabled');
+                }
                 sourceItem.dataset.source = source.name;
 
                 const nameContainer = document.createElement('div');
@@ -415,8 +418,8 @@ export function toggleSource(name) {
             sourceItem.classList.toggle('disabled');
         }
         
-        loadSourceList();
-        loadSourceFilter(); // Refresh source filters
+        // Only reload the source filter dropdown
+        loadSourceFilter();
     })
     .catch(error => {
         console.error('Error:', error);
