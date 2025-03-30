@@ -2,14 +2,14 @@
 
 # freectl
 
-Lightning-fast command-line tool and web UI for finding cool stuff in Git repositories.
+Lightning-fast command-line tool and web UI for finding cool stuff from various data sources.
 
 **This tool is still in active development and should definitely not be exposed on the public internet.**
 
 ## Features
 
-- 🔍 Fuzzy search through cached Git repositories
-- 📦 Cache and update Git repositories locally
+- 🔍 Fuzzy search through cached data sources
+- 📦 Cache and update data sources locally
 - 📊 Generate statistics about repository content
 - 🌐 Web interface for searching
 - 🎨 Beautiful TUI interface
@@ -21,13 +21,25 @@ Lightning-fast command-line tool and web UI for finding cool stuff in Git reposi
 
 (Again, `freectl` is in active development. There **are** glaring bugs.)
 
-`freectl` is a handy tool for downloading Git repositories containing a lot of URLs (typically in the form of markdown lists, like awesome-lists) and making them searchable.
+`freectl` is a handy tool for downloading data sources containing a lot of URLs (like "awesome" lists) and making them searchable.
 
-It uses a very scrappy, home-grown markdown parser to extract URLs, titles/descriptions, and categories by looking for common patterns in markdown lists. This happens _while_ searching, so there is no indexing process - repositories are fuzzy-searched directly with a configurable query delay. This might not scale well if you add too many repositories!
+It uses a very scrappy, semi-home-grown markdown link parser to extract URLs, titles/descriptions, and categories by looking for common patterns in markdown lists. This happens _while_ searching, so there is no indexing process - repositories are fuzzy-searched directly with a configurable query delay. This might not scale well if you add too many repositories!
 
 There is also a basic favouriting system. Favourites and settings are stored locally as JSON files in `~/.config/freectl/`.
 
 The frontend is (in theory) embedded into the Go binary, so it should be pretty portable.
+
+## Which data source types are supported?
+
+1. Most Git-hosted "awesome lists" (`freectl add https://github.com/Igglybuff/awesome-piracy --type git`)
+2. Reddit wikis (`freectl add https://old.reddit.com/r/Piracy/wiki/megathread/movies_and_tv --type reddit_wiki --name "/r/Piracy Movies & TV"`)
+
+### Handy trick
+
+1. Add a list-of-lists like [this one](https://github.com/sindresorhus/awesome)
+2. Search it for lists using the web UI
+3. Click the kebab menu next to a result
+4. Click "Add data source" to download it and make it searchable too :)
 
 ## Installation
 
@@ -102,7 +114,14 @@ docker compose down
 
 ```bash
 # Add a Git repository
-freectl add https://github.com/Igglybuff/awesome-piracy --name awesome-piracy
+freectl add https://github.com/Igglybuff/awesome-piracy \
+  --name awesome-piracy \
+  --type git
+
+# Add a Reddit wiki
+freectl add https://old.reddit.com/r/Piracy/wiki/megathread/movies_and_tv \
+  --type reddit_wiki \
+  --name "/r/Piracy Movies & TV"
 ```
 
 ### Update
@@ -172,6 +191,7 @@ go build
 - [x] add setting to change max fuzzy match score
 - [x] fix stats page
 - [x] update docker instructions with settings volume mapping
+- [x] support for reddit megathreads/wikis
 
 #### Bugs
 
@@ -183,7 +203,6 @@ go build
 
 ##### Core
 
-- [ ] support for reddit megathreads
 - [ ] support for HackerNews top 5000
 - [ ] support for blogroll/OPML import
 - [ ] support for bookmarks import (HTML/XML)
@@ -192,7 +211,7 @@ go build
 - [ ] support for open directories
 - [ ] support for other useful data sources
 - [ ] support for book databases
-- [ ] "library" page with curated data sources
+- [ ] "library" page with curated data sources, 1-click downloads
 - [ ] implement a search index using [bleve](https://github.com/blevesearch/bleve) as an alternative to fuzzy-search
 - [ ] advanced search queries
 - [ ] rest API
@@ -238,12 +257,15 @@ go build
 - [charmbracelet/lipgloss](https://github.com/charmbracelet/lipgloss) for logging
 - [sahilm/fuzzy](https://github.com/sahilm/fuzzy) for search
 - [sp13/cobra](https://github.com/spf13/cobra) for the CLI
+- [PuerkitoBio/goquery](https://github.com/PuerkitoBio/goquery) for HTML parsing
+- [yuin/goldmark](https://github.com/yuin/goldmark) for Markdown parsing and rendering
 
 ### Similar projects
 
 - [mrkarezina/awesome-search](https://github.com/mrkarezina/awesome-search) - Closest thing I've found to this project
-- [sindresorhus/awesome](https://github.com/sindresorhus/awesome)
-- [rumca-js/Internet-Places-Database](https://github.com/rumca-js/Internet-Places-Database)
+- [trackawesomelist/trackawesomelist](https://github.com/trackawesomelist/trackawesomelist/) - Very similar fuzzy-search capability
+- [sindresorhus/awesome](https://github.com/sindresorhus/awesome) - Makes finding more lists very easy, pairs well with this project
+- [rumca-js/Internet-Places-Database](https://github.com/rumca-js/Internet-Places-Database) - This will be a great data source to add
 
 ## Author
 
