@@ -2,6 +2,10 @@ package common
 
 import (
 	"strings"
+
+	"github.com/yuin/goldmark"
+	"github.com/yuin/goldmark/extension"
+	"github.com/yuin/goldmark/renderer/html"
 )
 
 // ExtractURL finds the first URL in a line
@@ -243,4 +247,20 @@ func CleanMarkdown(line string) string {
 func IsInvalidCategory(category string) bool {
 	// Categories longer than 80 characters are considered invalid
 	return len(category) > 80
+}
+
+// RenderMarkdown converts markdown text to HTML using goldmark
+func RenderMarkdown(text string) string {
+	md := goldmark.New(
+		goldmark.WithExtensions(extension.GFM),
+		goldmark.WithRendererOptions(
+			html.WithUnsafe(), // Allow raw HTML in markdown
+		),
+	)
+
+	var buf strings.Builder
+	if err := md.Convert([]byte(text), &buf); err != nil {
+		return text // Return original text if rendering fails
+	}
+	return buf.String()
 }

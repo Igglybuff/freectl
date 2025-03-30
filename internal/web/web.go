@@ -13,6 +13,7 @@ import (
 	"sync"
 	"text/template"
 
+	"freectl/internal/common"
 	"freectl/internal/search"
 	"freectl/internal/settings"
 	"freectl/internal/sources"
@@ -151,7 +152,7 @@ func HandleSearch(w http.ResponseWriter, r *http.Request) {
 			seen[r.URL] = true
 			uniqueResults = append(uniqueResults, SearchResult{
 				Category:    r.Category,
-				Description: r.Description,
+				Description: common.RenderMarkdown(r.Description),
 				URL:         r.URL,
 				Name:        r.Name,
 				Score:       r.Score,

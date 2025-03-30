@@ -225,6 +225,15 @@ function createResultHTML(result, showScore = true) {
         scoreHtml = `<div class="score-indicator">${bars.join('')}</div>`;
     }
     
+    // Create tooltip container
+    const tooltipId = `tooltip-${result.url.replace(/[^a-zA-Z0-9]/g, '-')}`;
+    const tooltipHTML = `<div class="result-tooltip" id="${tooltipId}">${result.description}</div>`;
+
+    // Update the result-description span to reference the tooltip
+    const descriptionSpan = `<span class="result-description" 
+        data-tooltip-id="${tooltipId}"
+        data-full-description="${escapedDescription}">${result.description}</span>`;
+
     return `<div class="result-item ${isInvalid ? 'invalid-result' : ''}">
             <div class="result-content">
                 <div class="result-header">
@@ -240,7 +249,7 @@ function createResultHTML(result, showScore = true) {
                                 <path d="M19 13H5v-2h14v2z"/>
                             </svg>
                         </button>
-                        <span class="result-description" data-full-description="${escapedDescription}">${result.description}</span>
+                        ${descriptionSpan}
                     </div>
                     <div class="result-tags">
                         ${isInvalid ? 
@@ -271,6 +280,7 @@ function createResultHTML(result, showScore = true) {
                 </div>
                 ${scoreHtml}
             </div>
+            ${tooltipHTML}
         </div>`;
 }
 
@@ -282,6 +292,24 @@ function addDescriptionToggleListeners() {
             const isShowing = description.classList.contains('show');
             description.classList.toggle('show');
             this.classList.toggle('expanded');
+        });
+    });
+}
+
+// Add event listeners for description tooltips
+function addDescriptionTooltipListeners() {
+    document.querySelectorAll('.result-description').forEach(description => {
+        const tooltipId = description.getAttribute('data-tooltip-id');
+        const tooltip = document.getElementById(tooltipId);
+        
+        description.addEventListener('mouseenter', () => {
+            if (description.classList.contains('show')) {
+                tooltip.classList.add('show');
+            }
+        });
+        
+        description.addEventListener('mouseleave', () => {
+            tooltip.classList.remove('show');
         });
     });
 }
@@ -335,6 +363,9 @@ export function performSearch(page = 1) {
 
             // Add event listeners for description toggles
             addDescriptionToggleListeners();
+            
+            // Add event listeners for description tooltips
+            addDescriptionTooltipListeners();
             
             // Add kebab menu listeners
             addKebabMenuListeners();
