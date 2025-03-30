@@ -295,6 +295,11 @@ func Search(query string, sourceName string, s settings.Settings) ([]Result, err
 						linkText = url
 					}
 
+					// Skip single-character link texts
+					if len(strings.TrimSpace(linkText)) <= 1 {
+						return ast.WalkContinue, nil
+					}
+
 					// Use the current context as description, preserving markdown formatting
 					var description string
 					if currentContext != "" {

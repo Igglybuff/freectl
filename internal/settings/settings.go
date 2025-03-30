@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 
 	"freectl/internal/sources"
 
@@ -213,6 +214,12 @@ func ListSources() ([]sources.Source, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to load settings: %w", err)
 	}
+
+	// Sort sources alphabetically by name
+	sort.Slice(settings.Sources, func(i, j int) bool {
+		return settings.Sources[i].Name < settings.Sources[j].Name
+	})
+
 	return settings.Sources, nil
 }
 
