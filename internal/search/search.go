@@ -2,6 +2,7 @@ package search
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"sort"
@@ -172,6 +173,30 @@ func getNodeText(n ast.Node, source []byte) string {
 	return text.String()
 }
 
+// isLocalhost checks if a URL points to local location (localhost, 127.0.0.1, #shortcut, etc.)
+func isLocalURL(urlStr string) bool {
+	if strings.HasPrefix(urlStr, "#") {
+		return true
+	}
+
+	u, err := url.Parse(urlStr)
+	if err != nil {
+		return false
+	}
+
+	// If there's no host component, it's a relative URL
+	if u.Host == "" {
+		return true
+	}
+
+	host := u.Hostname()
+	return host == "localhost" ||
+		host == "127.0.0.1" ||
+		host == "::1" ||
+		host == "[::1]" ||
+		strings.HasSuffix(host, ".localhost")
+}
+
 // Search performs a fuzzy search across all markdown files using goldmark for parsing
 func Search(query string, sourceName string, s settings.Settings) ([]Result, error) {
 	// Get list of sources from settings
@@ -312,6 +337,11 @@ func Search(query string, sourceName string, s settings.Settings) ([]Result, err
 					// Search in both description and link text
 					matches := fuzzy.Find(query, []string{description, linkText})
 					if len(matches) > 0 && matches[0].Score >= s.MinFuzzyScore {
+						// Skip localhost URLs
+						if isLocalURL(url) {
+							return ast.WalkContinue, nil
+						}
+
 						mu.Lock()
 						allResults = append(allResults, Result{
 							URL:         url,

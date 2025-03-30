@@ -47,7 +47,7 @@
     --tab-border-color: transparent;
     --tab-active-border-color: #66b0ff;
     --bg-secondary: #2d2d2d;
-    --bg-hover: #3d3d3d;
+    --bg-hover: #1f1f1f;
     --accent-color: #3b82f6;
     --accent-color-hover: #2563eb;
     --text-secondary: #a0a0a0;
@@ -956,7 +956,7 @@ body {
 }
 
 .source-item:hover {
-    background: var(--bg-secondary);
+    background: var(--bg-hover);
 }
 
 .source-name-container {
@@ -974,21 +974,55 @@ body {
     gap: 8px;
     min-width: 0;
     flex: 1;
+    position: relative;
+    padding-right: 200px;
+}
+
+.source-metadata {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-secondary);
+    font-size: 0.9em;
+    text-align: right;
+}
+
+.source-size, .source-update {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.source-size svg, .source-update svg {
+    width: 14px;
+    height: 14px;
+    opacity: 0.7;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
 }
 
 .source-name {
-    color: var(--link-color);
-    text-decoration: none;
-    font-size: 14px;
-    font-weight: 500;
-    white-space: nowrap;
+    max-width: calc(100% - 220px);
     overflow: hidden;
     text-overflow: ellipsis;
-    padding: 4px 0;
+    white-space: nowrap;
+    color: var(--link-color);
+    text-decoration: none;
 }
 
 .source-name:hover {
     text-decoration: underline;
+}
+
+.source-name:visited {
+    color: var(--link-color);
 }
 
 .source-type {
@@ -1002,7 +1036,9 @@ body {
 }
 
 .source-name-edit {
-    width: 100%;
+    min-width: 200px;
+    max-width: calc(100% - 220px);
+    width: auto;
     padding: 8px 12px;
     font-size: 14px;
     font-family: inherit;
@@ -1013,6 +1049,10 @@ body {
     margin: 0;
     display: none;
     transition: all 0.2s ease;
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
 }
 
 .source-name-edit:focus {
@@ -1101,6 +1141,7 @@ body {
 
 .source-item.editing .source-name-edit {
     display: block;
+    width: auto;
 }
 
 .source-item:not(.editing) .source-button.save,
@@ -1586,4 +1627,12 @@ body {
 
 #addSource:hover {
     background-color: var(--accent-color-hover);
+}
+
+.source-item.editing .source-metadata {
+    z-index: 1;
+}
+
+.source-item.editing .source-button.delete {
+    display: none;
 } 

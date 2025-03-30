@@ -109,7 +109,7 @@ Example:
 			maxName, "NAME",
 			maxURL, "URL",
 			maxType, "TYPE",
-			maxUpdate, "LAST UPDATE",
+			maxUpdate, "LAST UPDATED",
 			maxSize, "SIZE",
 			maxStatus, "STATUS")
 

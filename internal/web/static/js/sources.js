@@ -105,8 +105,11 @@ export function loadSourceList() {
                 return;
             }
 
+            console.log('Sources data:', data.sources); // Debug log
+
             sourceList.innerHTML = '';
             data.sources.forEach(source => {
+                console.log('Source:', source); // Debug log for each source
                 const sourceItem = document.createElement('div');
                 sourceItem.className = 'source-item';
                 sourceItem.dataset.source = source.name;
@@ -145,6 +148,41 @@ export function loadSourceList() {
                 sourceInfo.className = 'source-info';
                 sourceInfo.appendChild(sourceLink);
                 sourceInfo.appendChild(sourceType);
+
+                // Add metadata info
+                const metadataInfo = document.createElement('div');
+                metadataInfo.className = 'source-metadata';
+                if (source.size) {
+                    const sizeSpan = document.createElement('span');
+                    sizeSpan.className = 'source-size';
+                    sizeSpan.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                            <path d="M4 20h16a2 2 0 0 0 2-2V8l-6-6H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2z"/>
+                            <path d="M14 2v6h6"/>
+                        </svg>
+                        ${source.size}`;
+                    metadataInfo.appendChild(sizeSpan);
+                }
+                if (source.last_updated && source.last_updated !== "0001-01-01T00:00:00Z") {
+                    const updateSpan = document.createElement('span');
+                    updateSpan.className = 'source-update';
+                    const date = new Date(source.last_updated);
+                    const formattedDate = date.toLocaleString(undefined, {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                    updateSpan.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                            <path d="M12 8v4l3 3"/>
+                            <circle cx="12" cy="12" r="10"/>
+                        </svg>
+                        Updated ${formattedDate}`;
+                    metadataInfo.appendChild(updateSpan);
+                }
+                sourceInfo.appendChild(metadataInfo);
 
                 nameContainer.appendChild(sourceInfo);
                 nameContainer.appendChild(editInput);
@@ -208,30 +246,54 @@ export function loadSourceList() {
 function startEditing(sourceItem) {
     sourceItem.classList.add('editing');
     const input = sourceItem.querySelector('.source-name-edit');
-    const editButton = sourceItem.querySelector('.edit');
-    const saveButton = sourceItem.querySelector('.save');
-    const cancelButton = sourceItem.querySelector('.cancel');
+    const sourceLink = sourceItem.querySelector('.source-name');
     
-    editButton.style.display = 'none';
-    saveButton.style.display = 'inline-block';
-    cancelButton.style.display = 'inline-block';
-    
+    // Set initial width based on the source name width
+    const tempSpan = document.createElement('span');
+    tempSpan.style.visibility = 'hidden';
+    tempSpan.style.position = 'absolute';
+    tempSpan.style.whiteSpace = 'pre';
+    tempSpan.style.font = window.getComputedStyle(input).font;
+    tempSpan.textContent = input.value;
+    document.body.appendChild(tempSpan);
+    input.style.width = (tempSpan.offsetWidth + 24) + 'px'; // Add padding
+    document.body.removeChild(tempSpan);
+
+    // Show save/cancel buttons
+    sourceItem.querySelector('.source-button.save').style.display = 'inline-flex';
+    sourceItem.querySelector('.source-button.cancel').style.display = 'inline-flex';
+    sourceItem.querySelector('.source-button.edit').style.display = 'none';
+    sourceItem.querySelector('.source-button.delete').style.display = 'none';
+
+    // Focus and select the input
     input.focus();
     input.select();
+
+    // Add input event listener to adjust width as user types
+    input.addEventListener('input', function() {
+        const tempSpan = document.createElement('span');
+        tempSpan.style.visibility = 'hidden';
+        tempSpan.style.position = 'absolute';
+        tempSpan.style.whiteSpace = 'pre';
+        tempSpan.style.font = window.getComputedStyle(input).font;
+        tempSpan.textContent = input.value;
+        document.body.appendChild(tempSpan);
+        input.style.width = (tempSpan.offsetWidth + 24) + 'px'; // Add padding
+        document.body.removeChild(tempSpan);
+    });
 }
 
 function cancelEditing(sourceItem) {
     sourceItem.classList.remove('editing');
-    const input = sourceItem.querySelector('.source-name-edit');
-    const sourceLink = sourceItem.querySelector('.source-name');
-    const editButton = sourceItem.querySelector('.edit');
-    const saveButton = sourceItem.querySelector('.save');
-    const cancelButton = sourceItem.querySelector('.cancel');
+    const editButton = sourceItem.querySelector('.source-button.edit');
+    const saveButton = sourceItem.querySelector('.source-button.save');
+    const cancelButton = sourceItem.querySelector('.source-button.cancel');
+    const deleteButton = sourceItem.querySelector('.source-button.delete');
     
-    input.value = sourceLink.textContent;
-    editButton.style.display = 'inline-block';
+    editButton.style.display = 'inline-flex';
     saveButton.style.display = 'none';
     cancelButton.style.display = 'none';
+    deleteButton.style.display = 'inline-flex';
 }
 
 function saveEditing(sourceItem) {
