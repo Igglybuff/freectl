@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"time"
 
 	"freectl/internal/sources"
 
@@ -140,7 +141,7 @@ func AddSource(url, name, sourceType string) error {
 		}
 	}
 
-	// Create source
+	// Create initial source
 	source := sources.Source{
 		Name:    name,
 		Path:    filepath.Join(settings.CacheDir, name),
@@ -169,6 +170,26 @@ func AddSource(url, name, sourceType string) error {
 			log.Error("Failed to revert settings after add failure", "error", revertErr)
 		}
 		return fmt.Errorf("failed to add source: %w", err)
+	}
+
+	// Get the size of the source after adding
+	size, err := sources.GetSourceSize(source.Path)
+	if err != nil {
+		log.Warn("Failed to get source size", "name", name, "error", err)
+	}
+
+	// Update the source in settings with metadata
+	for i := range settings.Sources {
+		if settings.Sources[i].Name == name {
+			settings.Sources[i].Size = size
+			settings.Sources[i].LastUpdated = time.Now().Format(time.RFC3339)
+			break
+		}
+	}
+
+	// Save the updated settings with metadata
+	if err := SaveSettings(settings); err != nil {
+		return fmt.Errorf("failed to save settings: %w", err)
 	}
 
 	return nil
@@ -304,4 +325,111 @@ func IsSourceEnabled(name string) (bool, error) {
 	}
 
 	return false, fmt.Errorf("source '%s' not found in settings", name)
+}
+
+// UpdateSource updates the specified sources and stores their metadata
+func UpdateSource(name string) error {
+	settings, err := LoadSettings()
+	if err != nil {
+		return fmt.Errorf("failed to load settings: %w", err)
+	}
+
+	// Find the source
+	var sourceToUpdate *sources.Source
+	for i := range settings.Sources {
+		if settings.Sources[i].Name == name {
+			sourceToUpdate = &settings.Sources[i]
+			break
+		}
+	}
+
+	if sourceToUpdate == nil {
+		return fmt.Errorf("source '%s' not found", name)
+	}
+
+	// Update the source
+	duration, err := sources.Update(settings.CacheDir, []sources.Source{*sourceToUpdate})
+	if err != nil {
+		return fmt.Errorf("failed to update source: %w", err)
+	}
+
+	// Get updated source size
+	size, err := sources.GetSourceSize(sourceToUpdate.Path)
+	if err != nil {
+		log.Error("Failed to get source size", "name", name, "error", err)
+		// Don't return error here as the update was successful
+	}
+
+	// Update source metadata
+	sourceToUpdate.Size = size
+	sourceToUpdate.LastUpdated = time.Now().Format(time.RFC3339)
+
+	// Save updated settings
+	if err := SaveSettings(settings); err != nil {
+		return fmt.Errorf("failed to save settings: %w", err)
+	}
+
+	log.Info("Source updated successfully",
+		"name", name,
+		"duration", duration,
+		"size", size,
+		"lastUpdated", sourceToUpdate.LastUpdated)
+
+	return nil
+}
+
+// UpdateAllSources updates all enabled sources and stores their metadata
+func UpdateAllSources() error {
+	settings, err := LoadSettings()
+	if err != nil {
+		return fmt.Errorf("failed to load settings: %w", err)
+	}
+
+	// Filter enabled sources
+	var enabledSources []sources.Source
+	for _, source := range settings.Sources {
+		if source.Enabled {
+			enabledSources = append(enabledSources, source)
+		}
+	}
+
+	if len(enabledSources) == 0 {
+		log.Info("No enabled sources to update")
+		return nil
+	}
+
+	// Update all enabled sources
+	duration, err := sources.Update(settings.CacheDir, enabledSources)
+	if err != nil {
+		return fmt.Errorf("failed to update sources: %w", err)
+	}
+
+	// Update metadata for all sources
+	for i := range settings.Sources {
+		if settings.Sources[i].Enabled {
+			// Get updated source size
+			size, err := sources.GetSourceSize(settings.Sources[i].Path)
+			if err != nil {
+				log.Error("Failed to get source size",
+					"name", settings.Sources[i].Name,
+					"error", err)
+				continue
+			}
+
+			// Update source metadata
+			settings.Sources[i].Size = size
+			settings.Sources[i].LastUpdated = time.Now().Format(time.RFC3339)
+		}
+	}
+
+	// Save updated settings
+	if err := SaveSettings(settings); err != nil {
+		return fmt.Errorf("failed to save settings: %w", err)
+	}
+
+	log.Info("All sources updated successfully",
+		"duration", duration,
+		"count", len(enabledSources))
+
+	return nil
 }

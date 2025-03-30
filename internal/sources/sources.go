@@ -11,11 +11,13 @@ import (
 
 // Source represents a data source
 type Source struct {
-	Name    string     `json:"name"`
-	Path    string     `json:"path"`
-	URL     string     `json:"url"`
-	Enabled bool       `json:"enabled"`
-	Type    SourceType `json:"type"`
+	Name        string     `json:"name"`
+	Path        string     `json:"path"`
+	URL         string     `json:"url"`
+	Enabled     bool       `json:"enabled"`
+	Type        SourceType `json:"type"`
+	Size        string     `json:"size"`
+	LastUpdated string     `json:"last_updated"`
 }
 
 // SourceType represents the type of a data source
@@ -176,4 +178,60 @@ func Update(cacheDir string, sources []Source) (time.Duration, error) {
 // IsImplemented returns true if the source type is implemented
 func IsImplemented(sourceType SourceType) bool {
 	return sourceType == SourceTypeGit || sourceType == SourceTypeRedditWiki
+}
+
+// GetSourceSize returns the size of a source in human-readable format
+func GetSourceSize(sourcePath string) (string, error) {
+	_, err := os.Stat(sourcePath)
+	if os.IsNotExist(err) {
+		return "0 B", fmt.Errorf("source path does not exist: %s", sourcePath)
+	}
+
+	size, err := getDirSize(sourcePath)
+	if err != nil {
+		return "0 B", err
+	}
+
+	return formatBytes(size), nil
+}
+
+// formatBytes converts bytes to human-readable format
+func formatBytes(bytes int64) string {
+	const unit = 1024
+	if bytes < unit {
+		return fmt.Sprintf("%d B", bytes)
+	}
+
+	div, exp := int64(unit), 0
+	for n := bytes / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+
+	// Use one decimal place for sizes >= 1KB
+	if exp > 0 {
+		return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp-1])
+	}
+	return fmt.Sprintf("%d B", bytes)
+}
+
+// getDirSize returns the size of a directory in bytes
+func getDirSize(dirPath string) (int64, error) {
+	var size int64
+
+	err := filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() {
+			size += info.Size()
+		}
+		return nil
+	})
+
+	if err != nil {
+		return 0, fmt.Errorf("failed to get directory size: %w", err)
+	}
+
+	return size, nil
 }

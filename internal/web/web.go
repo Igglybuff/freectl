@@ -362,14 +362,6 @@ func HandleUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Load settings to get cache directory and verify sources
-	s, err := settings.LoadSettings()
-	if err != nil {
-		log.Error("Failed to load settings", "error", err)
-		http.Error(w, fmt.Sprintf("Failed to load settings: %s", err.Error()), http.StatusInternalServerError)
-		return
-	}
-
 	// Get list of sources from settings
 	sourceList, err := settings.ListSources()
 	if err != nil {
@@ -387,16 +379,16 @@ func HandleUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	duration, err := sources.Update(s.CacheDir, sourceList)
-	if err != nil {
+	// Update all sources using the wrapper function
+	if err := settings.UpdateAllSources(); err != nil {
 		http.Error(w, fmt.Sprintf("Failed to update sources: %v", err), http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"success":  true,
-		"duration": duration.String(),
+		"success": true,
+		"message": "Sources updated successfully",
 	})
 }
 

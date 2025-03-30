@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"freectl/internal/settings"
-	"freectl/internal/sources"
 
 	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
@@ -32,21 +31,10 @@ content from each source.`,
 			return nil
 		}
 
-		// Update each enabled source
-		for _, source := range sourceList {
-			if !source.Enabled {
-				log.Info("Skipping disabled source", "name", source.Name)
-				continue
-			}
-
-			log.Info("Updating source", "name", source.Name)
-
-			// Update existing source based on type
-			if err := sources.UpdateGitRepo(source.Path); err != nil {
-				log.Error("Failed to update source", "name", source.Name, "error", err)
-				continue
-			}
-			log.Info("Source updated successfully", "name", source.Name)
+		// Update all enabled sources using the wrapper function
+		if err := settings.UpdateAllSources(); err != nil {
+			log.Error("Failed to update sources", "error", err)
+			return fmt.Errorf("failed to update sources: %w", err)
 		}
 
 		duration := time.Since(startTime)

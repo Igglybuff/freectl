@@ -2,12 +2,6 @@ package list
 
 import (
 	"fmt"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"strconv"
-	"strings"
-	"time"
 
 	"freectl/internal/settings"
 
@@ -49,7 +43,7 @@ Example:
 		maxName := len("NAME")
 		maxURL := len("URL")
 		maxType := len("TYPE")
-		maxUpdate := len("LAST UPDATE")
+		maxUpdate := len("LAST UPDATED")
 		maxSize := len("SIZE")
 		maxStatus := len("STATUS")
 
@@ -65,38 +59,6 @@ Example:
 		sourceDataList := make([]sourceData, 0, len(sources))
 
 		for _, source := range sources {
-			// Get last commit time for Git sources
-			lastUpdate := "unknown"
-			if source.Type == "git" {
-				cmd := exec.Command("git", "-C", source.Path, "log", "-1", "--format=%ct")
-				if output, err := cmd.Output(); err == nil {
-					if unix, err := strconv.ParseInt(strings.TrimSpace(string(output)), 10, 64); err == nil {
-						lastUpdate = time.Unix(unix, 0).Format("2006-01-02 15:04:05")
-					}
-				}
-			}
-
-			// Get source size
-			var size int64
-			err := filepath.Walk(source.Path, func(_ string, info os.FileInfo, err error) error {
-				if err != nil {
-					return err
-				}
-				if !info.IsDir() {
-					size += info.Size()
-				}
-				return nil
-			})
-			if err != nil {
-				log.Error("Error calculating source size", "source", source.Name, "error", err)
-			}
-
-			// Format size
-			sizeStr := "unknown"
-			if size > 0 {
-				sizeStr = formatSize(size)
-			}
-
 			// Get status
 			status := "Enabled"
 			if !source.Enabled {
@@ -108,8 +70,8 @@ Example:
 				name:       source.Name,
 				url:        source.URL,
 				sourceType: string(source.Type),
-				lastUpdate: lastUpdate,
-				size:       sizeStr,
+				lastUpdate: source.LastUpdated,
+				size:       source.Size,
 				status:     status,
 			}
 			sourceDataList = append(sourceDataList, data)
@@ -123,11 +85,11 @@ Example:
 			if len(string(source.Type)) > maxType {
 				maxType = len(string(source.Type))
 			}
-			if len(lastUpdate) > maxUpdate {
-				maxUpdate = len(lastUpdate)
+			if len(source.LastUpdated) > maxUpdate {
+				maxUpdate = len(source.LastUpdated)
 			}
-			if len(sizeStr) > maxSize {
-				maxSize = len(sizeStr)
+			if len(source.Size) > maxSize {
+				maxSize = len(source.Size)
 			}
 			if len(status) > maxStatus {
 				maxStatus = len(status)
@@ -165,20 +127,4 @@ Example:
 		log.Debug("List command completed successfully")
 		return nil
 	},
-}
-
-// formatSize formats a size in bytes to a human-readable string
-func formatSize(size int64) string {
-	const unit = 1024
-	if size < unit {
-		return fmt.Sprintf("%d B", size)
-	}
-
-	div, exp := int64(unit), 0
-	for n := size / unit; n >= unit; n /= unit {
-		div *= unit
-		exp++
-	}
-
-	return fmt.Sprintf("%.1f %cB", float64(size)/float64(div), "KMGTPE"[exp])
 }
