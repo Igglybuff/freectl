@@ -2,10 +2,9 @@ package delete
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 
 	"freectl/internal/settings"
+	"freectl/internal/sources"
 
 	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
@@ -37,14 +36,14 @@ use the --force flag to remove it from settings.`,
 		}
 
 		// List sources to verify the source exists in settings
-		sources, err := settings.ListSources()
+		allSources, err := settings.ListSources()
 		if err != nil {
 			log.Error("Failed to list sources", "error", err)
 			return fmt.Errorf("failed to list sources: %w", err)
 		}
 
 		found := false
-		for _, source := range sources {
+		for _, source := range allSources {
 			if source.Name == sourceName {
 				found = true
 				break
@@ -57,28 +56,13 @@ use the --force flag to remove it from settings.`,
 		}
 
 		// Try to delete from cache first
-		sourcePath := filepath.Join(s.CacheDir, sourceName)
-
-		if _, err := os.Stat(sourcePath); err == nil {
-			// Source exists in cache, try to delete it
-			if err := os.RemoveAll(sourcePath); err != nil {
-				log.Error("Failed to delete source from cache", "name", sourceName, "error", err)
-				if !force {
-					return fmt.Errorf("failed to delete source from cache: %w", err)
-				}
-				// If force is true, continue even if cache deletion fails
-				log.Info("Force flag used, continuing despite cache deletion failure")
-			} else {
-				log.Info("Successfully deleted source from cache", "name", sourceName)
-			}
-		} else if !os.IsNotExist(err) {
-			// Error other than "not exists"
-			log.Error("Error checking source path", "name", sourceName, "error", err)
+		if err := sources.Delete(s.CacheDir, sourceName, force); err != nil {
+			log.Error("Failed to delete source from cache", "name", sourceName, "error", err)
 			if !force {
-				return fmt.Errorf("error checking source path: %w", err)
+				return fmt.Errorf("failed to delete source from cache: %w", err)
 			}
-			// If force is true, continue even if there's an error checking the path
-			log.Info("Force flag used, continuing despite path check error")
+			// If force is true, continue even if cache deletion fails
+			log.Info("Force flag used, continuing despite cache deletion failure")
 		}
 
 		// Always try to remove from settings

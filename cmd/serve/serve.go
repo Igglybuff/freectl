@@ -434,7 +434,7 @@ func handleUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	duration, err := sources.Update(s.CacheDir)
+	duration, err := sources.Update(s.CacheDir, sourceList)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to update sources: %v", err), http.StatusInternalServerError)
 		return
@@ -632,7 +632,7 @@ func handleDeleteSource(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// List sources to verify the source exists in settings
-	sources, err := settings.ListSources()
+	allSources, err := settings.ListSources()
 	if err != nil {
 		log.Error("Failed to list sources", "error", err)
 		w.Header().Set("Content-Type", "application/json")
@@ -645,7 +645,7 @@ func handleDeleteSource(w http.ResponseWriter, r *http.Request) {
 	}
 
 	found := false
-	for _, source := range sources {
+	for _, source := range allSources {
 		if source.Name == req.Name {
 			found = true
 			break
@@ -676,26 +676,14 @@ func handleDeleteSource(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Then try to delete from cache if it exists
-	sourcePath := filepath.Join(s.CacheDir, req.Name)
-	if _, err := os.Stat(sourcePath); err == nil {
-		// Source exists in cache, try to delete it
-		if err := os.RemoveAll(sourcePath); err != nil {
-			log.Error("Failed to delete source from cache", "name", req.Name, "error", err)
-			// Don't fail the request if cache deletion fails - the source is already removed from settings
-			log.Warn("Source was removed from settings but cache deletion failed", "name", req.Name)
-		} else {
-			log.Info("Successfully deleted source from cache", "name", req.Name)
-		}
-	} else if !os.IsNotExist(err) {
-		// Log any error other than "not exists" but don't fail the request
-		log.Warn("Error checking source path", "name", req.Name, "error", err)
+	if err := sources.Delete(s.CacheDir, req.Name, false); err != nil {
+		// Don't fail the request if cache deletion fails - the source is already removed from settings
+		log.Warn("Source was removed from settings but cache deletion failed", "name", req.Name)
 	}
 
-	log.Info("Successfully deleted source", "name", req.Name)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
-		"message": "Source deleted successfully",
 	})
 }
 

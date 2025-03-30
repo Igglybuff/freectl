@@ -110,96 +110,64 @@ func Add(cacheDir string, url string, name string, sourceType string) error {
 	return nil
 }
 
-// List returns all sources in the cache directory
-func List(cacheDir string) ([]Source, error) {
-	log.Debug("Starting source.List", "cacheDir", cacheDir)
-
-	// The cache directory is already the sources directory
-	entries, err := os.ReadDir(cacheDir)
-	if err != nil {
-		if os.IsNotExist(err) {
-			log.Debug("Sources directory does not exist, returning empty list")
-			return []Source{}, nil
-		}
-		log.Error("Failed to read sources directory", "error", err)
-		return nil, fmt.Errorf("failed to read sources directory: %w", err)
-	}
-	log.Debug("Read directory entries", "count", len(entries))
-
-	var sources []Source
-	for _, entry := range entries {
-		if !entry.IsDir() {
-			log.Debug("Skipping non-directory entry", "name", entry.Name())
-			continue
-		}
-
-		sourcePath := filepath.Join(cacheDir, entry.Name())
-		log.Debug("Processing source", "name", entry.Name(), "path", sourcePath)
-
-		// Get the remote URL (currently only Git sources are supported)
-		url, err := GetGitRemoteURL(sourcePath)
-		if err != nil {
-			log.Error("Failed to get source URL", "name", entry.Name(), "error", err)
-		}
-		log.Debug("Got source URL", "name", entry.Name(), "url", url)
-
-		sources = append(sources, Source{
-			Name:    entry.Name(),
-			Path:    sourcePath,
-			URL:     url,
-			Enabled: true,          // Default to enabled
-			Type:    SourceTypeGit, // Default to git
-		})
-		log.Debug("Added source to list", "name", entry.Name())
-	}
-
-	log.Debug("Completed source listing", "total", len(sources))
-	return sources, nil
-}
-
-// Delete removes a source from the cache
-func Delete(cacheDir string, name string) error {
-	// Find the source path
+// Delete removes a source from disk
+func Delete(cacheDir string, name string, force bool) error {
 	sourcePath := filepath.Join(cacheDir, name)
-	if _, err := os.Stat(sourcePath); os.IsNotExist(err) {
-		return fmt.Errorf("source '%s' not found", name)
+	if _, err := os.Stat(sourcePath); err == nil {
+		// Source exists in cache, try to delete it
+		if err := os.RemoveAll(sourcePath); err != nil {
+			log.Error("Failed to delete source from cache", "name", name, "error", err)
+			if !force {
+				return fmt.Errorf("failed to delete source from cache: %w", err)
+			}
+			// If force is true, continue even if cache deletion fails
+			log.Info("Force flag used, continuing despite cache deletion failure")
+		} else {
+			log.Info("Successfully deleted source from cache", "name", name)
+		}
+	} else if !os.IsNotExist(err) {
+		// Error other than "not exists"
+		log.Error("Error checking source path", "name", name, "error", err)
+		if !force {
+			return fmt.Errorf("error checking source path: %w", err)
+		}
+		// If force is true, continue even if there's an error checking the path
+		log.Info("Force flag used, continuing despite path check error")
 	}
 
-	// Delete the source directory
-	if err := DeleteGitRepo(sourcePath); err != nil {
-		return fmt.Errorf("failed to delete source: %w", err)
-	}
-
-	log.Info("Source deleted successfully", "name", name)
 	return nil
 }
 
-// Update updates all sources in the specified cache directory.
+// Update updates the specified sources.
 // It returns the duration of the operation and any error that occurred.
-func Update(cacheDir string) (time.Duration, error) {
+func Update(cacheDir string, sources []Source) (time.Duration, error) {
 	startTime := time.Now()
 
-	// Get list of sources
-	sources, err := List(cacheDir)
-	if err != nil {
-		return 0, err
-	}
-
 	if len(sources) == 0 {
-		log.Info("No sources found. Please add a source using 'freectl add'")
+		log.Info("No sources to update")
 		return time.Since(startTime), nil
 	}
 
 	// Update each source
 	for _, source := range sources {
-		log.Info("Updating source", "name", source.Name)
+		log.Info("Updating source", "name", source.Name, "type", source.Type)
 
-		if err := UpdateGitRepo(source.Path); err != nil {
-			log.Error("Failed to update source", "name", source.Name, "error", err)
+		var err error
+		switch source.Type {
+		case SourceTypeGit:
+			err = UpdateGitRepo(source.Path)
+		case SourceTypeRedditWiki:
+			err = UpdateRedditWiki(cacheDir, source)
+		default:
+			err = fmt.Errorf("unsupported source type: %s", source.Type)
+		}
+
+		if err != nil {
+			log.Error("Failed to update source", "name", source.Name, "type", source.Type, "error", err)
 			continue
 		}
 
-		log.Info("Source updated successfully", "name", source.Name)
+		log.Info("Source updated successfully", "name", source.Name, "type", source.Type)
 	}
 
 	return time.Since(startTime), nil

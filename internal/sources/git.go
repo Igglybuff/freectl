@@ -78,14 +78,6 @@ func UpdateGitRepo(repoPath string) error {
 	return nil
 }
 
-// DeleteGitRepo removes a Git repository from disk
-func DeleteGitRepo(repoPath string) error {
-	if err := os.RemoveAll(repoPath); err != nil {
-		return fmt.Errorf("failed to delete repository: %w", err)
-	}
-	return nil
-}
-
 // DeriveNameFromURL extracts a repository name from a Git URL
 func DeriveNameFromURL(url string) string {
 	// Remove .git extension if present
