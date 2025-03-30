@@ -13,11 +13,12 @@ import (
 	"sync"
 	"text/template"
 
-	"github.com/charmbracelet/log"
-	"freectl/internal/settings"
 	"freectl/internal/search"
+	"freectl/internal/settings"
 	"freectl/internal/sources"
 	"freectl/internal/stats"
+
+	"github.com/charmbracelet/log"
 )
 
 //go:embed templates/index.html

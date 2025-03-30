@@ -14,6 +14,11 @@ import (
 
 	"github.com/charmbracelet/log"
 	"github.com/sahilm/fuzzy"
+	"github.com/yuin/goldmark"
+	"github.com/yuin/goldmark/ast"
+	"github.com/yuin/goldmark/extension"
+	"github.com/yuin/goldmark/parser"
+	"github.com/yuin/goldmark/text"
 )
 
 type Result struct {
@@ -113,10 +118,6 @@ func isContentFile(path string) bool {
 		"scripts",
 		"tools",
 		"ci",
-		"docs/api",
-		"docs/development",
-		"docs/deployment",
-		"docs/architecture",
 	}
 
 	for _, nonContentDir := range nonContentDirs {
@@ -128,193 +129,50 @@ func isContentFile(path string) bool {
 	return true
 }
 
-// parseHeading extracts heading text and level from a line
-func parseHeading(line string) (text string, level int) {
-	switch {
-	case strings.HasPrefix(line, "### "):
-		return strings.TrimSpace(strings.TrimPrefix(line, "### ")), 3
-	case strings.HasPrefix(line, "## "):
-		return strings.TrimSpace(strings.TrimPrefix(line, "## ")), 2
-	case strings.HasPrefix(line, "# "):
-		return strings.TrimSpace(strings.TrimPrefix(line, "# ")), 1
-	default:
-		return "", 0
-	}
-}
+// getNodeText extracts text content from a goldmark AST node
+func getNodeText(n ast.Node, source []byte) string {
+	var text strings.Builder
 
-// cleanHeadingText removes markdown formatting from heading text
-func cleanHeadingText(text string) string {
-	// Remove markdown formatting like ** and []
-	text = strings.TrimPrefix(text, "**")
-	text = strings.TrimSuffix(text, "**")
-	if start := strings.Index(text, "["); start != -1 {
-		if end := strings.Index(text, "]"); end != -1 {
-			text = text[:start] + text[start+1:end] + text[end+1:]
+	// Handle block nodes with Lines
+	if n.Kind() == ast.KindParagraph || n.Kind() == ast.KindHeading {
+		lines := n.Lines()
+		for i := 0; i < lines.Len(); i++ {
+			line := lines.At(i)
+			text.Write(line.Value(source))
 		}
-	}
-	return strings.TrimSpace(text)
-}
-
-// extractLinkText gets the text portion of a markdown link
-func extractLinkText(line string) string {
-	if start := strings.Index(line, "["); start != -1 {
-		if end := strings.Index(line[start:], "]"); end != -1 {
-			return line[start+1 : start+end]
-		}
-	}
-	return ""
-}
-
-// cleanLine removes common markdown formatting and special characters
-func cleanLine(line string) string {
-	// Remove blockquote markers if present
-	line = strings.TrimPrefix(strings.TrimSpace(line), ">")
-	line = strings.TrimSpace(line)
-
-	// Remove bullet points if present
-	if strings.HasPrefix(line, "*") || strings.HasPrefix(line, "-") {
-		line = strings.TrimPrefix(line, "*")
-		line = strings.TrimPrefix(line, "-")
-		line = strings.TrimSpace(line)
+		return text.String()
 	}
 
-	// Replace HTML entities with spaces
-	line = strings.ReplaceAll(line, "&nbsp;", " ")
-	return strings.TrimSpace(line)
-}
-
-// processHeading handles a heading line, updating lastHeading and checking for links
-func processHeading(line string, source sources.Source, query string, minScore int, allResults *[]Result, mu *sync.Mutex) string {
-	headingText, _ := parseHeading(line)
-	lastHeading := common.CleanCategory(headingText)
-
-	// Check for links in heading
-	if strings.Contains(line, "http") || strings.Contains(line, "www.") {
-		cleanHeading := cleanHeadingText(headingText)
-		cleanLine := common.CleanMarkdown(line)
-		url := common.ExtractURL(cleanLine)
-		if url != "" {
-			linkText := extractLinkText(line)
-			if linkText == "" {
-				linkText = cleanHeading
+	// Handle inline nodes and their children
+	for c := n.FirstChild(); c != nil; c = c.NextSibling() {
+		switch c.Kind() {
+		case ast.KindText:
+			if textNode, ok := c.(*ast.Text); ok {
+				segment := textNode.Segment
+				text.Write(segment.Value(source))
 			}
-			processLink(url, linkText, cleanLine, cleanHeading, source.Name, query, minScore, allResults, mu)
+		case ast.KindString:
+			if strNode, ok := c.(*ast.String); ok {
+				text.Write(strNode.Value)
+			}
+		default:
+			// Recursively get text from other node types
+			text.WriteString(getNodeText(c, source))
 		}
 	}
 
-	return lastHeading
+	// If no children and this is a text node, get its value
+	if text.Len() == 0 && n.Kind() == ast.KindText {
+		if textNode, ok := n.(*ast.Text); ok {
+			segment := textNode.Segment
+			text.Write(segment.Value(source))
+		}
+	}
+
+	return text.String()
 }
 
-// processContentLine handles a non-heading line, looking for links
-func processContentLine(line, lastHeading string, source sources.Source, query string, minScore int, allResults *[]Result, mu *sync.Mutex) {
-	if !strings.Contains(line, "http") && !strings.Contains(line, "www.") {
-		return
-	}
-
-	cleanedLine := cleanLine(line)
-	cleanedLine = common.CleanMarkdown(cleanedLine)
-	url := common.ExtractURL(cleanedLine)
-	if url == "" {
-		return
-	}
-
-	// Extract link text - try different formats
-	linkText := extractLinkText(line)
-
-	// If no markdown format found, try to extract text near the URL
-	if linkText == "" {
-		urlIndex := strings.Index(cleanedLine, url)
-		if urlIndex > 0 {
-			// Try to get text before the URL
-			beforeURL := strings.TrimSpace(cleanedLine[:urlIndex])
-			if beforeURL != "" {
-				linkText = beforeURL
-			}
-		}
-		// If still no text, use the domain name
-		if linkText == "" {
-			domain := common.ExtractDomain(url)
-			if domain != "" {
-				linkText = domain
-			} else {
-				linkText = url
-			}
-		}
-	}
-
-	processLink(url, linkText, cleanedLine, lastHeading, source.Name, query, minScore, allResults, mu)
-}
-
-// processLink handles the processing and adding of a link to the results
-func processLink(url, linkText, cleanLine, category, sourceName, query string, minScore int, allResults *[]Result, mu *sync.Mutex) {
-	// Extract description - try different patterns
-	var description string
-
-	// First try: everything after a dash
-	parts := strings.SplitN(cleanLine, "-", 2)
-	if len(parts) > 1 {
-		description = strings.TrimSpace(parts[1])
-	} else {
-		// Second try: everything after the URL
-		urlIndex := strings.Index(cleanLine, url)
-		if urlIndex != -1 {
-			afterURL := cleanLine[urlIndex+len(url):]
-			// Remove any remaining markdown syntax
-			afterURL = strings.TrimPrefix(afterURL, ")")
-			afterURL = strings.TrimSpace(afterURL)
-			if afterURL != "" {
-				description = afterURL
-			} else {
-				description = url // Default to URL if no description found
-			}
-		} else {
-			description = url
-		}
-	}
-
-	// Clean the description
-	description = common.CleanDescription(description)
-
-	// Search in both the description and the full line
-	matches := fuzzy.Find(query, []string{description, cleanLine})
-	if len(matches) > 0 {
-		log.Debug("Found match",
-			"score", matches[0].Score,
-			"minScore", minScore,
-			"name", linkText,
-			"description", description,
-			"line", cleanLine,
-			"category", category,
-			"source", sourceName,
-			"allMatches", len(matches))
-
-		// Check if the score meets the minimum threshold
-		if matches[0].Score >= minScore {
-			mu.Lock()
-			*allResults = append(*allResults, Result{
-				URL:         url,
-				Name:        linkText,
-				Description: description,
-				Line:        cleanLine,
-				Score:       matches[0].Score,
-				Category:    category,
-				Source:      sourceName,
-			})
-			mu.Unlock()
-			log.Debug("Added result to allResults",
-				"totalResults", len(*allResults),
-				"score", matches[0].Score,
-				"name", linkText)
-		} else {
-			log.Debug("Result below minimum score threshold",
-				"score", matches[0].Score,
-				"minScore", minScore,
-				"name", linkText)
-		}
-	}
-}
-
-// Search performs a fuzzy search across all markdown files in the sources
+// Search performs a fuzzy search across all markdown files using goldmark for parsing
 func Search(query string, sourceName string, s settings.Settings) ([]Result, error) {
 	// Get list of sources from settings
 	sourceList := s.Sources
@@ -340,7 +198,6 @@ func Search(query string, sourceName string, s settings.Settings) ([]Result, err
 			return nil, fmt.Errorf("source '%s' not found", sourceName)
 		}
 		sourceList = filteredSources
-		log.Info("Filtered sources", "count", len(sourceList), "sourceName", sourceName)
 	}
 
 	// Filter out disabled sources
@@ -348,15 +205,19 @@ func Search(query string, sourceName string, s settings.Settings) ([]Result, err
 	for _, source := range sourceList {
 		if source.Enabled {
 			enabledSources = append(enabledSources, source)
-			log.Debug("Source enabled", "name", source.Name)
-		} else {
-			log.Debug("Source disabled", "name", source.Name)
 		}
 	}
-	log.Info("Enabled sources", "count", len(enabledSources))
 
 	var allResults []Result
 	var mu sync.Mutex
+
+	// Initialize goldmark with GitHub Flavored Markdown
+	md := goldmark.New(
+		goldmark.WithExtensions(extension.GFM),
+		goldmark.WithParserOptions(
+			parser.WithAutoHeadingID(),
+		),
+	)
 
 	// Search in each enabled source
 	for _, source := range enabledSources {
@@ -388,25 +249,81 @@ func Search(query string, sourceName string, s settings.Settings) ([]Result, err
 				return nil
 			}
 
-			lines := strings.Split(string(content), "\n")
-			var lastHeading string
+			// Parse the markdown content
+			doc := md.Parser().Parse(text.NewReader(content))
 
-			for _, line := range lines {
-				// Skip empty lines and horizontal rules
-				trimmedLine := strings.TrimSpace(line)
-				if trimmedLine == "" || trimmedLine == "---" || trimmedLine == "&nbsp;" {
-					continue
+			// Track current heading and context
+			var currentHeading string
+			var currentContext string
+			var contextNode ast.Node
+
+			// Walk through the AST
+			ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+				if !entering {
+					// Clear context when leaving a block node
+					if n == contextNode {
+						currentContext = ""
+						contextNode = nil
+					}
+					return ast.WalkContinue, nil
 				}
 
-				// Check if it's a heading
-				if _, level := parseHeading(line); level > 0 {
-					lastHeading = processHeading(line, source, query, s.MinFuzzyScore, &allResults, &mu)
-					continue
+				switch v := n.(type) {
+				case *ast.Heading:
+					headingText := getNodeText(v, content)
+					currentHeading = common.CleanCategory(headingText)
+					// Set context for links in headings
+					currentContext = headingText
+					contextNode = v
+
+				case *ast.Paragraph, *ast.ListItem:
+					// Set context for links in this block
+					currentContext = getNodeText(v, content)
+					contextNode = v
+
+				case *ast.Link:
+					// Get the link destination
+					destination := v.Destination
+					if len(destination) == 0 {
+						return ast.WalkContinue, nil
+					}
+					url := string(destination)
+
+					// Get link text
+					linkText := getNodeText(v, content)
+					if linkText == "" {
+						linkText = url
+					}
+
+					// Use the current context as description, preserving markdown formatting
+					var description string
+					if currentContext != "" {
+						// Use cleanDescription to preserve markdown links
+						description = common.CleanDescription(currentContext)
+					} else {
+						description = linkText
+					}
+
+					// Search in both description and link text
+					matches := fuzzy.Find(query, []string{description, linkText})
+					if len(matches) > 0 && matches[0].Score >= s.MinFuzzyScore {
+						mu.Lock()
+						allResults = append(allResults, Result{
+							URL:         url,
+							Name:        linkText,
+							Description: description,
+							Line:        description,
+							Score:       matches[0].Score,
+							Category:    currentHeading,
+							Source:      source.Name,
+						})
+						mu.Unlock()
+					}
 				}
 
-				// Process regular content line
-				processContentLine(line, lastHeading, source, query, s.MinFuzzyScore, &allResults, &mu)
-			}
+				return ast.WalkContinue, nil
+			})
+
 			return nil
 		})
 
@@ -416,17 +333,15 @@ func Search(query string, sourceName string, s settings.Settings) ([]Result, err
 		}
 	}
 
-	log.Info("Search completed", "totalResults", len(allResults))
 	// Sort results by score
 	sort.Slice(allResults, func(i, j int) bool {
 		return allResults[i].Score > allResults[j].Score
 	})
 
-	// Normalize scores relative to the highest score
+	// Normalize scores
 	if len(allResults) > 0 {
 		maxScore := allResults[0].Score
 		for i := range allResults {
-			// Convert to a percentage (0-100) and round to nearest integer
 			allResults[i].Score = int((float64(allResults[i].Score) / float64(maxScore)) * 100)
 		}
 	}

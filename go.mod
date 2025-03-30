@@ -10,6 +10,7 @@ require (
 	github.com/charmbracelet/log v0.4.1
 	github.com/sahilm/fuzzy v0.1.1
 	github.com/spf13/cobra v1.9.1
+	github.com/yuin/goldmark v1.7.8
 )
 
 require (
