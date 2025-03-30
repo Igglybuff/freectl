@@ -15,7 +15,7 @@ showTab(initialTab);
 // Show tab function
 function showTab(tabName) {
     // Hide all tab contents
-    document.querySelectorAll('#searchTab, #favoritesTab, #statsTab, #settingsTab').forEach(tab => {
+    document.querySelectorAll('#searchTab, #favoritesTab, #libraryTab, #statsTab, #settingsTab').forEach(tab => {
         tab.style.display = 'none';
     });
 

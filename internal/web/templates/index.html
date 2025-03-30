@@ -21,6 +21,7 @@
         <div class="tab-left">
             <button class="tab-button active" data-tab="search">Search</button>
             <button class="tab-button" data-tab="favorites">Favorites</button>
+            <button class="tab-button" data-tab="library">Library</button>
             <button class="tab-button" data-tab="stats">Stats</button>
             <button class="tab-button" data-tab="settings">Settings</button>
         </div>
@@ -78,7 +79,14 @@
             <div id="favorites" class="results"></div>
         </div>
     </div>
-    <div id="statsTab" class="tab">
+    <div id="libraryTab">
+        <div class="page-container">
+            <div class="library-container">
+                <!-- Library content will go here -->
+            </div>
+        </div>
+    </div>
+    <div id="statsTab">
         <div class="page-container">
             <div class="stats-container">
                 <div class="source-selection">
@@ -131,7 +139,7 @@
             </div>
         </div>
     </div>
-    <div id="settingsTab" class="tab">
+    <div id="settingsTab">
         <div class="page-container">
             <div class="settings-container">
                 <div class="settings-section">

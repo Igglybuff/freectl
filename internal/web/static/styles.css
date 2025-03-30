@@ -77,6 +77,7 @@ body {
     margin: 0 auto;
     padding: 20px;
     width: 100%;
+    box-sizing: border-box;
 }
 
 /* Header and navigation styles */
@@ -102,6 +103,38 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    box-sizing: border-box;
+}
+
+.tab-left {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    -ms-overflow-style: none;  /* Hide scrollbar for IE and Edge */
+    scrollbar-width: none;  /* Hide scrollbar for Firefox */
+}
+
+.tab-left::-webkit-scrollbar {
+    display: none;  /* Hide scrollbar for Chrome, Safari and Opera */
+}
+
+.tab-right {
+    flex-shrink: 0;
+}
+
+.tab-button {
+    padding: 8px 16px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 16px;
+    color: var(--tab-color);
+    border-bottom: 2px solid var(--tab-border-color);
+}
+
+.tab-button.active {
+    color: var(--tab-active-color);
+    border-bottom-color: var(--tab-active-border-color);
 }
 
 /* Search page styles */
@@ -742,12 +775,18 @@ body {
     border-bottom-color: var(--tab-active-border-color);
 }
 
-#searchTab, #favoritesTab, #statsTab, #settingsTab {
+/* Tab visibility rules */
+#searchTab, #favoritesTab, #libraryTab, #statsTab, #settingsTab {
     display: none;
 }
 
-#searchTab.active, #favoritesTab.active, #statsTab.active, #settingsTab.active {
+#searchTab.active, #favoritesTab.active, #libraryTab.active, #statsTab.active, #settingsTab.active {
     display: block;
+}
+
+/* Remove any margin-bottom from tab containers */
+.stats-container, .settings-container {
+    margin-bottom: 0;
 }
 
 .theme-toggle {
@@ -795,7 +834,7 @@ body {
 
 /* Stats page styles */
 .stats-container {
-    margin-bottom: 20px;
+    /* Remove margin-bottom as it's not needed */
 }
 
 .stats-section {
@@ -1269,7 +1308,7 @@ body {
 
 /* Settings page styles */
 .settings-container {
-    margin-bottom: 20px;
+    /* Remove margin-bottom as it's not needed */
 }
 
 .settings-section {
@@ -1667,4 +1706,16 @@ body {
 
 .source-item.disabled .source-metadata {
     opacity: 0.5;
+}
+
+.favorites-container {
+    padding: 20px;
+}
+
+.library-container {
+    min-height: 200px;
+}
+
+.stats-container {
+    margin-bottom: 20px;
 } 
