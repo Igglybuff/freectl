@@ -1635,4 +1635,36 @@ body {
 
 .source-item.editing .source-button.delete {
     display: none;
+}
+
+.source-button.toggle {
+    color: var(--success-color);
+}
+
+.source-button.toggle.disabled {
+    color: var(--text-secondary);
+}
+
+.source-button.toggle:hover {
+    transform: translateY(-1px);
+}
+
+.source-button.toggle.enabled:hover {
+    border-color: var(--success-color);
+}
+
+.source-button.toggle.disabled:hover {
+    border-color: var(--text-secondary);
+}
+
+.source-item.disabled .source-name {
+    opacity: 0.5;
+}
+
+.source-item.disabled .source-type {
+    opacity: 0.5;
+}
+
+.source-item.disabled .source-metadata {
+    opacity: 0.5;
 } 

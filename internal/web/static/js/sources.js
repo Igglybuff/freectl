@@ -190,6 +190,19 @@ export function loadSourceList() {
                 const buttonContainer = document.createElement('div');
                 buttonContainer.className = 'source-buttons';
 
+                const toggleButton = document.createElement('button');
+                toggleButton.className = `source-button toggle ${source.enabled ? 'enabled' : 'disabled'}`;
+                toggleButton.innerHTML = source.enabled ? 
+                    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                        <polyline points="9 12 11 14 15 10"/>
+                    </svg>` :
+                    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                    </svg>`;
+                toggleButton.title = source.enabled ? 'Disable source' : 'Enable source';
+                toggleButton.onclick = () => toggleSource(source.name);
+
                 const editButton = document.createElement('button');
                 editButton.className = 'source-button edit';
                 editButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -227,6 +240,7 @@ export function loadSourceList() {
                 deleteButton.title = 'Delete source';
                 deleteButton.onclick = () => deleteSource(source.name);
 
+                buttonContainer.appendChild(toggleButton);
                 buttonContainer.appendChild(editButton);
                 buttonContainer.appendChild(saveButton);
                 buttonContainer.appendChild(cancelButton);
@@ -378,6 +392,29 @@ export function toggleSource(name) {
             throw new Error(data.error || 'Failed to toggle source');
         }
         showToast(data.message);
+        
+        // Update the UI
+        const sourceItem = document.querySelector(`.source-item[data-source="${name}"]`);
+        if (sourceItem) {
+            const toggleButton = sourceItem.querySelector('.source-button.toggle');
+            if (toggleButton) {
+                const isEnabled = toggleButton.classList.contains('enabled');
+                toggleButton.classList.remove('enabled', 'disabled');
+                toggleButton.classList.add(isEnabled ? 'disabled' : 'enabled');
+                toggleButton.title = isEnabled ? 'Enable source' : 'Disable source';
+                // Update the icon
+                toggleButton.innerHTML = isEnabled ? 
+                    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                    </svg>` :
+                    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                        <polyline points="9 12 11 14 15 10"/>
+                    </svg>`;
+            }
+            sourceItem.classList.toggle('disabled');
+        }
+        
         loadSourceList();
         loadSourceFilter(); // Refresh source filters
     })
