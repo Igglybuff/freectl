@@ -1,0 +1,52 @@
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.spin {
+    animation: spin 1s linear infinite;
+    display: inline-block;
+    margin-right: 4px;
+    vertical-align: middle;
+}
+
+[data-action="add-recommended"] {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+[data-action="add-recommended"] svg {
+    vertical-align: middle;
+}
+
+[data-action="add-recommended"].added {
+    background-color: #e6ffe6;
+    border-color: #b3ffb3;
+    color: #006600;
+    cursor: default;
+}
+
+[data-action="add-recommended"]:disabled {
+    opacity: 1;
+    cursor: wait;
+}
+
+.source-name-input {
+    display: none;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 14px;
+    font-family: inherit;
+    background: var(--bg-color);
+    color: var(--text-color);
+    margin-right: 8px;
+    min-width: 200px;
+}
+
+.source-name-input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 2px var(--accent-color-transparent);
+} 

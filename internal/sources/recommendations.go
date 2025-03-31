@@ -5,7 +5,6 @@ type RecommendedSource struct {
 	Name        string `json:"name"`
 	URL         string `json:"url"`
 	Type        string `json:"type"`
-	DisplayType string `json:"display_type"`
 	Description string `json:"description"`
 	Category    string `json:"category"`
 }
@@ -17,7 +16,6 @@ func GetRecommendedSources() []RecommendedSource {
 			Name:        "Awesome Lists",
 			URL:         "https://github.com/sindresorhus/awesome",
 			Type:        "git",
-			DisplayType: "Git repo",
 			Description: "A curated list of awesome lists",
 			Category:    "Curated Lists",
 		},
@@ -25,7 +23,6 @@ func GetRecommendedSources() []RecommendedSource {
 			Name:        "Awesome Sysadmin",
 			URL:         "https://github.com/kahun/awesome-sysadmin",
 			Type:        "git",
-			DisplayType: "Git repo",
 			Description: "A curated list of awesome open source sysadmin resources",
 			Category:    "System Administration",
 		},
@@ -33,7 +30,6 @@ func GetRecommendedSources() []RecommendedSource {
 			Name:        "Awesome Selfhosted",
 			URL:         "https://github.com/awesome-selfhosted/awesome-selfhosted",
 			Type:        "git",
-			DisplayType: "Git repo",
 			Description: "A list of self-hosted services and software",
 			Category:    "Self Hosting",
 		},
@@ -41,7 +37,6 @@ func GetRecommendedSources() []RecommendedSource {
 			Name:        "Awesome Rust",
 			URL:         "https://github.com/rust-unofficial/awesome-rust",
 			Type:        "git",
-			DisplayType: "Git repo",
 			Description: "A curated list of Rust code and resources",
 			Category:    "Programming",
 		},
@@ -49,7 +44,6 @@ func GetRecommendedSources() []RecommendedSource {
 			Name:        "Awesome Go",
 			URL:         "https://github.com/avelino/awesome-go",
 			Type:        "git",
-			DisplayType: "Git repo",
 			Description: "A curated list of awesome Go frameworks, libraries and software",
 			Category:    "Programming",
 		},

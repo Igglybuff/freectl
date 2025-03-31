@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"sync"
 	"time"
 
 	"freectl/internal/sources"
@@ -131,8 +132,57 @@ func SaveSettings(settings Settings) error {
 	return nil
 }
 
-// AddSource adds a new source to the settings and initializes it
-func AddSource(url, name, sourceType string) error {
+// SourceOperation represents a pending source operation
+type SourceOperation struct {
+	Type       string // "add" or "update"
+	URL        string
+	Name       string
+	SourceType string
+	Response   chan error
+}
+
+// SourceManager handles concurrent source operations
+type SourceManager struct {
+	operations chan SourceOperation
+}
+
+var (
+	manager     *SourceManager
+	managerOnce sync.Once
+)
+
+// getSourceManager returns the singleton SourceManager instance
+func getSourceManager() *SourceManager {
+	managerOnce.Do(func() {
+		manager = &SourceManager{
+			operations: make(chan SourceOperation),
+		}
+		go manager.run()
+	})
+	return manager
+}
+
+// run processes source operations sequentially
+func (sm *SourceManager) run() {
+	for op := range sm.operations {
+		var err error
+		switch op.Type {
+		case "add":
+			// First add the source to settings
+			err = sm.addSourceInternal(op.URL, op.Name, op.SourceType)
+			if err == nil {
+				// Then ensure it's fully updated
+				err = sm.updateSourceInternal(op.Name)
+			}
+		case "update":
+			err = sm.updateSourceInternal(op.Name)
+		}
+		op.Response <- err
+	}
+}
+
+// addSourceInternal is the internal implementation of AddSource
+func (sm *SourceManager) addSourceInternal(url, name, sourceType string) error {
 	// Load current settings
 	settings, err := LoadSettings()
 	if err != nil {
@@ -183,27 +233,82 @@ func AddSource(url, name, sourceType string) error {
 		return fmt.Errorf("failed to add source: %w", err)
 	}
 
-	// Get the size of the source after adding
-	size, err := sources.GetSourceSize(source.Path)
+	return nil
+}
+
+// updateSourceInternal is the internal implementation of UpdateSource
+func (sm *SourceManager) updateSourceInternal(name string) error {
+	settings, err := LoadSettings()
 	if err != nil {
-		log.Warn("Failed to get source size", "name", name, "error", err)
+		return fmt.Errorf("failed to load settings: %w", err)
 	}
 
-	// Update the source in settings with metadata
+	// Find the source
+	var sourceToUpdate *sources.Source
 	for i := range settings.Sources {
 		if settings.Sources[i].Name == name {
-			settings.Sources[i].Size = size
-			settings.Sources[i].LastUpdated = time.Now().Format(time.RFC3339)
+			sourceToUpdate = &settings.Sources[i]
 			break
 		}
 	}
 
-	// Save the updated settings with metadata
+	if sourceToUpdate == nil {
+		return fmt.Errorf("source '%s' not found", name)
+	}
+
+	// Update the source
+	duration, err := sources.Update(settings.CacheDir, []sources.Source{*sourceToUpdate})
+	if err != nil {
+		return fmt.Errorf("failed to update source: %w", err)
+	}
+
+	// Get updated source size
+	size, err := sources.GetSourceSize(sourceToUpdate.Path)
+	if err != nil {
+		log.Error("Failed to get source size", "name", name, "error", err)
+		// Don't return error here as the update was successful
+	}
+
+	// Update source metadata
+	sourceToUpdate.Size = size
+	sourceToUpdate.LastUpdated = time.Now().Format(time.RFC3339)
+
+	// Save updated settings
 	if err := SaveSettings(settings); err != nil {
 		return fmt.Errorf("failed to save settings: %w", err)
 	}
 
+	log.Info("Source updated successfully",
+		"name", name,
+		"duration", duration,
+		"size", size,
+		"lastUpdated", sourceToUpdate.LastUpdated)
+
 	return nil
+}
+
+// AddSource queues a source addition operation
+func AddSource(url, name, sourceType string) error {
+	responseChan := make(chan error)
+	getSourceManager().operations <- SourceOperation{
+		Type:       "add",
+		URL:        url,
+		Name:       name,
+		SourceType: sourceType,
+		Response:   responseChan,
+	}
+	return <-responseChan
+}
+
+// UpdateSource queues a source update operation
+func UpdateSource(name string) error {
+	responseChan := make(chan error)
+	getSourceManager().operations <- SourceOperation{
+		Type:     "update",
+		Name:     name,
+		Response: responseChan,
+	}
+	return <-responseChan
 }
 
 // DeleteSource removes a source from settings
@@ -336,57 +441,6 @@ func IsSourceEnabled(name string) (bool, error) {
 	}
 
 	return false, fmt.Errorf("source '%s' not found in settings", name)
-}
-
-// UpdateSource updates the specified sources and stores their metadata
-func UpdateSource(name string) error {
-	settings, err := LoadSettings()
-	if err != nil {
-		return fmt.Errorf("failed to load settings: %w", err)
-	}
-
-	// Find the source
-	var sourceToUpdate *sources.Source
-	for i := range settings.Sources {
-		if settings.Sources[i].Name == name {
-			sourceToUpdate = &settings.Sources[i]
-			break
-		}
-	}
-
-	if sourceToUpdate == nil {
-		return fmt.Errorf("source '%s' not found", name)
-	}
-
-	// Update the source
-	duration, err := sources.Update(settings.CacheDir, []sources.Source{*sourceToUpdate})
-	if err != nil {
-		return fmt.Errorf("failed to update source: %w", err)
-	}
-
-	// Get updated source size
-	size, err := sources.GetSourceSize(sourceToUpdate.Path)
-	if err != nil {
-		log.Error("Failed to get source size", "name", name, "error", err)
-		// Don't return error here as the update was successful
-	}
-
-	// Update source metadata
-	sourceToUpdate.Size = size
-	sourceToUpdate.LastUpdated = time.Now().Format(time.RFC3339)
-
-	// Save updated settings
-	if err := SaveSettings(settings); err != nil {
-		return fmt.Errorf("failed to save settings: %w", err)
-	}
-
-	log.Info("Source updated successfully",
-		"name", name,
-		"duration", duration,
-		"size", size,
-		"lastUpdated", sourceToUpdate.LastUpdated)
-
-	return nil
 }
 
 // UpdateAllSources updates all enabled sources and stores their metadata

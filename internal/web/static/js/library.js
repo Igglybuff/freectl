@@ -1,5 +1,5 @@
 import { showToast } from './ui.js';
-import { loadSourceList } from './sources.js';
+import { loadSourceList, formatSourceType } from './sources.js';
 
 // Load recommended sources data
 export async function loadRecommendedSources() {
@@ -23,7 +23,7 @@ function createRecommendedSourceHTML(source, category, isAdded) {
             <div class="source-name-container">
                 <div class="source-info">
                     <a href="${source.url}" class="source-name" target="_blank">${source.name}</a>
-                    <span class="source-type">${source.type}</span>
+                    <span class="source-type">${formatSourceType(source.type)}</span>
                     <span class="category-tag">${category}</span>
                     <div class="source-metadata">
                         <span class="source-description">${source.description}</span>

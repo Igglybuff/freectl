@@ -490,6 +490,7 @@ func HandleAddSource(w http.ResponseWriter, r *http.Request) {
 		req.Name = sources.DeriveNameFromURL(req.URL)
 	}
 
+	// First, add the source to settings and download it
 	if err := settings.AddSource(req.URL, req.Name, req.Type); err != nil {
 		log.Error("Failed to add source", "error", err)
 		w.Header().Set("Content-Type", "application/json")
@@ -501,7 +502,21 @@ func HandleAddSource(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Info("Source added successfully")
+	// Now update this specific source to ensure it's fully processed
+	if err := settings.UpdateSource(req.Name); err != nil {
+		log.Error("Failed to update source after adding", "error", err)
+		// Even if update fails, the source was added, so we'll return success
+		// but include a warning in the response
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"warning": fmt.Sprintf("Source added but initial update failed: %s", err.Error()),
+			"message": "Source added successfully",
+		})
+		return
+	}
+
+	log.Info("Source added and updated successfully")
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,

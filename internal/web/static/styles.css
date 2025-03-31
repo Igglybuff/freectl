@@ -1074,7 +1074,7 @@ body {
     flex-shrink: 0;
 }
 
-.source-name-edit {
+.source-name-input {
     min-width: 200px;
     max-width: calc(100% - 220px);
     width: auto;
@@ -1094,7 +1094,7 @@ body {
     transform: translateY(-50%);
 }
 
-.source-name-edit:focus {
+.source-name-input:focus {
     outline: none;
     border-color: var(--accent-color);
     box-shadow: 0 0 0 2px var(--accent-color-transparent);
@@ -1105,6 +1105,7 @@ body {
     gap: 8px;
     align-items: center;
     margin-left: 16px;
+    flex-shrink: 0;
 }
 
 .source-button {
@@ -1120,6 +1121,7 @@ body {
     color: var(--text-color);
     cursor: pointer;
     transition: all 0.2s ease;
+    flex-shrink: 0;
 }
 
 .source-button svg {
@@ -1178,13 +1180,21 @@ body {
     display: none;
 }
 
-.source-item.editing .source-name-edit {
+.source-item.editing .source-name-input {
     display: block;
     width: auto;
 }
 
 .source-item:not(.editing) .source-button.save,
 .source-item:not(.editing) .source-button.cancel {
+    display: none;
+}
+
+.source-item.editing .source-metadata {
+    z-index: 1;
+}
+
+.source-item.editing .source-button.delete {
     display: none;
 }
 
@@ -1732,4 +1742,41 @@ body {
 .source-button.add:not(:disabled):hover {
     border-color: var(--success-color);
     color: var(--success-color);
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.spin {
+    animation: spin 1s linear infinite;
+    transform-origin: center;
+}
+
+.source-button.placeholder {
+    width: 32px;
+    height: 32px;
+    visibility: hidden;
+    pointer-events: none;
+    margin: 0;
+    padding: 0;
+    border: none;
+    flex-shrink: 0;
+}
+
+.source-button.confirm-delete {
+    color: var(--success-color);
+}
+
+.source-button.confirm-delete:hover {
+    border-color: var(--success-color);
+}
+
+.source-button.cancel-delete {
+    color: var(--error-color);
+}
+
+.source-button.cancel-delete:hover {
+    border-color: var(--error-color);
 } 
