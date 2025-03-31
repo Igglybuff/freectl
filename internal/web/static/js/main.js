@@ -4,6 +4,8 @@ import { loadSourceFilter, addSource, loadSourceList, deleteSource, toggleSource
 import { loadSources as loadStatsSources, loadStats } from './stats.js';
 import { loadFavorites, updateFavoritesDisplay, toggleFavorite } from './favorites.js';
 import { validateSearchInput, performSearch, updateCategoryFilter } from './search.js';
+import { showToast } from './ui.js';
+import { loadLibrary } from './library.js';
 
 // Initialize theme
 initializeTheme();
@@ -39,7 +41,7 @@ function showTab(tabName) {
     } else if (tabName === 'favorites') {
         loadFavorites();
     } else if (tabName === 'library') {
-        loadSourceList();
+        loadLibrary();
     } else if (tabName === 'settings') {
         loadSettings();
     }

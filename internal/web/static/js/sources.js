@@ -105,11 +105,8 @@ export function loadSourceList() {
                 return;
             }
 
-            console.log('Sources data:', data.sources); // Debug log
-
             sourceList.innerHTML = '';
             data.sources.forEach(source => {
-                console.log('Source:', source); // Debug log for each source
                 const sourceItem = document.createElement('div');
                 sourceItem.className = 'source-item';
                 if (!source.enabled) {
@@ -480,4 +477,44 @@ function showError(message) {
 
 function showSuccess(message) {
     showToast(message, false);
-} 
+}
+
+// Add recommended source
+async function addRecommendedSource(name, url, type) {
+    try {
+        const response = await fetch('/sources/add', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                name: name,
+                url: url,
+                type: type
+            }),
+        });
+
+        const data = await response.json();
+        if (!data.success) {
+            throw new Error(data.error || 'Failed to add source');
+        }
+
+        showToast('Source added successfully');
+        loadSourceList();
+        loadSourceFilter();
+    } catch (error) {
+        console.error('Error adding source:', error);
+        showToast(`Failed to add source: ${error.message}`, true);
+    }
+}
+
+// Set up event listeners for recommended source buttons
+document.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-action="add-recommended"]');
+    if (button && !button.disabled) {
+        const name = button.dataset.name;
+        const url = button.dataset.url;
+        const type = button.dataset.type;
+        addRecommendedSource(name, url, type);
+    }
+}); 

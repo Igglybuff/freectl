@@ -67,6 +67,7 @@ func startServer() error {
 	http.HandleFunc("/sources/toggle", web.HandleToggleSource)
 	http.HandleFunc("/sources/edit", web.HandleEditSource)
 	http.HandleFunc("/scan/virustotal", web.HandleVirusTotalScan)
+	http.HandleFunc("/library", web.HandleLibrary)
 
 	log.Infof("Starting server at http://localhost:%d", port)
 	return http.ListenAndServe(fmt.Sprintf(":%d", port), nil)

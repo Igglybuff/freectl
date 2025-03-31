@@ -834,7 +834,7 @@ body {
 
 /* Stats page styles */
 .stats-container {
-    /* Remove margin-bottom as it's not needed */
+    margin-bottom: 20px;
 }
 
 .stats-section {
@@ -1718,4 +1718,18 @@ body {
 
 .stats-container {
     margin-bottom: 20px;
+}
+
+/* Add disabled state for add button */
+.source-button.add:disabled {
+    background-color: var(--bg-secondary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.source-button.add:not(:disabled):hover {
+    border-color: var(--success-color);
+    color: var(--success-color);
 } 

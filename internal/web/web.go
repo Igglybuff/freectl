@@ -845,3 +845,35 @@ type SearchResult struct {
 	Score       int    `json:"score"`
 	Source      string `json:"source"`
 }
+
+// HandleLibrary handles the library page
+func HandleLibrary(w http.ResponseWriter, r *http.Request) {
+	// Load settings
+	s, err := settings.LoadSettings()
+	if err != nil {
+		http.Error(w, "Failed to load settings", http.StatusInternalServerError)
+		return
+	}
+
+	// Get recommended sources
+	recommendedSources := sources.GetRecommendedSources()
+
+	// Group recommended sources by category
+	sourcesByCategory := make(map[string][]sources.RecommendedSource)
+	for _, source := range recommendedSources {
+		sourcesByCategory[source.Category] = append(sourcesByCategory[source.Category], source)
+	}
+
+	// Create a map of existing source names
+	existingSources := make([]string, 0, len(s.Sources))
+	for _, source := range s.Sources {
+		existingSources = append(existingSources, source.Name)
+	}
+
+	// Return JSON data
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"recommendedSources": sourcesByCategory,
+		"existingSources":    existingSources,
+	})
+}
