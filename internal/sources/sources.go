@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/charmbracelet/log"
@@ -67,6 +68,29 @@ func ExpandCacheDir(cacheDir string) (string, error) {
 	return cacheDir, nil
 }
 
+// SanitizePath sanitizes a name to be safe for filesystem operations.
+// It removes any path separators and other potentially dangerous characters.
+func SanitizePath(name string) string {
+	// Replace any path separators with underscores
+	name = strings.ReplaceAll(name, "/", "_")
+	name = strings.ReplaceAll(name, "\\", "_")
+
+	// Remove any other potentially dangerous characters
+	name = strings.Map(func(r rune) rune {
+		if r == '.' || r == '_' || r == '-' || (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') {
+			return r
+		}
+		return '_'
+	}, name)
+
+	// Ensure the name isn't empty after sanitization
+	if name == "" {
+		name = "unnamed_source"
+	}
+
+	return name
+}
+
 // GetSourcePath returns the path to a source
 func GetSourcePath(cacheDir, sourceName string) string {
 	// Expand the cache directory path
@@ -75,7 +99,9 @@ func GetSourcePath(cacheDir, sourceName string) string {
 		log.Fatal("Failed to expand cache directory", "error", err)
 	}
 
-	sourcePath := filepath.Join(expandedCacheDir, sourceName)
+	// Sanitize the source name only when used in the filesystem path
+	sanitizedName := SanitizePath(sourceName)
+	sourcePath := filepath.Join(expandedCacheDir, sanitizedName)
 	if _, err := os.Stat(sourcePath); os.IsNotExist(err) {
 		log.Fatal("Source not found. Please run 'freectl update' first")
 	}
@@ -111,9 +137,10 @@ func Add(cacheDir string, url string, name string, sourceType string) error {
 		return fmt.Errorf("failed to expand cache directory: %w", err)
 	}
 
-	// Create a source object
+	// Create a source object with sanitized name for filesystem operations
 	source := Source{
-		Name: name,
+		Name: name,                                                // Keep original name for display
+		Path: filepath.Join(expandedCacheDir, SanitizePath(name)), // Use sanitized name for filesystem
 		URL:  url,
 		Type: SourceType(sourceType),
 	}
@@ -135,7 +162,9 @@ func Delete(cacheDir string, name string, force bool) error {
 		return fmt.Errorf("failed to expand cache directory: %w", err)
 	}
 
-	sourcePath := filepath.Join(expandedCacheDir, name)
+	// Use sanitized name for filesystem operations
+	sanitizedName := SanitizePath(name)
+	sourcePath := filepath.Join(expandedCacheDir, sanitizedName)
 	if _, err := os.Stat(sourcePath); err == nil {
 		// Source exists in cache, try to delete it
 		if err := os.RemoveAll(sourcePath); err != nil {

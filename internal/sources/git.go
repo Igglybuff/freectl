@@ -39,8 +39,8 @@ func AddGitRepo(cacheDir string, source Source) error {
 		return fmt.Errorf("git source requires a URL")
 	}
 
-	// Create a directory for the repository
-	repoDir := filepath.Join(cacheDir, source.Name)
+	// Create a directory for the repository using sanitized name
+	repoDir := filepath.Join(cacheDir, SanitizePath(source.Name))
 	if err := os.MkdirAll(repoDir, 0755); err != nil {
 		return fmt.Errorf("failed to create repository directory: %w", err)
 	}

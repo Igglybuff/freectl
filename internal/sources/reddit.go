@@ -17,8 +17,8 @@ func AddRedditWiki(cacheDir string, source Source) error {
 		return fmt.Errorf("reddit wiki source requires a URL")
 	}
 
-	// Create a directory for the wiki content
-	wikiDir := filepath.Join(cacheDir, source.Name)
+	// Create a directory for the wiki content using sanitized name
+	wikiDir := filepath.Join(cacheDir, SanitizePath(source.Name))
 	if err := os.MkdirAll(wikiDir, 0755); err != nil {
 		return fmt.Errorf("failed to create wiki directory: %w", err)
 	}

@@ -152,10 +152,10 @@ func AddSource(url, name, sourceType string) error {
 		}
 	}
 
-	// Create initial source
+	// Create initial source with original name for display
 	source := sources.Source{
 		Name:    name,
-		Path:    filepath.Join(settings.CacheDir, name),
+		Path:    filepath.Join(settings.CacheDir, sources.SanitizePath(name)),
 		URL:     url,
 		Enabled: true,
 		Type:    sources.SourceType(sourceType),
@@ -304,7 +304,7 @@ func RenameSource(oldName, newName string) error {
 	for i := range settings.Sources {
 		if settings.Sources[i].Name == oldName {
 			settings.Sources[i].Name = newName
-			settings.Sources[i].Path = filepath.Join(filepath.Dir(settings.Sources[i].Path), newName)
+			// Don't modify the Path field - keep the original filesystem path
 			found = true
 			break
 		}
