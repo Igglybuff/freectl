@@ -750,19 +750,6 @@ func HandleEditSource(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Load settings to get cache directory
-	s, err := settings.LoadSettings()
-	if err != nil {
-		log.Error("Failed to load settings", "error", err)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success": false,
-			"error":   fmt.Sprintf("Failed to load settings: %w", err),
-		})
-		return
-	}
-
 	// First rename in settings
 	if err := settings.RenameSource(req.OldName, req.NewName); err != nil {
 		log.Error("Failed to rename source in settings", "error", err)
@@ -773,39 +760,6 @@ func HandleEditSource(w http.ResponseWriter, r *http.Request) {
 			"error":   fmt.Sprintf("Failed to rename source: %w", err),
 		})
 		return
-	}
-
-	// Expand cache directory path
-	expandedCacheDir, err := sources.ExpandCacheDir(s.CacheDir)
-	if err != nil {
-		log.Error("Failed to expand cache directory", "error", err)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success": false,
-			"error":   fmt.Sprintf("Failed to expand cache directory: %s", err.Error()),
-		})
-		return
-	}
-
-	// Then rename the directory if it exists
-	oldPath := filepath.Join(expandedCacheDir, req.OldName)
-	newPath := filepath.Join(expandedCacheDir, req.NewName)
-	if _, err := os.Stat(oldPath); err == nil {
-		if err := os.Rename(oldPath, newPath); err != nil {
-			log.Error("Failed to rename source directory", "error", err)
-			// Try to revert the settings change
-			if revertErr := settings.RenameSource(req.NewName, req.OldName); revertErr != nil {
-				log.Error("Failed to revert settings after directory rename failure", "error", revertErr)
-			}
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(map[string]interface{}{
-				"success": false,
-				"error":   fmt.Sprintf("Failed to rename source directory: %w", err),
-			})
-			return
-		}
 	}
 
 	log.Info("Successfully renamed source", "oldName", req.OldName, "newName", req.NewName)

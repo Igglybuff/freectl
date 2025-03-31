@@ -19,6 +19,7 @@ type Source struct {
 	Type        SourceType `json:"type"`
 	Size        string     `json:"size"`
 	LastUpdated string     `json:"last_updated"`
+	ID          string     `json:"id"`
 }
 
 // SourceType represents the type of a data source
