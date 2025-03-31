@@ -79,6 +79,8 @@ func HandleStatic(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/javascript")
 		// Add CORS headers for JavaScript modules
 		w.Header().Set("Access-Control-Allow-Origin", "*")
+	case strings.HasSuffix(path, ".svg"):
+		w.Header().Set("Content-Type", "image/svg+xml")
 	default:
 		w.Header().Set("Content-Type", "application/octet-stream")
 	}

@@ -192,12 +192,15 @@ go build
 - [x] fix stats page
 - [x] update docker instructions with settings volume mapping
 - [x] support for reddit megathreads/wikis
+- [x] "library" page with curated data sources, 1-click downloads
+- [x] add a favicon
 
 #### Bugs
 
 - [ ] filter out items under misleading headings like "Contents"
 - [ ] this blogs list didn't parse at all: https://github.com/kilimchoi/engineering-blogs
 - [ ] after adding/removing repos from Settings, page needs to refresh before selecting categories from Search drop-down
+- [ ] stats page is broken again
 
 #### Features
 
@@ -211,7 +214,6 @@ go build
 - [ ] support for open directories
 - [ ] support for other useful data sources
 - [ ] support for book databases
-- [x] "library" page with curated data sources, 1-click downloads
 - [ ] implement a search index using [bleve](https://github.com/blevesearch/bleve) as an alternative to fuzzy-search
 - [ ] advanced search queries
 - [ ] rest API
@@ -234,7 +236,6 @@ go build
 - [ ] add a --config arg to use a custom config file path
 - [ ] add a `set` command to add CLI support for changing settings like the web UI can
 - [ ] add viper to configure settings via environment variables
-- [ ] add a favicon
 - [ ] UI improvements
 
 ##### SDLC
