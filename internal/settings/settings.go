@@ -31,13 +31,24 @@ type Settings struct {
 
 // DefaultSettings returns the default settings
 func DefaultSettings() Settings {
+	homeDir := os.Getenv("HOME")
+	if homeDir == "" {
+		// Fallback to os.UserHomeDir() if HOME is not set
+		var err error
+		homeDir, err = os.UserHomeDir()
+		if err != nil {
+			log.Error("Failed to get home directory", "error", err)
+			homeDir = "~" // Fallback to "~" if both methods fail
+		}
+	}
+
 	return Settings{
 		MinQueryLength: 2,
 		MaxQueryLength: 1000,
 		SearchDelay:    300,
 		ShowScores:     true,
 		ResultsPerPage: 10,
-		CacheDir:       "~/.local/cache/freectl",
+		CacheDir:       filepath.Join(homeDir, ".local", "cache", "freectl"),
 		AutoUpdate:     true,
 		TruncateTitles: true,
 		MaxTitleLength: 100,

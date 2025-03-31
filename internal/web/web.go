@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 	"text/template"
+	"time"
 
 	"freectl/internal/common"
 	"freectl/internal/search"
@@ -319,7 +320,15 @@ func HandleStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sourcePath := filepath.Join(s.CacheDir, sourceName)
+	// Expand cache directory path
+	expandedCacheDir, err := sources.ExpandCacheDir(s.CacheDir)
+	if err != nil {
+		log.Error("Failed to expand cache directory", "error", err)
+		http.Error(w, fmt.Sprintf("Failed to expand cache directory: %s", err.Error()), http.StatusInternalServerError)
+		return
+	}
+
+	sourcePath := filepath.Join(expandedCacheDir, sourceName)
 	if _, err := os.Stat(sourcePath); os.IsNotExist(err) {
 		http.Error(w, fmt.Sprintf("Source '%s' not found in cache", sourceName), http.StatusNotFound)
 		return
@@ -380,15 +389,18 @@ func HandleUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Update all sources using the wrapper function
+	start := time.Now()
 	if err := settings.UpdateAllSources(); err != nil {
 		http.Error(w, fmt.Sprintf("Failed to update sources: %v", err), http.StatusInternalServerError)
 		return
 	}
+	duration := time.Since(start).Round(100 * time.Millisecond)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"success": true,
-		"message": "Sources updated successfully",
+		"success":  true,
+		"duration": duration.String(),
+		"message":  "Sources updated successfully",
 	})
 }
 
@@ -748,9 +760,22 @@ func HandleEditSource(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Expand cache directory path
+	expandedCacheDir, err := sources.ExpandCacheDir(s.CacheDir)
+	if err != nil {
+		log.Error("Failed to expand cache directory", "error", err)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"error":   fmt.Sprintf("Failed to expand cache directory: %s", err.Error()),
+		})
+		return
+	}
+
 	// Then rename the directory if it exists
-	oldPath := filepath.Join(s.CacheDir, req.OldName)
-	newPath := filepath.Join(s.CacheDir, req.NewName)
+	oldPath := filepath.Join(expandedCacheDir, req.OldName)
+	newPath := filepath.Join(expandedCacheDir, req.NewName)
 	if _, err := os.Stat(oldPath); err == nil {
 		if err := os.Rename(oldPath, newPath); err != nil {
 			log.Error("Failed to rename source directory", "error", err)

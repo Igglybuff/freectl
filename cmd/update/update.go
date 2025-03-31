@@ -37,7 +37,7 @@ content from each source.`,
 			return fmt.Errorf("failed to update sources: %w", err)
 		}
 
-		duration := time.Since(startTime)
+		duration := time.Since(startTime).Round(100 * time.Millisecond)
 		log.Info("Update completed", "duration", duration)
 		return nil
 	},

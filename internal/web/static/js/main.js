@@ -38,9 +38,10 @@ function showTab(tabName) {
         loadStatsSources();
     } else if (tabName === 'favorites') {
         loadFavorites();
+    } else if (tabName === 'library') {
+        loadSourceList();
     } else if (tabName === 'settings') {
         loadSettings();
-        loadSourceList();
     }
 }
 

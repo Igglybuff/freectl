@@ -2,10 +2,11 @@ package serve
 
 import (
 	"fmt"
+	"freectl/internal/settings"
+	"freectl/internal/sources"
+	"freectl/internal/web"
 	"net/http"
 	"os"
-	"freectl/internal/settings"
-	"freectl/internal/web"
 
 	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
@@ -38,8 +39,14 @@ func startServer() error {
 		return err
 	}
 
-	// Create cache directory if it doesn't exist
-	if err := os.MkdirAll(s.CacheDir, 0755); err != nil {
+	// Expand and create cache directory if it doesn't exist
+	expandedCacheDir, err := sources.ExpandCacheDir(s.CacheDir)
+	if err != nil {
+		log.Error("Failed to expand cache directory", "error", err)
+		return err
+	}
+
+	if err := os.MkdirAll(expandedCacheDir, 0755); err != nil {
 		log.Error("Failed to create cache directory", "error", err)
 		return err
 	}

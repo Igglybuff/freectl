@@ -55,18 +55,27 @@ func (s Source) Add(cacheDir string) error {
 	}
 }
 
-// GetSourcePath returns the path to a source
-func GetSourcePath(cacheDir, sourceName string) string {
-	// Expand the ~ to the user's home directory
+// ExpandCacheDir expands the cache directory path, handling "~" expansion
+func ExpandCacheDir(cacheDir string) (string, error) {
 	if cacheDir[:2] == "~/" {
 		home, err := os.UserHomeDir()
 		if err != nil {
-			log.Fatal("Failed to get home directory", "error", err)
+			return "", fmt.Errorf("failed to get home directory: %w", err)
 		}
-		cacheDir = filepath.Join(home, cacheDir[2:])
+		return filepath.Join(home, cacheDir[2:]), nil
+	}
+	return cacheDir, nil
+}
+
+// GetSourcePath returns the path to a source
+func GetSourcePath(cacheDir, sourceName string) string {
+	// Expand the cache directory path
+	expandedCacheDir, err := ExpandCacheDir(cacheDir)
+	if err != nil {
+		log.Fatal("Failed to expand cache directory", "error", err)
 	}
 
-	sourcePath := filepath.Join(cacheDir, sourceName)
+	sourcePath := filepath.Join(expandedCacheDir, sourceName)
 	if _, err := os.Stat(sourcePath); os.IsNotExist(err) {
 		log.Fatal("Source not found. Please run 'freectl update' first")
 	}
@@ -96,6 +105,12 @@ func Add(cacheDir string, url string, name string, sourceType string) error {
 		return fmt.Errorf("unsupported source type: %s", sourceType)
 	}
 
+	// Expand the cache directory path
+	expandedCacheDir, err := ExpandCacheDir(cacheDir)
+	if err != nil {
+		return fmt.Errorf("failed to expand cache directory: %w", err)
+	}
+
 	// Create a source object
 	source := Source{
 		Name: name,
@@ -104,7 +119,7 @@ func Add(cacheDir string, url string, name string, sourceType string) error {
 	}
 
 	// Add the source using the appropriate handler
-	if err := source.Add(cacheDir); err != nil {
+	if err := source.Add(expandedCacheDir); err != nil {
 		return fmt.Errorf("failed to add source: %w", err)
 	}
 
@@ -114,7 +129,13 @@ func Add(cacheDir string, url string, name string, sourceType string) error {
 
 // Delete removes a source from disk
 func Delete(cacheDir string, name string, force bool) error {
-	sourcePath := filepath.Join(cacheDir, name)
+	// Expand the cache directory path
+	expandedCacheDir, err := ExpandCacheDir(cacheDir)
+	if err != nil {
+		return fmt.Errorf("failed to expand cache directory: %w", err)
+	}
+
+	sourcePath := filepath.Join(expandedCacheDir, name)
 	if _, err := os.Stat(sourcePath); err == nil {
 		// Source exists in cache, try to delete it
 		if err := os.RemoveAll(sourcePath); err != nil {
@@ -147,7 +168,13 @@ func Update(cacheDir string, sources []Source) (time.Duration, error) {
 
 	if len(sources) == 0 {
 		log.Info("No sources to update")
-		return time.Since(startTime), nil
+		return time.Since(startTime).Round(100 * time.Millisecond), nil
+	}
+
+	// Expand the cache directory path
+	expandedCacheDir, err := ExpandCacheDir(cacheDir)
+	if err != nil {
+		return 0, fmt.Errorf("failed to expand cache directory: %w", err)
 	}
 
 	// Update each source
@@ -159,7 +186,7 @@ func Update(cacheDir string, sources []Source) (time.Duration, error) {
 		case SourceTypeGit:
 			err = UpdateGitRepo(source.Path)
 		case SourceTypeRedditWiki:
-			err = UpdateRedditWiki(cacheDir, source)
+			err = UpdateRedditWiki(expandedCacheDir, source)
 		default:
 			err = fmt.Errorf("unsupported source type: %s", source.Type)
 		}
@@ -172,7 +199,7 @@ func Update(cacheDir string, sources []Source) (time.Duration, error) {
 		log.Info("Source updated successfully", "name", source.Name, "type", source.Type)
 	}
 
-	return time.Since(startTime), nil
+	return time.Since(startTime).Round(100 * time.Millisecond), nil
 }
 
 // IsImplemented returns true if the source type is implemented

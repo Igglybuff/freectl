@@ -82,7 +82,41 @@
     <div id="libraryTab">
         <div class="page-container">
             <div class="library-container">
-                <!-- Library content will go here -->
+                <div class="settings-section">
+                    <h3>Data sources</h3>
+                    <div class="source-list" id="sourceList">
+                        <!-- Source list will be populated here -->
+                    </div>
+                    <div class="settings-buttons">
+                        <button id="updateSource" class="settings-button">Update data sources</button>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3>Add data source</h3>
+                    <div class="add-source-form">
+                        <div class="form-group">
+                            <label for="sourceUrl">URL:</label>
+                            <input type="text" id="sourceUrl" placeholder="https://github.com/user/source">
+                        </div>
+                        <div class="form-group">
+                            <label for="sourceName">Name (optional):</label>
+                            <input type="text" id="sourceName" placeholder="Custom name for the source">
+                        </div>
+                        <div class="form-group">
+                            <label for="sourceType">Type:</label>
+                            <select id="sourceType">
+                                <option value="git">Git repository</option>
+                                <option value="reddit_wiki">Reddit wiki</option>
+                                <option value="opml">OPML feed</option>
+                                <option value="bookmarks">Browser bookmarks</option>
+                                <option value="hn500">HackerNews top 500</option>
+                                <option value="obsidian">Obsidian vault</option>
+                            </select>
+                        </div>
+                        <button id="addSource">Add</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -218,43 +252,6 @@
                             </div>
                             <span class="setting-description">Automatically update the cache when it's older than a week</span>
                         </div>
-                    </div>
-                    <div class="settings-buttons">
-                        <button id="updateSource" class="settings-button">Update data sources</button>
-                    </div>
-                </div>
-
-                <div class="settings-section">
-                    <h3>Add data source</h3>
-                    <div class="add-source-form">
-                        <h2>Add data source</h2>
-                        <div class="form-group">
-                            <label for="sourceUrl">URL:</label>
-                            <input type="text" id="sourceUrl" placeholder="https://github.com/user/source">
-                        </div>
-                        <div class="form-group">
-                            <label for="sourceName">Name (optional):</label>
-                            <input type="text" id="sourceName" placeholder="Custom name for the source">
-                        </div>
-                        <div class="form-group">
-                            <label for="sourceType">Type:</label>
-                            <select id="sourceType">
-                                <option value="git">Git repository</option>
-                                <option value="reddit_wiki">Reddit wiki</option>
-                                <option value="opml">OPML feed</option>
-                                <option value="bookmarks">Browser bookmarks</option>
-                                <option value="hn500">HackerNews top 500</option>
-                                <option value="obsidian">Obsidian vault</option>
-                            </select>
-                        </div>
-                        <button id="addSource">Add</button>
-                    </div>
-                </div>
-
-                <div class="settings-section">
-                    <h3>Manage data sources</h3>
-                    <div id="sourceList" class="source-list">
-                        Loading data sources...
                     </div>
                 </div>
 
