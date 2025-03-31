@@ -3,7 +3,6 @@ package root
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"freectl/cmd/add"
 	"freectl/cmd/delete"
@@ -39,16 +38,6 @@ func init() {
 	RootCmd.AddCommand(serve.ServeCmd)
 	RootCmd.AddCommand(update.UpdateCmd)
 	RootCmd.AddCommand(stats.StatsCmd)
-
-	// Set default cache directory
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		log.Error("Failed to get home directory", "error", err)
-		fmt.Printf("Error getting home directory: %v\n", err)
-		os.Exit(1)
-	}
-	defaultCacheDir := filepath.Join(homeDir, ".local", "cache", "freectl")
-	log.Debug("Setting default cache directory", "path", defaultCacheDir)
 
 	log.Debug("Root command initialization complete")
 }
