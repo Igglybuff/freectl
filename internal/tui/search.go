@@ -30,13 +30,13 @@ var (
 )
 
 type SearchResult struct {
-	Category   string
-	Link       string
-	Name       string
-	Line       string
-	Score      int
-	Source     string
-	IsInvalid  bool
+	Category  string
+	Link      string
+	Name      string
+	Line      string
+	Score     int
+	Source    string
+	IsInvalid bool
 }
 
 func (i SearchResult) Title() string {
