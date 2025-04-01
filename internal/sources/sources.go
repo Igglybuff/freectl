@@ -33,6 +33,7 @@ const (
 
 	// not implemented yet
 	SourceTypeOPML      SourceType = "opml"
+	SourceTypeRSS       SourceType = "rss"
 	SourceTypeBookmarks SourceType = "bookmarks"
 	SourceTypeObsidian  SourceType = "obsidian"
 )
@@ -46,6 +47,8 @@ func (s Source) Add(cacheDir string) error {
 		return AddRedditWiki(cacheDir, s)
 	case SourceTypeOPML:
 		return AddOPML(cacheDir, s)
+	case SourceTypeRSS:
+		return AddRSS(cacheDir, s)
 	case SourceTypeBookmarks:
 		return AddBookmarks(cacheDir, s)
 	case SourceTypeHN5000:
