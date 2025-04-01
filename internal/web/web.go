@@ -304,7 +304,7 @@ func HandleStats(w http.ResponseWriter, r *http.Request) {
 	s, err := settings.LoadSettings()
 	if err != nil {
 		log.Error("Failed to load settings", "error", err)
-		http.Error(w, fmt.Sprintf("Failed to load settings: %s", err.Error()), http.StatusInternalServerError)
+		http.Error(w, fmt.Errorf("failed to load settings: %w", err).Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -326,7 +326,7 @@ func HandleStats(w http.ResponseWriter, r *http.Request) {
 	expandedCacheDir, err := sources.ExpandCacheDir(s.CacheDir)
 	if err != nil {
 		log.Error("Failed to expand cache directory", "error", err)
-		http.Error(w, fmt.Sprintf("Failed to expand cache directory: %s", err.Error()), http.StatusInternalServerError)
+		http.Error(w, fmt.Errorf("failed to expand cache directory: %w", err).Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -357,7 +357,7 @@ func HandleStats(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Error walking source: %v", err), http.StatusInternalServerError)
+		http.Error(w, fmt.Errorf("error walking source: %w", err).Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -377,7 +377,7 @@ func HandleUpdate(w http.ResponseWriter, r *http.Request) {
 	sourceList, err := settings.ListSources()
 	if err != nil {
 		log.Error("Failed to list sources", "error", err)
-		http.Error(w, fmt.Sprintf("Failed to list sources: %s", err.Error()), http.StatusInternalServerError)
+		http.Error(w, fmt.Errorf("failed to list sources: %w", err).Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -393,7 +393,7 @@ func HandleUpdate(w http.ResponseWriter, r *http.Request) {
 	// Update all sources using the wrapper function
 	start := time.Now()
 	if err := settings.UpdateAllSources(); err != nil {
-		http.Error(w, fmt.Sprintf("Failed to update sources: %v", err), http.StatusInternalServerError)
+		http.Error(w, fmt.Errorf("failed to update sources: %w", err).Error(), http.StatusInternalServerError)
 		return
 	}
 	duration := time.Since(start).Round(100 * time.Millisecond)
@@ -413,13 +413,13 @@ func HandleSettings(w http.ResponseWriter, r *http.Request) {
 		settings, err := settings.LoadSettings()
 		if err != nil {
 			log.Error("Failed to load settings", "error", err)
-			http.Error(w, fmt.Sprintf(`{"error": "%s"}`, err.Error()), http.StatusInternalServerError)
+			http.Error(w, fmt.Errorf(`{"error": "%s"}`, err.Error()).Error(), http.StatusInternalServerError)
 			return
 		}
 
 		if err := json.NewEncoder(w).Encode(settings); err != nil {
 			log.Error("Failed to encode settings", "error", err)
-			http.Error(w, fmt.Sprintf(`{"error": "Failed to encode settings: %s"}`, err.Error()), http.StatusInternalServerError)
+			http.Error(w, fmt.Errorf("failed to encode settings: %w", err).Error(), http.StatusInternalServerError)
 			return
 		}
 		return
@@ -429,20 +429,20 @@ func HandleSettings(w http.ResponseWriter, r *http.Request) {
 		var s settings.Settings
 		if err := json.NewDecoder(r.Body).Decode(&s); err != nil {
 			log.Error("Failed to decode settings from request", "error", err)
-			http.Error(w, fmt.Sprintf(`{"error": "Failed to decode settings: %s"}`, err.Error()), http.StatusBadRequest)
+			http.Error(w, fmt.Errorf("failed to decode settings: %w", err).Error(), http.StatusBadRequest)
 			return
 		}
 
 		if err := settings.SaveSettings(s); err != nil {
 			log.Error("Failed to save settings", "error", err)
-			http.Error(w, fmt.Sprintf(`{"error": "Failed to save settings: %s"}`, err.Error()), http.StatusInternalServerError)
+			http.Error(w, fmt.Errorf("failed to save settings: %w", err).Error(), http.StatusInternalServerError)
 			return
 		}
 
 		// Return the saved settings as confirmation
 		if err := json.NewEncoder(w).Encode(s); err != nil {
 			log.Error("Failed to encode response", "error", err)
-			http.Error(w, fmt.Sprintf(`{"error": "Failed to encode response: %s"}`, err.Error()), http.StatusInternalServerError)
+			http.Error(w, fmt.Errorf("failed to encode response: %w", err).Error(), http.StatusInternalServerError)
 			return
 		}
 		return
@@ -482,7 +482,7 @@ func HandleAddSource(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": false,
-			"error":   fmt.Sprintf("Invalid request: %s", err.Error()),
+			"error":   fmt.Errorf("invalid request: %w", err).Error(),
 		})
 		return
 	}
@@ -545,7 +545,7 @@ func HandleListSource(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": false,
-			"error":   fmt.Sprintf("Failed to list sources: %w", err),
+			"error":   fmt.Errorf("failed to list sources: %w", err).Error(),
 		})
 		return
 	}
@@ -587,7 +587,7 @@ func HandleDeleteSource(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": false,
-			"error":   fmt.Sprintf("Invalid request: %s", err.Error()),
+			"error":   fmt.Errorf("invalid request: %w", err).Error(),
 		})
 		return
 	}
@@ -600,7 +600,7 @@ func HandleDeleteSource(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": false,
-			"error":   fmt.Sprintf("Failed to load settings: %w", err),
+			"error":   fmt.Errorf("failed to load settings: %w", err).Error(),
 		})
 		return
 	}
@@ -613,7 +613,7 @@ func HandleDeleteSource(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": false,
-			"error":   fmt.Sprintf("Failed to list sources: %w", err),
+			"error":   fmt.Errorf("failed to list sources: %w", err).Error(),
 		})
 		return
 	}
@@ -644,7 +644,7 @@ func HandleDeleteSource(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": false,
-			"error":   fmt.Sprintf("Failed to delete source from settings: %w", err),
+			"error":   fmt.Errorf("failed to delete source from settings: %w", err).Error(),
 		})
 		return
 	}
@@ -681,7 +681,7 @@ func HandleToggleSource(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": false,
-			"error":   fmt.Sprintf("Invalid request: %s", err.Error()),
+			"error":   fmt.Errorf("invalid request: %w", err).Error(),
 		})
 		return
 	}
@@ -705,7 +705,7 @@ func HandleToggleSource(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": false,
-			"error":   fmt.Sprintf("Failed to get source status: %s", err.Error()),
+			"error":   fmt.Errorf("failed to get source status: %w", err).Error(),
 		})
 		return
 	}
@@ -747,7 +747,7 @@ func HandleEditSource(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": false,
-			"error":   fmt.Sprintf("Invalid request: %s", err.Error()),
+			"error":   fmt.Errorf("invalid request: %w", err).Error(),
 		})
 		return
 	}
@@ -759,7 +759,7 @@ func HandleEditSource(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": false,
-			"error":   fmt.Sprintf("Failed to rename source: %w", err),
+			"error":   fmt.Errorf("failed to rename source: %w", err).Error(),
 		})
 		return
 	}
@@ -792,7 +792,7 @@ func HandleVirusTotalScan(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": false,
-			"error":   fmt.Sprintf("Invalid request: %s", err.Error()),
+			"error":   fmt.Errorf("invalid request: %w", err).Error(),
 		})
 		return
 	}

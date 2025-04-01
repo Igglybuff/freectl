@@ -1,0 +1,148 @@
+linters:
+  enable:
+    - gofmt
+    - govet
+    - errcheck
+    - staticcheck
+    - gosimple
+    - ineffassign
+    - typecheck
+    - unused
+    - misspell
+    - gosec
+    - gocyclo
+    - goimports
+    - revive
+    - gocritic
+    - gocognit
+    - goconst
+    - gomnd
+    - gomoddirectives
+    - gomodguard
+    - goprintffuncname
+    - gosec
+    - gosimple
+    - govet
+    - ineffassign
+    - interfacer
+    - lll
+    - misspell
+    - nakedret
+    - prealloc
+    - rowserrcheck
+    - scopelint
+    - sqlclosecheck
+    - structcheck
+    - stylecheck
+    - tparallel
+    - typecheck
+    - unconvert
+    - unparam
+    - unused
+    - varcheck
+    - whitespace
+    - wrapcheck
+    - wsl
+
+linters-settings:
+  govet:
+    check-shadowing: true
+  gocyclo:
+    min-complexity: 15
+  gocognit:
+    min-complexity: 15
+  goconst:
+    min-len: 2
+    min-occurrences: 2
+  gomnd:
+    settings:
+      mnd:
+        checks: argument,case,condition,operation,return,assign
+  gosec:
+    excludes:
+      - G404  # Use of weak random number generator
+  lll:
+    line-length: 120
+  misspell:
+    locale: US
+  prealloc:
+    simple: true
+    range-loops: true
+    for-loops: false
+  sqlclosecheck:
+    packages:
+      - database/sql
+  tparallel:
+    ignore-missing: true
+  wsl:
+    allow-assign-and-call: true
+    allow-assign-and-anything: false
+    allow-defer-calls: true
+    allow-empty-nl: false
+    allow-error-strings: false
+    allow-errorf: true
+    allow-if-short-var: false
+    allow-multiline-assign: true
+    allow-return-early: true
+    allow-separated-leading: false
+    allow-trailing-comment: false
+    allow-unmatched-append: true
+    allow-var-declaration: false
+    force-cuddling: false
+    force-err-cuddling: false
+    force-short-decl-cuddling: false
+    strict-append: true
+    test-timeout: 30s
+
+issues:
+  exclude-rules:
+    - path: internal/search/search.go
+      linters:
+        - typecheck
+        - unused
+      text: "headings declared and not used"
+    - path: internal/search/search.go
+      linters:
+        - typecheck
+        - unused
+      text: "currentLevel declared and not used"
+    - path: internal/search/search.go
+      linters:
+        - typecheck
+        - unused
+      text: "currentContext declared and not used"
+    - path: internal/search/search.go
+      linters:
+        - typecheck
+        - unused
+      text: "insideHeading declared and not used"
+    - path: internal/search/search.go
+      linters:
+        - typecheck
+        - unused
+      text: "mu declared and not used"
+
+run:
+  deadline: 5m
+  tests: true
+  skip-dirs:
+    - vendor/
+    - third_party/
+    - testdata/
+    - examples/
+    - Godeps/
+    - builtin/
+
+output:
+  format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
+
+path:
+  skip-dirs:
+    - vendor/
+    - third_party/
+    - testdata/
+    - examples/
+    - Godeps/
+    - builtin/ 
