@@ -10,10 +10,10 @@ Lightning-fast command-line tool and web UI for finding cool stuff from various 
 
 - 🔍 Fuzzy search through cached data sources
 - 📦 Cache and update data sources locally
-- 📊 Generate statistics about repository content
+- 📊 Generate statistics about cached content
 - 🌐 Web interface for searching
 - 🎨 Beautiful TUI interface
-- 🔄 Automatic repository updates
+- 🔄 Automatic source updates
 - 🌓 Toggleable dark theme
 - 🐳 Docker support
 
@@ -23,7 +23,7 @@ Lightning-fast command-line tool and web UI for finding cool stuff from various 
 
 `freectl` is a handy tool for downloading data sources containing a lot of URLs (like "awesome" lists) and making them searchable.
 
-It uses a very scrappy, semi-home-grown markdown link parser to extract URLs, titles/descriptions, and categories by looking for common patterns in markdown lists. This happens _while_ searching, so there is no indexing process - repositories are fuzzy-searched directly with a configurable query delay. This might not scale well if you add too many repositories!
+It uses a very scrappy, semi-home-grown markdown link parser to extract URLs, titles/descriptions, and categories by looking for common patterns in markdown lists. This happens _while_ searching, so there is no indexing process - data sources are fuzzy-searched directly with a configurable query delay. This might not scale well if you add too many data sources!
 
 There is also a basic favouriting system. Favourites and settings are stored locally as JSON files in `~/.config/freectl/`.
 
@@ -75,7 +75,7 @@ docker run -d \
 ```
 
 The Docker container exposes port 8080 and mounts two volumes:
-- `~/.local/cache/freectl` for repository caches
+- `~/.local/cache/freectl` for data source caches
 - `~/.config/freectl` for storing favorites
 
 ### Using Docker Compose
@@ -127,21 +127,18 @@ freectl add https://old.reddit.com/r/Piracy/wiki/megathread/movies_and_tv \
 ### Update
 
 ```bash
-# Update all cached repositories
+# Update all cached data sources
 freectl update
-
-# Update a specific repository
-freectl update --repo repository-name
 ```
 
 ### Search
 
 ```bash
-# Search in all cached repositories
+# Search in all cached data sources
 freectl search "query"
 
-# Search in a specific repository
-freectl search "query" --repo repository-name
+# Search in a specific data source
+freectl search "query" --source source-name
 ```
 
 ### Stats
@@ -149,8 +146,8 @@ freectl search "query" --repo repository-name
 This feature is still a work in progress.
 
 ```bash
-# Show stats for a specific repository
-freectl stats --repo repository-name
+# Show stats for a specific data source
+freectl stats --source source-name
 ```
 
 ### Web interface
@@ -165,7 +162,7 @@ The web interface is available at `http://localhost:8080` by default. You can ch
 ## Configuration
 
 The tool uses the following default paths:
-- `~/.local/cache/freectl` for repository caches
+- `~/.local/cache/freectl` for data source caches
 - `~/.config/freectl/config.json` for configuration
 
 ## Development
@@ -195,11 +192,11 @@ go build
 - [x] "library" page with curated data sources, 1-click downloads
 - [x] add a favicon
 - [x] support for HackerNews top 5000
+- [x] this blogs list didn't parse at all: https://github.com/kilimchoi/engineering-blogs
 
 #### Bugs
 
 - [ ] filter out items under misleading headings like "Contents"
-- [ ] this blogs list didn't parse at all: https://github.com/kilimchoi/engineering-blogs
 - [ ] after adding/removing repos from Settings, page needs to refresh before selecting categories from Search drop-down
 - [ ] stats page is broken again
 
