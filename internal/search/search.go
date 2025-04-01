@@ -23,13 +23,14 @@ import (
 )
 
 type Result struct {
-	URL         string `json:"url"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Line        string `json:"-"`
-	Score       int    `json:"-"`
-	Category    string `json:"title"`
-	Source      string `json:"source"`
+	URL         string   `json:"url"`
+	Name        string   `json:"name"`
+	Description string   `json:"description"`
+	Line        string   `json:"-"`
+	Score       int      `json:"-"`
+	Category    string   `json:"title"`
+	Source      string   `json:"source"`
+	Tags        []string `json:"tags"` // not used yet
 }
 
 // isLinkHeavyReadme checks if a README.md file contains a significant number of links

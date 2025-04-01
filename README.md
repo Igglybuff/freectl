@@ -194,6 +194,7 @@ go build
 - [x] support for reddit megathreads/wikis
 - [x] "library" page with curated data sources, 1-click downloads
 - [x] add a favicon
+- [x] support for HackerNews top 5000
 
 #### Bugs
 
@@ -206,7 +207,6 @@ go build
 
 ##### Core
 
-- [ ] support for HackerNews top 5000
 - [ ] support for blogroll/OPML import
 - [ ] support for bookmarks import (HTML/XML)
 - [ ] support for Hoarder/Linkwarden sync
