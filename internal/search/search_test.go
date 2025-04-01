@@ -27,18 +27,19 @@ func TestSearch(t *testing.T) {
 	log.Debug("Created test source", "name", testSource.Name, "path", testSource.Path)
 
 	// Create test markdown file with triple heading and list
-	testContent := `### A companies
-* [AdRoll](http://tech.adroll.com/blog/)
-* [Advanced Web Machinery](https://advancedweb.hu/)
+	testContent := `### Koala
+* [Koala](https://koala.com/)
 
-### B companies
-* Bad Company https://badcompany.com/
-* Better Company https://bettercompany.com/
+#### Kangaroo
+* [Kangaroo](https://kangaroo.com/)
 
-## [C companies](https://ccompanies.com/)
-### [D company](https://dcompany.com/)
-* [E company](https://ecompany.com/)
-- [F company](https://fcompany.com/)
+## [Ostrich](https://ostrich.com/)
+### [Tiger](https://tiger.com/)
+* [Eagle](https://eagle.com/)
+- [Falcon](https://falcon.com/)
+
+## Penguin
+* Penguin https://penguin.com/
 `
 	testFile := filepath.Join(tmpDir, "test.md")
 	err := os.WriteFile(testFile, []byte(testContent), 0644)
@@ -60,28 +61,38 @@ func TestSearch(t *testing.T) {
 	}{
 		{
 			name:     "find markdown link under triple heading",
-			query:    "adroll",
-			expected: []string{"http://tech.adroll.com/blog/"},
+			query:    "koala",
+			expected: []string{"https://koala.com/"},
 		},
 		{
-			name:     "find markdown link under triple heading with company name",
-			query:    "advanced web",
-			expected: []string{"https://advancedweb.hu/"},
+			name:     "find markdown link under quadruple heading",
+			query:    "kangaroo",
+			expected: []string{"https://kangaroo.com/"},
 		},
 		{
-			name:     "find multiple links under different triple headings",
-			query:    "company",
-			expected: []string{"https://badcompany.com/", "https://bettercompany.com/"},
+			name:     "find links in double headings",
+			query:    "ostrich",
+			expected: []string{"https://ostrich.com/"},
 		},
 		{
-			name:     "find links in headings",
-			query:    "d company",
-			expected: []string{"https://dcompany.com/"},
+			name:     "find links in triple headings",
+			query:    "tiger",
+			expected: []string{"https://tiger.com/"},
 		},
 		{
-			name:     "find links in list items",
-			query:    "f company",
-			expected: []string{"https://fcompany.com/"},
+			name:     "find links in list items - asterisk",
+			query:    "eagle",
+			expected: []string{"https://eagle.com/"},
+		},
+		{
+			name:     "find links in list items - dash",
+			query:    "eagle",
+			expected: []string{"https://eagle.com/"},
+		},
+		{
+			name:     "find unformatted/plain text links",
+			query:    "penguin",
+			expected: []string{"https://penguin.com/"},
 		},
 	}
 
