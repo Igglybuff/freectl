@@ -206,6 +206,11 @@
                             <input type="number" id="resultsPerPage" value="10" min="5" max="50" step="5">
                             <span class="setting-description">Number of search results to display per page</span>
                         </div>
+                        <div class="setting-item">
+                            <label for="searchConcurrency">Search concurrency:</label>
+                            <input type="number" id="searchConcurrency" value="1" min="1" max="16" step="1">
+                            <span class="setting-description">Number of sources to search simultaneously. Higher values may improve performance on multi-core systems.</span>
+                        </div>
                     </div>
                 </div>
 

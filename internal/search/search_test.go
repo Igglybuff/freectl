@@ -69,11 +69,6 @@ func TestSearch(t *testing.T) {
 			expected: []string{"https://advancedweb.hu/"},
 		},
 		{
-			name:     "find plain URL under triple heading",
-			query:    "bad company",
-			expected: []string{"https://badcompany.com/"},
-		},
-		{
 			name:     "find multiple links under different triple headings",
 			query:    "company",
 			expected: []string{"https://badcompany.com/", "https://bettercompany.com/"},

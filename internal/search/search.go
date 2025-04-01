@@ -234,9 +234,6 @@ func Search(query string, sourceName string, s settings.Settings) ([]Result, err
 		}
 	}
 
-	var allResults []Result
-	var mu sync.Mutex
-
 	// Initialize goldmark with GitHub Flavored Markdown
 	md := goldmark.New(
 		goldmark.WithExtensions(extension.GFM),
@@ -245,151 +242,191 @@ func Search(query string, sourceName string, s settings.Settings) ([]Result, err
 		),
 	)
 
-	// Search in each enabled source
+	// Create a channel for collecting results
+	resultChan := make(chan []Result, len(enabledSources))
+	var wg sync.WaitGroup
+
+	// Determine number of workers (ensure at least 1)
+	numWorkers := s.SearchConcurrency
+	if numWorkers < 1 {
+		numWorkers = 1
+		log.Info("Using default concurency", "concurency", numWorkers)
+	} else {
+		log.Info("Using configured concurency", "concurency", numWorkers)
+	}
+
+	// Create a semaphore to limit concurrent goroutines
+	semaphore := make(chan struct{}, numWorkers)
+
+	// Process each source
 	for _, source := range enabledSources {
-		sourcePath := source.Path
-		log.Info("Searching in source", "name", source.Name, "path", sourcePath)
+		wg.Add(1)
+		semaphore <- struct{}{} // Acquire semaphore
 
-		// Walk through all markdown files in the source
-		err := filepath.Walk(sourcePath, func(path string, info os.FileInfo, err error) error {
-			if err != nil {
-				log.Error("Error accessing path", "path", path, "error", err)
-				return nil // Skip this file but continue walking
-			}
+		go func(src sources.Source) {
+			defer wg.Done()
+			defer func() { <-semaphore }() // Release semaphore
 
-			// Skip directories and non-markdown files
-			if info.IsDir() || !strings.HasSuffix(path, ".md") {
-				return nil
-			}
+			sourcePath := src.Path
+			log.Info("Searching in source", "name", src.Name, "path", sourcePath)
 
-			// Skip non-content files
-			if !isContentFile(path) {
-				log.Debug("Skipping non-content file", "path", path)
-				return nil
-			}
+			var sourceResults []Result
+			var sourceMu sync.Mutex
 
-			log.Debug("Processing markdown file", "path", path)
-			content, err := os.ReadFile(path)
-			if err != nil {
-				log.Error("Error reading file", "path", path, "error", err)
-				return nil
-			}
-
-			// Parse the markdown content
-			doc := md.Parser().Parse(text.NewReader(content))
-
-			// Track headings by level
-			headings := make(map[int]string)
-			var currentLevel int
-			var currentContext string
-			var contextNode ast.Node
-			var insideHeading bool
-
-			// Walk through the AST
-			ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
-				if !entering {
-					if n == contextNode {
-						currentContext = ""
-						contextNode = nil
-					}
-					if _, ok := n.(*ast.Heading); ok {
-						insideHeading = false
-					}
-					return ast.WalkContinue, nil
+			// Walk through all markdown files in the source
+			err := filepath.Walk(sourcePath, func(path string, info os.FileInfo, err error) error {
+				if err != nil {
+					log.Error("Error accessing path", "path", path, "error", err)
+					return nil // Skip this file but continue walking
 				}
 
-				switch v := n.(type) {
-				case *ast.Heading:
-					headingText := getNodeText(v, content)
-					cleanHeading := common.CleanCategory(headingText)
-					currentLevel = v.Level
-					headings[currentLevel] = cleanHeading
-					currentContext = headingText
-					contextNode = v
-					insideHeading = true
+				// Skip directories and non-markdown files
+				if info.IsDir() || !strings.HasSuffix(path, ".md") {
+					return nil
+				}
 
-				case *ast.Paragraph, *ast.ListItem:
-					currentContext = getNodeText(v, content)
-					contextNode = v
+				// Skip non-content files
+				if !isContentFile(path) {
+					log.Debug("Skipping non-content file", "path", path)
+					return nil
+				}
 
-				case *ast.Link:
-					// Get the link destination
-					destination := v.Destination
-					if len(destination) == 0 {
+				log.Debug("Processing markdown file", "path", path)
+				content, err := os.ReadFile(path)
+				if err != nil {
+					log.Error("Error reading file", "path", path, "error", err)
+					return nil
+				}
+
+				// Parse the markdown content
+				doc := md.Parser().Parse(text.NewReader(content))
+
+				// Track headings by level
+				headings := make(map[int]string)
+				var currentLevel int
+				var currentContext string
+				var contextNode ast.Node
+				var insideHeading bool
+
+				// Walk through the AST
+				ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+					if !entering {
+						if n == contextNode {
+							currentContext = ""
+							contextNode = nil
+						}
+						if _, ok := n.(*ast.Heading); ok {
+							insideHeading = false
+						}
 						return ast.WalkContinue, nil
 					}
-					url := string(destination)
 
-					// Get link text
-					linkText := getNodeText(v, content)
-					if linkText == "" {
-						linkText = url
-					}
+					switch v := n.(type) {
+					case *ast.Heading:
+						headingText := getNodeText(v, content)
+						cleanHeading := common.CleanCategory(headingText)
+						currentLevel = v.Level
+						headings[currentLevel] = cleanHeading
+						currentContext = headingText
+						contextNode = v
+						insideHeading = true
 
-					// Skip single-character link texts
-					if len(strings.TrimSpace(linkText)) <= 1 {
-						return ast.WalkContinue, nil
-					}
+					case *ast.Paragraph, *ast.ListItem:
+						currentContext = getNodeText(v, content)
+						contextNode = v
 
-					// Use the current context as description
-					var description string
-					if currentContext != "" {
-						description = common.CleanDescription(currentContext)
-					} else {
-						description = linkText
-					}
+					case *ast.Link:
+						// Get the link destination
+						destination := v.Destination
+						if len(destination) == 0 {
+							return ast.WalkContinue, nil
+						}
+						url := string(destination)
 
-					// Search in both description and link text
-					matches := fuzzy.Find(query, []string{description, linkText})
-					if len(matches) > 0 && matches[0].Score >= s.MinFuzzyScore {
-						if isLocalURL(url) {
+						// Get link text
+						linkText := getNodeText(v, content)
+						if linkText == "" {
+							linkText = url
+						}
+
+						// Skip single-character link texts
+						if len(strings.TrimSpace(linkText)) <= 1 {
 							return ast.WalkContinue, nil
 						}
 
-						// Find the nearest parent heading
-						category := "n/a"
-						// If we're inside a heading, look for the parent heading
-						if insideHeading {
-							for level := currentLevel - 1; level >= 1; level-- {
-								if parent, ok := headings[level]; ok {
-									category = common.CleanCategory(parent)
-									break
-								}
-							}
+						// Use the current context as description
+						var description string
+						if currentContext != "" {
+							description = common.CleanDescription(currentContext)
 						} else {
-							// Otherwise, look for the nearest heading
-							for level := currentLevel; level >= 1; level-- {
-								if parent, ok := headings[level]; ok {
-									category = common.CleanCategory(parent)
-									break
-								}
-							}
+							description = linkText
 						}
 
-						mu.Lock()
-						allResults = append(allResults, Result{
-							URL:         url,
-							Name:        linkText,
-							Description: description,
-							Line:        description,
-							Score:       matches[0].Score,
-							Category:    category,
-							Source:      source.Name,
-						})
-						mu.Unlock()
-					}
-				}
+						// Search in both description and link text
+						matches := fuzzy.Find(query, []string{description, linkText})
+						if len(matches) > 0 && matches[0].Score >= s.MinFuzzyScore {
+							if isLocalURL(url) {
+								return ast.WalkContinue, nil
+							}
 
-				return ast.WalkContinue, nil
+							// Find the nearest parent heading
+							category := "n/a"
+							// If we're inside a heading, look for the parent heading
+							if insideHeading {
+								for level := currentLevel - 1; level >= 1; level-- {
+									if parent, ok := headings[level]; ok {
+										category = common.CleanCategory(parent)
+										break
+									}
+								}
+							} else {
+								// Otherwise, look for the nearest heading
+								for level := currentLevel; level >= 1; level-- {
+									if parent, ok := headings[level]; ok {
+										category = common.CleanCategory(parent)
+										break
+									}
+								}
+							}
+
+							sourceMu.Lock()
+							sourceResults = append(sourceResults, Result{
+								URL:         url,
+								Name:        linkText,
+								Description: description,
+								Line:        description,
+								Score:       matches[0].Score,
+								Category:    category,
+								Source:      src.Name,
+							})
+							sourceMu.Unlock()
+						}
+					}
+
+					return ast.WalkContinue, nil
+				})
+
+				return nil
 			})
 
-			return nil
-		})
+			if err != nil {
+				log.Error("Error walking source", "source", src.Name, "error", err)
+			}
 
-		if err != nil {
-			log.Error("Error walking source", "source", source.Name, "error", err)
-			continue
-		}
+			resultChan <- sourceResults
+		}(source)
+	}
+
+	// Wait for all goroutines to complete
+	go func() {
+		wg.Wait()
+		close(resultChan)
+	}()
+
+	// Collect results from all sources
+	var allResults []Result
+	for results := range resultChan {
+		allResults = append(allResults, results...)
 	}
 
 	// Sort results by score

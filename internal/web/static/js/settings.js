@@ -24,7 +24,8 @@ export function loadSettings() {
                 truncateTitles: true,
                 maxTitleLength: 100,
                 customHeader: 'find cool stuff',
-                minFuzzyScore: 0
+                minFuzzyScore: 0,
+                searchConcurrency: 1
             };
 
             // Merge settings with defaults
@@ -42,6 +43,7 @@ export function loadSettings() {
             document.getElementById('maxTitleLength').value = settings.maxTitleLength;
             document.getElementById('customHeader').value = settings.customHeader;
             document.getElementById('minFuzzyScore').value = settings.minFuzzyScore;
+            document.getElementById('searchConcurrency').value = settings.searchConcurrency;
             updateHeaderText(settings.customHeader);
             currentSettings = settings;
             return settings;
@@ -74,6 +76,7 @@ export function saveSettings() {
         maxTitleLength: parseInt(document.getElementById('maxTitleLength').value),
         customHeader: document.getElementById('customHeader').value,
         minFuzzyScore: parseInt(document.getElementById('minFuzzyScore').value),
+        searchConcurrency: parseInt(document.getElementById('searchConcurrency').value),
         sources: existingSettings.sources || [] // Preserve the sources array
     };
 
@@ -113,6 +116,7 @@ export function resetSettings() {
             document.getElementById('maxTitleLength').value = settings.maxTitleLength;
             document.getElementById('customHeader').value = settings.customHeader;
             document.getElementById('minFuzzyScore').value = settings.minFuzzyScore;
+            document.getElementById('searchConcurrency').value = settings.searchConcurrency;
             updateHeaderText(settings.customHeader);
 
             // Save current settings
