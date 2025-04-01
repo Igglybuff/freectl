@@ -47,11 +47,10 @@ func TestSearch(t *testing.T) {
 
 	// Create test settings
 	testSettings := settings.Settings{
-		Sources:               []sources.Source{testSource},
-		MinFuzzyScore:         0,
-		MaxConcurrentSearches: 4, // Set concurrent search limit
+		Sources:       []sources.Source{testSource},
+		MinFuzzyScore: 0,
 	}
-	log.Debug("Created test settings", "max_concurrent", testSettings.MaxConcurrentSearches)
+	log.Debug("Created test settings")
 
 	// Test cases
 	tests := []struct {
