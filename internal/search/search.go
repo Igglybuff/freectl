@@ -195,7 +195,10 @@ func isLocalURL(urlStr string) bool {
 		host == "127.0.0.1" ||
 		host == "::1" ||
 		host == "[::1]" ||
-		strings.HasSuffix(host, ".localhost")
+		strings.HasSuffix(host, ".localhost") ||
+		strings.HasPrefix(host, "192.168.") ||
+		strings.HasPrefix(host, "10.") ||
+		strings.HasPrefix(host, "172.")
 }
 
 // Search performs a fuzzy search across all markdown files using goldmark for parsing

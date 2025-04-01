@@ -192,13 +192,13 @@ go build
 - [x] "library" page with curated data sources, 1-click downloads
 - [x] add a favicon
 - [x] support for HackerNews top 5000
-- [x] this blogs list didn't parse at all: https://github.com/kilimchoi/engineering-blogs
 
 #### Bugs
 
 - [ ] filter out items under misleading headings like "Contents"
 - [ ] after adding/removing repos from Settings, page needs to refresh before selecting categories from Search drop-down
 - [ ] stats page is broken again
+- [ ] this blogs list didn't parse at all: https://github.com/kilimchoi/engineering-blogs
 
 #### Features
 
