@@ -61,5 +61,13 @@ func GetRecommendedSources() []RecommendedSource {
 			Category:    "Free Media",
 			ID:          "fmhy",
 		},
+		{
+			Name:        "HackerNews Top 5000",
+			URL:         "https://refactoringenglish.com/tools/hn-popularity/",
+			Type:        "hn5000",
+			Description: "The top 5000 most popular blogs and websites from HackerNews",
+			Category:    "Blogs",
+			ID:          "hn5000",
+		},
 	}
 }

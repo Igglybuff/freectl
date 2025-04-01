@@ -29,11 +29,11 @@ type SourceType string
 const (
 	SourceTypeGit        SourceType = "git"
 	SourceTypeRedditWiki SourceType = "reddit_wiki"
+	SourceTypeHN5000     SourceType = "hn5000"
 
 	// not implemented yet
 	SourceTypeOPML      SourceType = "opml"
 	SourceTypeBookmarks SourceType = "bookmarks"
-	SourceTypeHN500     SourceType = "hn500"
 	SourceTypeObsidian  SourceType = "obsidian"
 )
 
@@ -48,8 +48,8 @@ func (s Source) Add(cacheDir string) error {
 		return AddOPML(cacheDir, s)
 	case SourceTypeBookmarks:
 		return AddBookmarks(cacheDir, s)
-	case SourceTypeHN500:
-		return AddHN500(cacheDir, s)
+	case SourceTypeHN5000:
+		return AddHN5000(cacheDir, s)
 	case SourceTypeObsidian:
 		return AddObsidian(cacheDir, s)
 	default:
@@ -217,6 +217,8 @@ func Update(cacheDir string, sources []Source) (time.Duration, error) {
 			err = UpdateGitRepo(source.Path)
 		case SourceTypeRedditWiki:
 			err = UpdateRedditWiki(expandedCacheDir, source)
+		case SourceTypeHN5000:
+			err = UpdateHN5000(expandedCacheDir, source)
 		default:
 			err = fmt.Errorf("unsupported source type: %s", source.Type)
 		}
@@ -234,7 +236,9 @@ func Update(cacheDir string, sources []Source) (time.Duration, error) {
 
 // IsImplemented returns true if the source type is implemented
 func IsImplemented(sourceType SourceType) bool {
-	return sourceType == SourceTypeGit || sourceType == SourceTypeRedditWiki
+	return sourceType == SourceTypeGit ||
+		sourceType == SourceTypeRedditWiki ||
+		sourceType == SourceTypeHN5000
 }
 
 // GetSourceSize returns the size of a source in human-readable format

@@ -217,8 +217,10 @@ go build
 - [ ] implement a search index using [bleve](https://github.com/blevesearch/bleve) as an alternative to fuzzy-search
 - [ ] advanced search queries
 - [ ] rest API
-- [ ] user authentication
+- [ ] [user authentication via OIDC](https://github.com/zitadel/oidc)
 - [ ] custom markdown parsing rules for non-standard repos
+- [ ] group data sources into "collections"
+- [ ] semantic search using word embedding model
 
 ##### Improvements
 

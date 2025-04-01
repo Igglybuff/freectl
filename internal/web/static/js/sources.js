@@ -475,7 +475,7 @@ export function formatSourceType(type) {
         'reddit_wiki': 'Reddit wiki',
         'opml': 'OPML feed',
         'bookmarks': 'Browser bookmarks',
-        'hn500': 'HackerNews top 500',
+        'hn5000': 'HackerNews top 5000',
         'obsidian': 'Obsidian vault'
     };
     return typeMap[type] || type;
