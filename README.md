@@ -204,7 +204,8 @@ go build
 
 ##### Core
 
-- [ ] support for blogroll/OPML import
+- [ ] support for blogrolls
+- [ ] support for RSS/OPML
 - [ ] support for bookmarks import (HTML/XML)
 - [ ] support for Hoarder/Linkwarden sync
 - [ ] support for personal knowledge stores (Obsidian vaults etc.)

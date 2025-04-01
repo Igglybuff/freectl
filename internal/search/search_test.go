@@ -13,10 +13,6 @@ import (
 )
 
 func TestSearch(t *testing.T) {
-	// Enable debug logging
-	log.SetLevel(log.DebugLevel)
-	log.Debug("Starting test")
-
 	// Create a temporary test directory
 	tmpDir := t.TempDir()
 	testSource := sources.Source{

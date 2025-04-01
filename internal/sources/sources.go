@@ -30,7 +30,7 @@ const (
 	SourceTypeGit        SourceType = "git"
 	SourceTypeRedditWiki SourceType = "reddit_wiki"
 	SourceTypeHN5000     SourceType = "hn5000"
-
+	SourceTypeHTML       SourceType = "html"
 	// not implemented yet
 	SourceTypeOPML      SourceType = "opml"
 	SourceTypeRSS       SourceType = "rss"
@@ -45,6 +45,8 @@ func (s Source) Add(cacheDir string) error {
 		return AddGitRepo(cacheDir, s)
 	case SourceTypeRedditWiki:
 		return AddRedditWiki(cacheDir, s)
+	case SourceTypeHTML:
+		return AddHTML(cacheDir, s)
 	case SourceTypeOPML:
 		return AddOPML(cacheDir, s)
 	case SourceTypeRSS:
@@ -222,6 +224,8 @@ func Update(cacheDir string, sources []Source) (time.Duration, error) {
 			err = UpdateRedditWiki(expandedCacheDir, source)
 		case SourceTypeHN5000:
 			err = UpdateHN5000(expandedCacheDir, source)
+		case SourceTypeHTML:
+			err = UpdateHTML(expandedCacheDir, source)
 		default:
 			err = fmt.Errorf("unsupported source type: %s", source.Type)
 		}
@@ -241,7 +245,8 @@ func Update(cacheDir string, sources []Source) (time.Duration, error) {
 func IsImplemented(sourceType SourceType) bool {
 	return sourceType == SourceTypeGit ||
 		sourceType == SourceTypeRedditWiki ||
-		sourceType == SourceTypeHN5000
+		sourceType == SourceTypeHN5000 ||
+		sourceType == SourceTypeHTML
 }
 
 // GetSourceSize returns the size of a source in human-readable format

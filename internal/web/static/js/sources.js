@@ -473,6 +473,7 @@ export function formatSourceType(type) {
     const typeMap = {
         'git': 'Git repository',
         'reddit_wiki': 'Reddit wiki',
+        'html': 'HTML page',
         'opml': 'OPML feed',
         'bookmarks': 'Browser bookmarks',
         'hn5000': 'HackerNews top 5000',
