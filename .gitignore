@@ -37,3 +37,6 @@ Thumbs.db
 *.log
 cache/
 freectl
+
+# frontend-prototype
+frontend-prototype/node_modules
