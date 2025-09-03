@@ -330,7 +330,7 @@ func HandleStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sourcePath := filepath.Join(expandedCacheDir, sourceName)
+	sourcePath := filepath.Join(expandedCacheDir, sources.SanitizePath(sourceName))
 	if _, err := os.Stat(sourcePath); os.IsNotExist(err) {
 		http.Error(w, fmt.Sprintf("Source '%s' not found in cache", sourceName), http.StatusNotFound)
 		return
