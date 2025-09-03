@@ -16,19 +16,20 @@ import (
 
 // Settings represents the user settings
 type Settings struct {
-	MinQueryLength    int              `json:"minQueryLength"`
-	MaxQueryLength    int              `json:"maxQueryLength"`
-	SearchDelay       int              `json:"searchDelay"`
-	ShowScores        bool             `json:"showScores"`
-	ResultsPerPage    int              `json:"resultsPerPage"`
-	CacheDir          string           `json:"cache_dir"`
-	AutoUpdate        bool             `json:"auto_update"`
-	TruncateTitles    bool             `json:"truncateTitles"`
-	MaxTitleLength    int              `json:"maxTitleLength"`
-	CustomHeader      string           `json:"customHeader"`
-	MinFuzzyScore     int              `json:"minFuzzyScore"`
-	SearchConcurrency int              `json:"searchConcurrency"`
-	Sources           []sources.Source `json:"sources"`
+	MinQueryLength        int              `json:"minQueryLength"`
+	MaxQueryLength        int              `json:"maxQueryLength"`
+	SearchDelay           int              `json:"searchDelay"`
+	ShowScores            bool             `json:"showScores"`
+	ResultsPerPage        int              `json:"resultsPerPage"`
+	UsePreprocessedSearch bool             `json:"usePreprocessedSearch"`
+	CacheDir              string           `json:"cache_dir"`
+	AutoUpdate            bool             `json:"auto_update"`
+	TruncateTitles        bool             `json:"truncateTitles"`
+	MaxTitleLength        int              `json:"maxTitleLength"`
+	CustomHeader          string           `json:"customHeader"`
+	MinFuzzyScore         int              `json:"minFuzzyScore"`
+	SearchConcurrency     int              `json:"searchConcurrency"`
+	Sources               []sources.Source `json:"sources"`
 }
 
 // DefaultSettings returns the default settings
@@ -45,19 +46,20 @@ func DefaultSettings() Settings {
 	}
 
 	return Settings{
-		MinQueryLength:    2,
-		MaxQueryLength:    1000,
-		SearchDelay:       300,
-		ShowScores:        true,
-		ResultsPerPage:    10,
-		CacheDir:          filepath.Join(homeDir, ".local", "cache", "freectl"),
-		AutoUpdate:        true,
-		TruncateTitles:    true,
-		MaxTitleLength:    100,
-		CustomHeader:      "find cool stuff",
-		MinFuzzyScore:     0, // Default minimum score
-		SearchConcurrency: 1, // Default to 1 for sequential processing
-		Sources:           []sources.Source{},
+		MinQueryLength:        2,
+		MaxQueryLength:        1000,
+		SearchDelay:           300,
+		ShowScores:            true,
+		ResultsPerPage:        10,
+		UsePreprocessedSearch: false, // Default to regular search
+		CacheDir:              filepath.Join(homeDir, ".local", "cache", "freectl"),
+		AutoUpdate:            true,
+		TruncateTitles:        true,
+		MaxTitleLength:        100,
+		CustomHeader:          "find cool stuff",
+		MinFuzzyScore:         0, // Default minimum score
+		SearchConcurrency:     1, // Default to 1 for sequential processing
+		Sources:               []sources.Source{},
 	}
 }
 
@@ -76,6 +78,11 @@ func GetSettingsPath() (string, error) {
 	}
 
 	return filepath.Join(configDir, "config.json"), nil
+}
+
+// Load loads settings from the config file (alias for LoadSettings)
+func Load() (Settings, error) {
+	return LoadSettings()
 }
 
 // LoadSettings loads settings from the config file

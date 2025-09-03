@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"freectl/internal/common"
+	"freectl/internal/preprocessing"
 	"freectl/internal/search"
 	"freectl/internal/settings"
 	"freectl/internal/sources"
@@ -136,9 +137,17 @@ func HandleSearch(w http.ResponseWriter, r *http.Request) {
 	sourceName := r.URL.Query().Get("source")
 	category := r.URL.Query().Get("category")
 
-	// Perform search
-	log.Info("Starting search", "query", query, "source", sourceName)
-	results, err := search.Search(query, sourceName, settings)
+	// Perform search based on settings
+	log.Info("Starting search", "query", query, "source", sourceName, "preprocessed", settings.UsePreprocessedSearch)
+	log.Debug("Settings debug", "usePreprocessedSearch", settings.UsePreprocessedSearch, "resultsPerPage", settings.ResultsPerPage)
+	var results []search.Result
+	if settings.UsePreprocessedSearch {
+		log.Info("Using preprocessed search")
+		results, err = search.SearchPreprocessed(query, sourceName, settings, 0)
+	} else {
+		log.Info("Using real-time search")
+		results, err = search.Search(query, sourceName, settings)
+	}
 	if err != nil {
 		log.Error("Search failed", "error", err)
 		http.Error(w, fmt.Sprintf("Search failed: %s", err.Error()), http.StatusInternalServerError)
@@ -406,6 +415,88 @@ func HandleUpdate(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func HandleProcessSources(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Load settings to get cache directory
+	s, err := settings.LoadSettings()
+	if err != nil {
+		log.Error("Failed to load settings", "error", err)
+		http.Error(w, fmt.Errorf("failed to load settings: %w", err).Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Get list of enabled sources
+	sourceList, err := settings.ListSources()
+	if err != nil {
+		log.Error("Failed to list sources", "error", err)
+		http.Error(w, fmt.Errorf("failed to list sources: %w", err).Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Filter enabled sources
+	var enabledSources []sources.Source
+	for _, source := range sourceList {
+		if source.Enabled {
+			enabledSources = append(enabledSources, source)
+		}
+	}
+
+	if len(enabledSources) == 0 {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"message": "No enabled sources found to process",
+		})
+		return
+	}
+
+	// Create processing config and engine
+	config := preprocessing.DefaultProcessingConfig()
+	engine := preprocessing.NewProcessingEngine(s.CacheDir, config)
+
+	log.Info("Starting source processing from web UI", "sources", len(enabledSources))
+	start := time.Now()
+
+	// Process all enabled sources
+	processed := 0
+	failed := 0
+	for _, source := range enabledSources {
+		log.Info("Processing source", "name", source.Name)
+		err := engine.ProcessSource(source)
+		if err != nil {
+			log.Error("Failed to process source", "name", source.Name, "error", err)
+			failed++
+		} else {
+			processed++
+		}
+	}
+
+	duration := time.Since(start).Round(100 * time.Millisecond)
+	log.Info("Source processing completed", "processed", processed, "failed", failed, "duration", duration)
+
+	w.Header().Set("Content-Type", "application/json")
+	if failed > 0 {
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success":   true,
+			"processed": processed,
+			"failed":    failed,
+			"duration":  duration.String(),
+			"message":   fmt.Sprintf("Processing completed with some errors. %d sources processed, %d failed.", processed, failed),
+		})
+	} else {
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success":   true,
+			"processed": processed,
+			"duration":  duration.String(),
+			"message":   fmt.Sprintf("All %d sources processed successfully", processed),
+		})
+	}
+}
+
 func HandleSettings(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -433,11 +524,13 @@ func HandleSettings(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		log.Info("Saving settings", "usePreprocessedSearch", s.UsePreprocessedSearch)
 		if err := settings.SaveSettings(s); err != nil {
 			log.Error("Failed to save settings", "error", err)
 			http.Error(w, fmt.Errorf("failed to save settings: %w", err).Error(), http.StatusInternalServerError)
 			return
 		}
+		log.Info("Settings saved successfully", "usePreprocessedSearch", s.UsePreprocessedSearch)
 
 		// Return the saved settings as confirmation
 		if err := json.NewEncoder(w).Encode(s); err != nil {

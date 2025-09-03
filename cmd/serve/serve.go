@@ -60,6 +60,7 @@ func startServer() error {
 	http.HandleFunc("/favorites/remove", web.HandleRemoveFavorite)
 	http.HandleFunc("/stats", web.HandleStats)
 	http.HandleFunc("/update", web.HandleUpdate)
+	http.HandleFunc("/process", web.HandleProcessSources)
 	http.HandleFunc("/settings", web.HandleSettings)
 	http.HandleFunc("/sources/add", web.HandleAddSource)
 	http.HandleFunc("/sources/list", web.HandleListSource)

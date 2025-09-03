@@ -1,284 +1,484 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title id="pageTitle">find cool stuff</title>
-    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
-    <link rel="stylesheet" href="/static/styles.css">
-</head>
-<body>
-    <div class="header-container">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h1 id="mainHeader">find cool stuff</h1>
-            <button class="theme-toggle" id="themeToggle" title="Toggle dark mode">
-                <svg viewBox="0 0 24 24">
-                    <path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-3.03 0-5.5-2.47-5.5-5.5 0-1.82.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/>
-                </svg>
-            </button>
-        </div>
-    </div>
-    <div class="tab-buttons">
-        <div class="tab-left">
-            <button class="tab-button active" data-tab="search">Search</button>
-            <button class="tab-button" data-tab="favorites">Favorites</button>
-            <button class="tab-button" data-tab="library">Library</button>
-            <button class="tab-button" data-tab="stats">Stats</button>
-            <button class="tab-button" data-tab="settings">Settings</button>
-        </div>
-        <div class="tab-right">
-            <a href="https://github.com/Igglybuff/freectl" class="github-link" target="_blank">
-                <svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor">
-                    <path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"></path>
-                </svg>
-                GitHub
-            </a>
-        </div>
-    </div>
-    <div id="searchTab" class="active">
-        <div class="page-container">
-            <div class="search-container">
-                <div class="search-controls">
-                    <input type="text" 
-                           id="searchInput" 
-                           class="search-box" 
-                           placeholder="Search data sources..."
-                           maxlength="1000"
-                           pattern="[^<>]*"
-                           title="Search query cannot contain < or > characters"
-                           required>
-                    <div class="filter-group">
-                        <select id="sourceFilter" class="filter-select">
-                            <option value="">All data sources</option>
-                        </select>
-                        <select id="categoryFilter" class="filter-select">
-                            <option value="">All categories</option>
-                        </select>
-                    </div>
-                </div>
-                <div id="errorMessage" class="error-message"></div>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title id="pageTitle">find cool stuff</title>
+        <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
+        <link rel="stylesheet" href="/static/styles.css" />
+    </head>
+    <body>
+        <div class="header-container">
+            <div
+                style="
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                "
+            >
+                <h1 id="mainHeader">find cool stuff</h1>
+                <button
+                    class="theme-toggle"
+                    id="themeToggle"
+                    title="Toggle dark mode"
+                >
+                    <svg viewBox="0 0 24 24">
+                        <path
+                            d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-3.03 0-5.5-2.47-5.5-5.5 0-1.82.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"
+                        />
+                    </svg>
+                </button>
             </div>
-            <div id="results" class="results"></div>
-            <div id="pagination" class="pagination"></div>
         </div>
-    </div>
-    <div id="favoritesTab">
-        <div class="page-container">
-            <div class="search-container">
-                <div class="search-controls">
-                    <input type="text" class="search-box" id="favoritesSearchInput" placeholder="Search favorites...">
-                    <div class="filter-group">
-                        <select id="favoriteSourceFilter" class="filter-select">
-                            <option value="">All data sources</option>
-                        </select>
-                        <select id="favoriteCategoryFilter" class="filter-select">
-                            <option value="">All categories</option>
-                        </select>
-                    </div>
-                </div>
+        <div class="tab-buttons">
+            <div class="tab-left">
+                <button class="tab-button active" data-tab="search">
+                    Search
+                </button>
+                <button class="tab-button" data-tab="favorites">
+                    Favorites
+                </button>
+                <button class="tab-button" data-tab="library">Library</button>
+                <button class="tab-button" data-tab="stats">Stats</button>
+                <button class="tab-button" data-tab="settings">Settings</button>
             </div>
-            <div id="favorites" class="results"></div>
+            <div class="tab-right">
+                <a
+                    href="https://github.com/Igglybuff/freectl"
+                    class="github-link"
+                    target="_blank"
+                >
+                    <svg
+                        height="24"
+                        width="24"
+                        viewBox="0 0 16 16"
+                        fill="currentColor"
+                    >
+                        <path
+                            d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"
+                        ></path>
+                    </svg>
+                    GitHub
+                </a>
+            </div>
         </div>
-    </div>
-    <div id="libraryTab">
-        <div class="page-container">
-            <div class="library-container">
-                <div class="settings-section">
-                    <h3>Recommended data sources</h3>
-                    <div id="recommendedSources" class="source-list">
-                        <!-- Recommended sources will be populated here -->
-                    </div>
-                </div>
-
-                <div class="settings-section">
-                    <h3>Data sources</h3>
-                    <div class="source-list" id="sourceList">
-                        <!-- Source list will be populated here -->
-                    </div>
-                    <div class="settings-buttons">
-                        <button id="updateSource" class="settings-button">Update data sources</button>
-                    </div>
-                </div>
-
-                <div class="settings-section">
-                    <h3>Add data source</h3>
-                    <div class="add-source-form">
-                        <div class="form-group">
-                            <label for="sourceUrl">URL:</label>
-                            <input type="text" id="sourceUrl" placeholder="https://github.com/user/source">
-                        </div>
-                        <div class="form-group">
-                            <label for="sourceName">Name (optional):</label>
-                            <input type="text" id="sourceName" placeholder="Custom name for the source">
-                        </div>
-                        <div class="form-group">
-                            <label for="sourceType">Type:</label>
-                            <select id="sourceType">
-                                <option value="git">Git repository</option>
-                                <option value="reddit_wiki">Reddit wiki</option>
-                                <option value="html">HTML page</option>
-                                <option value="opml">OPML feed</option>
-                                <option value="bookmarks">Browser bookmarks</option>
-                                <option value="obsidian">Obsidian vault</option>
+        <div id="searchTab" class="active">
+            <div class="page-container">
+                <div class="search-container">
+                    <div class="search-controls">
+                        <input
+                            type="text"
+                            id="searchInput"
+                            class="search-box"
+                            placeholder="Search data sources..."
+                            maxlength="1000"
+                            pattern="[^<>]*"
+                            title="Search query cannot contain < or > characters"
+                            required
+                        />
+                        <div class="filter-group">
+                            <select id="sourceFilter" class="filter-select">
+                                <option value="">All data sources</option>
+                            </select>
+                            <select id="categoryFilter" class="filter-select">
+                                <option value="">All categories</option>
                             </select>
                         </div>
-                        <button id="addSource">Add</button>
+                    </div>
+                    <div id="errorMessage" class="error-message"></div>
+                </div>
+                <div id="results" class="results"></div>
+                <div id="pagination" class="pagination"></div>
+            </div>
+        </div>
+        <div id="favoritesTab">
+            <div class="page-container">
+                <div class="search-container">
+                    <div class="search-controls">
+                        <input
+                            type="text"
+                            class="search-box"
+                            id="favoritesSearchInput"
+                            placeholder="Search favorites..."
+                        />
+                        <div class="filter-group">
+                            <select
+                                id="favoriteSourceFilter"
+                                class="filter-select"
+                            >
+                                <option value="">All data sources</option>
+                            </select>
+                            <select
+                                id="favoriteCategoryFilter"
+                                class="filter-select"
+                            >
+                                <option value="">All categories</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div id="favorites" class="results"></div>
+            </div>
+        </div>
+        <div id="libraryTab">
+            <div class="page-container">
+                <div class="library-container">
+                    <div class="settings-section">
+                        <h3>Recommended data sources</h3>
+                        <div id="recommendedSources" class="source-list">
+                            <!-- Recommended sources will be populated here -->
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h3>Data sources</h3>
+                        <div class="source-list" id="sourceList">
+                            <!-- Source list will be populated here -->
+                        </div>
+                        <div class="settings-buttons">
+                            <button id="updateSource" class="settings-button">
+                                Update data sources
+                            </button>
+                            <button id="processSource" class="settings-button">
+                                Process sources
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h3>Add data source</h3>
+                        <div class="add-source-form">
+                            <div class="form-group">
+                                <label for="sourceUrl">URL:</label>
+                                <input
+                                    type="text"
+                                    id="sourceUrl"
+                                    placeholder="https://github.com/user/source"
+                                />
+                            </div>
+                            <div class="form-group">
+                                <label for="sourceName">Name (optional):</label>
+                                <input
+                                    type="text"
+                                    id="sourceName"
+                                    placeholder="Custom name for the source"
+                                />
+                            </div>
+                            <div class="form-group">
+                                <label for="sourceType">Type:</label>
+                                <select id="sourceType">
+                                    <option value="git">Git repository</option>
+                                    <option value="reddit_wiki">
+                                        Reddit wiki
+                                    </option>
+                                    <option value="html">HTML page</option>
+                                    <option value="opml">OPML feed</option>
+                                    <option value="bookmarks">
+                                        Browser bookmarks
+                                    </option>
+                                    <option value="obsidian">
+                                        Obsidian vault
+                                    </option>
+                                </select>
+                            </div>
+                            <button id="addSource">Add</button>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-    <div id="statsTab">
-        <div class="page-container">
-            <div class="stats-container">
-                <div class="source-selection">
-                    <select id="statsSource" class="source-select">
-                        <option value="">Loading data sources...</option>
-                    </select>
-                </div>
+        <div id="statsTab">
+            <div class="page-container">
+                <div class="stats-container">
+                    <div class="source-selection">
+                        <select id="statsSource" class="source-select">
+                            <option value="">Loading data sources...</option>
+                        </select>
+                    </div>
 
-                <div class="stats-section">
-                    <h2>General stats</h2>
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <div class="stat-value" id="totalLinks">-</div>
-                            <div class="stat-label">Total links</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value" id="sourceSize">-</div>
-                            <div class="stat-label">Data source size</div>
+                    <div class="stats-section">
+                        <h2>General stats</h2>
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-value" id="totalLinks">-</div>
+                                <div class="stat-label">Total links</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="sourceSize">-</div>
+                                <div class="stat-label">Data source size</div>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="stats-section">
-                    <h2>Protocol usage</h2>
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <div class="stat-value" id="https-count">-</div>
-                            <div class="stat-label">HTTPS links</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value" id="http-count">-</div>
-                            <div class="stat-label">HTTP links</div>
+                    <div class="stats-section">
+                        <h2>Protocol usage</h2>
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-value" id="https-count">-</div>
+                                <div class="stat-label">HTTPS links</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="http-count">-</div>
+                                <div class="stat-label">HTTP links</div>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="stats-section">
-                    <h2>Top categories</h2>
-                    <div class="stats-list" id="topCategories">
-                        Loading...
+                    <div class="stats-section">
+                        <h2>Top categories</h2>
+                        <div class="stats-list" id="topCategories">
+                            Loading...
+                        </div>
                     </div>
-                </div>
 
-                <div class="stats-section">
-                    <h2>Top domains</h2>
-                    <div class="stats-list" id="topDomains">
-                        Loading...
+                    <div class="stats-section">
+                        <h2>Top domains</h2>
+                        <div class="stats-list" id="topDomains">Loading...</div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-    <div id="settingsTab">
-        <div class="page-container">
-            <div class="settings-container">
-                <div class="settings-section">
-                    <h3>Search behavior</h3>
-                    <div class="settings-grid">
-                        <div class="setting-item">
-                            <label for="minQueryLength">Minimum query length:</label>
-                            <input type="number" id="minQueryLength" value="2" min="1" max="10">
-                            <span class="setting-description">Minimum number of characters required for a search query</span>
-                        </div>
-                        <div class="setting-item">
-                            <label for="maxQueryLength">Maximum query length:</label>
-                            <input type="number" id="maxQueryLength" value="1000" min="100" max="2000">
-                            <span class="setting-description">Maximum number of characters allowed in a search query</span>
-                        </div>
-                        <div class="setting-item">
-                            <label for="searchDelay">Search delay (ms):</label>
-                            <input type="number" id="searchDelay" value="300" min="100" max="1000" step="100">
-                            <span class="setting-description">Delay before performing search after typing</span>
-                        </div>
-                        <div class="setting-item">
-                            <label for="resultsPerPage">Results per page:</label>
-                            <input type="number" id="resultsPerPage" value="10" min="5" max="50" step="5">
-                            <span class="setting-description">Number of search results to display per page</span>
-                        </div>
-                        <div class="setting-item">
-                            <label for="searchConcurrency">Search concurrency:</label>
-                            <input type="number" id="searchConcurrency" value="1" min="1" max="16" step="1">
-                            <span class="setting-description">Number of sources to search simultaneously. Higher values may improve performance on multi-core systems.</span>
+        <div id="settingsTab">
+            <div class="page-container">
+                <div class="settings-container">
+                    <div class="settings-section">
+                        <h3>Search behavior</h3>
+                        <div class="settings-grid">
+                            <div class="setting-item">
+                                <label for="minQueryLength"
+                                    >Minimum query length:</label
+                                >
+                                <input
+                                    type="number"
+                                    id="minQueryLength"
+                                    value="2"
+                                    min="1"
+                                    max="10"
+                                />
+                                <span class="setting-description"
+                                    >Minimum number of characters required for a
+                                    search query</span
+                                >
+                            </div>
+                            <div class="setting-item">
+                                <label for="maxQueryLength"
+                                    >Maximum query length:</label
+                                >
+                                <input
+                                    type="number"
+                                    id="maxQueryLength"
+                                    value="1000"
+                                    min="100"
+                                    max="2000"
+                                />
+                                <span class="setting-description"
+                                    >Maximum number of characters allowed in a
+                                    search query</span
+                                >
+                            </div>
+                            <div class="setting-item">
+                                <label for="searchDelay"
+                                    >Search delay (ms):</label
+                                >
+                                <input
+                                    type="number"
+                                    id="searchDelay"
+                                    value="300"
+                                    min="100"
+                                    max="1000"
+                                    step="100"
+                                />
+                                <span class="setting-description"
+                                    >Delay before performing search after
+                                    typing</span
+                                >
+                            </div>
+                            <div class="setting-item">
+                                <label for="resultsPerPage"
+                                    >Results per page:</label
+                                >
+                                <input
+                                    type="number"
+                                    id="resultsPerPage"
+                                    value="10"
+                                    min="5"
+                                    max="50"
+                                    step="5"
+                                />
+                                <span class="setting-description"
+                                    >Number of search results to display per
+                                    page</span
+                                >
+                            </div>
+                            <div class="setting-item">
+                                <label for="searchConcurrency"
+                                    >Search concurrency:</label
+                                >
+                                <input
+                                    type="number"
+                                    id="searchConcurrency"
+                                    value="1"
+                                    min="1"
+                                    max="16"
+                                    step="1"
+                                />
+                                <span class="setting-description"
+                                    >Number of sources to search simultaneously.
+                                    Higher values may improve performance on
+                                    multi-core systems.</span
+                                >
+                            </div>
+                            <div class="setting-item checkbox-item">
+                                <div class="checkbox-wrapper">
+                                    <input
+                                        type="checkbox"
+                                        id="usePreprocessedSearch"
+                                    />
+                                    <label for="usePreprocessedSearch"
+                                        >Use preprocessed search</label
+                                    >
+                                </div>
+                                <span class="setting-description"
+                                    >Use preprocessed search data for faster
+                                    results. Requires running 'freectl process'
+                                    first.</span
+                                >
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="settings-section">
-                    <h3>Display options</h3>
-                    <div class="settings-grid">
-                        <div class="setting-item checkbox-item">
-                            <div class="checkbox-wrapper">
-                                <input type="checkbox" id="showScores" checked>
-                                <label for="showScores">Show scores</label>
+                    <div class="settings-section">
+                        <h3>Display options</h3>
+                        <div class="settings-grid">
+                            <div class="setting-item checkbox-item">
+                                <div class="checkbox-wrapper">
+                                    <input
+                                        type="checkbox"
+                                        id="showScores"
+                                        checked
+                                    />
+                                    <label for="showScores">Show scores</label>
+                                </div>
+                                <span class="setting-description"
+                                    >Display relevance scores for search
+                                    results</span
+                                >
                             </div>
-                            <span class="setting-description">Display relevance scores for search results</span>
-                        </div>
-                        <div class="setting-item checkbox-item">
-                            <div class="checkbox-wrapper">
-                                <input type="checkbox" id="truncateTitles" checked>
-                                <label for="truncateTitles">Truncate long titles</label>
+                            <div class="setting-item checkbox-item">
+                                <div class="checkbox-wrapper">
+                                    <input
+                                        type="checkbox"
+                                        id="truncateTitles"
+                                        checked
+                                    />
+                                    <label for="truncateTitles"
+                                        >Truncate long titles</label
+                                    >
+                                </div>
+                                <span class="setting-description"
+                                    >Truncate long link titles to improve
+                                    readability</span
+                                >
                             </div>
-                            <span class="setting-description">Truncate long link titles to improve readability</span>
-                        </div>
-                        <div class="setting-item">
-                            <label for="maxTitleLength">Maximum title length:</label>
-                            <input type="number" id="maxTitleLength" value="100" min="20" max="500" step="10">
-                            <span class="setting-description">Maximum number of characters to show in link titles</span>
-                        </div>
-                        <div class="setting-item">
-                            <label for="minFuzzyScore">Minimum fuzzy score:</label>
-                            <input type="number" id="minFuzzyScore" name="minFuzzyScore" value="{{.Settings.MinFuzzyScore}}">
-                            <span class="setting-description">Lower values allow more lenient matches. Higher values require more exact matches.</span>
-                        </div>
-                        <div class="setting-item">
-                            <label for="customHeader">Custom header:</label>
-                            <input type="text" id="customHeader" value="find cool stuff" maxlength="50">
-                            <span class="setting-description">Custom header text to display at the top of the page</span>
+                            <div class="setting-item">
+                                <label for="maxTitleLength"
+                                    >Maximum title length:</label
+                                >
+                                <input
+                                    type="number"
+                                    id="maxTitleLength"
+                                    value="100"
+                                    min="20"
+                                    max="500"
+                                    step="10"
+                                />
+                                <span class="setting-description"
+                                    >Maximum number of characters to show in
+                                    link titles</span
+                                >
+                            </div>
+                            <div class="setting-item">
+                                <label for="minFuzzyScore"
+                                    >Minimum fuzzy score:</label
+                                >
+                                <input
+                                    type="number"
+                                    id="minFuzzyScore"
+                                    name="minFuzzyScore"
+                                    value="{{.Settings.MinFuzzyScore}}"
+                                />
+                                <span class="setting-description"
+                                    >Lower values allow more lenient matches.
+                                    Higher values require more exact
+                                    matches.</span
+                                >
+                            </div>
+                            <div class="setting-item">
+                                <label for="customHeader">Custom header:</label>
+                                <input
+                                    type="text"
+                                    id="customHeader"
+                                    value="find cool stuff"
+                                    maxlength="50"
+                                />
+                                <span class="setting-description"
+                                    >Custom header text to display at the top of
+                                    the page</span
+                                >
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="settings-section">
-                    <h3>Data source settings</h3>
-                    <div class="settings-grid">
-                        <div class="setting-item">
-                            <label for="cacheDir">Cache directory:</label>
-                            <input type="text" id="cacheDir">
-                            <span class="setting-description">Directory where data sources are cached</span>
-                        </div>
-                        <div class="setting-item checkbox-item">
-                            <div class="checkbox-wrapper">
-                                <input type="checkbox" id="autoUpdate" checked>
-                                <label for="autoUpdate">Auto update</label>
+                    <div class="settings-section">
+                        <h3>Data source settings</h3>
+                        <div class="settings-grid">
+                            <div class="setting-item">
+                                <label for="cacheDir">Cache directory:</label>
+                                <input type="text" id="cacheDir" />
+                                <span class="setting-description"
+                                    >Directory where data sources are
+                                    cached</span
+                                >
                             </div>
-                            <span class="setting-description">Automatically update the cache when it's older than a week</span>
+                            <div class="setting-item checkbox-item">
+                                <div class="checkbox-wrapper">
+                                    <input
+                                        type="checkbox"
+                                        id="autoUpdate"
+                                        checked
+                                    />
+                                    <label for="autoUpdate">Auto update</label>
+                                </div>
+                                <span class="setting-description"
+                                    >Automatically update the cache when it's
+                                    older than a week</span
+                                >
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="settings-section">
-                    <div class="settings-buttons">
-                        <button id="saveSettings" class="settings-button">Save settings</button>
-                        <button id="resetSettings" class="settings-button secondary">Reset to defaults</button>
+                    <div class="settings-section">
+                        <div class="settings-buttons">
+                            <button id="saveSettings" class="settings-button">
+                                Save settings
+                            </button>
+                            <button
+                                id="resetSettings"
+                                class="settings-button secondary"
+                            >
+                                Reset to defaults
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-    <div id="toast" class="toast"></div>
+        <div id="toast" class="toast"></div>
 
-    <script type="module" src="/static/js/main.js" crossorigin="anonymous"></script>
-</body>
-</html> 
+        <script
+            type="module"
+            src="/static/js/main.js"
+            crossorigin="anonymous"
+        ></script>
+    </body>
+</html>

@@ -7,6 +7,7 @@ import (
 	"freectl/cmd/add"
 	"freectl/cmd/delete"
 	"freectl/cmd/list"
+	"freectl/cmd/process"
 	"freectl/cmd/search"
 	"freectl/cmd/serve"
 	"freectl/cmd/stats"
@@ -34,6 +35,7 @@ func init() {
 	RootCmd.AddCommand(add.AddCmd)
 	RootCmd.AddCommand(delete.DeleteCmd)
 	RootCmd.AddCommand(list.ListCmd)
+	RootCmd.AddCommand(process.ProcessCmd)
 	RootCmd.AddCommand(search.SearchCmd)
 	RootCmd.AddCommand(serve.ServeCmd)
 	RootCmd.AddCommand(update.UpdateCmd)
@@ -57,6 +59,7 @@ Commands:
   add     - Add a new repository to the cache
   delete  - Delete a cached repository
   list    - List all cached repositories
+  process - Process sources into unified JSON format
   search  - Search through all cached repositories
   serve   - Start a web interface for searching
   update  - Update all cached repositories
@@ -64,22 +67,22 @@ Commands:
 Examples:
   # Add a new repository
   freectl add https://github.com/awesome-selfhosted/awesome-selfhosted --name "awesome-selfhosted"
-  
+
   # List all repositories
   freectl list
-  
+
   # Delete a repository
   freectl delete "awesome-selfhosted"
-  
+
   # Search across all repositories
   freectl search "torrent"
-  
+
   # Search in a specific repository
   freectl search "kanban" --repo "awesome-selfhosted"
-  
+
   # Start the web interface
   freectl serve
-  
+
   # Update all repositories
   freectl update`,
 	RunE: func(cmd *cobra.Command, args []string) error {
