@@ -192,12 +192,12 @@ go build
 - [x] "library" page with curated data sources, 1-click downloads
 - [x] add a favicon
 - [x] support for HackerNews top 5000
+- [x] stats page is broken again
 
 #### Bugs
 
 - [ ] filter out items under misleading headings like "Contents"
 - [ ] after adding/removing repos from Settings, page needs to refresh before selecting categories from Search drop-down
-- [ ] stats page is broken again
 - [ ] this blogs list didn't parse at all: https://github.com/kilimchoi/engineering-blogs
 
 #### Features
@@ -219,6 +219,7 @@ go build
 - [ ] custom markdown parsing rules for non-standard repos
 - [ ] group data sources into "collections"
 - [ ] semantic search using word embedding model
+- [ ] integration with read-it-later/bookmarking apps like karakeep, linkwarden, wallabag
 
 ##### Improvements
 
