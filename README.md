@@ -228,6 +228,7 @@ go build
 - [ ] "found x sources" count in library page doesn't match other pages
 - [ ] need more curated sources in "Browse Sources" page
 - [ ] custom header setting doesn't update live
+- [ ] changing settings refreshes the page, very jarring
 - [ ] add custom footer setting
 - [ ] add custom icon setting
 - [ ] make better use of empty space in data source cards on Library page
