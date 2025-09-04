@@ -4,6 +4,7 @@ import { useFavorites } from "../../hooks";
 import LoadingSpinner from "../ui/LoadingSpinner";
 import EmptyState from "../ui/EmptyState";
 import SearchResultCard from "../ui/SearchResultCard";
+import SearchInput from "../ui/SearchInput";
 
 const FavoritesTab: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -92,29 +93,12 @@ const FavoritesTab: React.FC = () => {
         </div>
 
         {hasFavorites && (
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center">
-              <Search className="h-4 w-4 text-gray-400" />
-            </div>
-            <input
-              type="text"
+          <div className="mb-4">
+            <SearchInput
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={setSearchQuery}
               placeholder="Search your favorites..."
-              className="w-full pl-10 pr-10 py-2 text-base rounded-lg border transition-colors duration-200
-                bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white
-                placeholder-gray-500 dark:placeholder-gray-400
-                border-gray-200 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500
-                focus:ring-2 focus:ring-opacity-50 focus:bg-white dark:focus:bg-gray-800"
             />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center"
-              >
-                <X className="h-4 w-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" />
-              </button>
-            )}
           </div>
         )}
       </div>

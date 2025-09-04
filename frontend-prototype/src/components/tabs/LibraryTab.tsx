@@ -18,6 +18,7 @@ import { useSources } from "../../hooks";
 import { apiClient, sourceUtils } from "../../utils/api";
 import LoadingSpinner from "../ui/LoadingSpinner";
 import EmptyState from "../ui/EmptyState";
+import SearchInput from "../ui/SearchInput";
 import { cn } from "../../utils/cn";
 import { useToastStore } from "../../stores/appStore";
 
@@ -426,31 +427,24 @@ const LibraryTab: React.FC = () => {
           {activeTab === "installed" && hasSources && (
             <div className="space-y-3">
               {/* Search Bar */}
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-4 w-4 text-gray-400" />
-                </div>
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search sources..."
-                  className="w-full pl-10 pr-10 py-2 text-base rounded-lg border transition-colors duration-200
-                    bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white
-                    placeholder-gray-500 dark:placeholder-gray-400
-                    border-gray-200 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500
-                    focus:ring-2 focus:ring-opacity-50 focus:bg-white dark:focus:bg-gray-800"
-                />
-                {(searchQuery || filterStatus || filterType) && (
+              <SearchInput
+                value={searchQuery}
+                onChange={setSearchQuery}
+                placeholder="Search sources..."
+              />
+
+              {/* Clear Filters Button */}
+              {(searchQuery || filterStatus || filterType) && (
+                <div className="flex justify-end">
                   <button
                     onClick={handleClearFilters}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
                     title="Clear filters"
                   >
-                    <X className="h-4 w-4" />
+                    Clear filters
                   </button>
-                )}
-              </div>
+                </div>
+              )}
 
               {/* Filters */}
               <div className="flex items-center space-x-4">
