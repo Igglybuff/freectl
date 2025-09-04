@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import {
   Library,
+  BookOpen,
   Plus,
   RefreshCw,
   Settings,
@@ -19,6 +20,12 @@ import { apiClient, sourceUtils } from "../../utils/api";
 import LoadingSpinner from "../ui/LoadingSpinner";
 import EmptyState from "../ui/EmptyState";
 import SearchInput from "../ui/SearchInput";
+import {
+  PageLayout,
+  PageHeader,
+  PageContent,
+  WelcomeState,
+} from "../ui/PageLayout";
 import { cn } from "../../utils/cn";
 import { useToastStore } from "../../stores/appStore";
 
@@ -125,26 +132,46 @@ const LibraryTab: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center py-12">
-        <LoadingSpinner size="lg" />
-      </div>
+      <PageLayout>
+        <PageHeader
+          icon={BookOpen}
+          title="Data Library"
+          subtitle="Manage your data sources and explore available content"
+          colorTheme="green"
+        />
+        <PageContent className="flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <LoadingSpinner size="lg" />
+            <p className="text-gray-600 dark:text-gray-400">
+              Loading your data sources...
+            </p>
+          </div>
+        </PageContent>
+      </PageLayout>
     );
   }
 
   if (isError) {
     return (
-      <div className="text-center py-12">
-        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 mb-4">
-          <XCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
-        </div>
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-          Failed to load library
-        </h3>
-        <p className="text-gray-600 dark:text-gray-400">
-          {error?.message ||
-            "Something went wrong while loading your data sources."}
-        </p>
-      </div>
+      <PageLayout>
+        <PageHeader
+          icon={BookOpen}
+          title="Data Library"
+          subtitle="Manage your data sources and explore available content"
+          colorTheme="green"
+        />
+        <PageContent>
+          <WelcomeState
+            icon={XCircle}
+            title="Failed to load library"
+            description={
+              error?.message ||
+              "Something went wrong while loading your data sources. Please try again later."
+            }
+            colorTheme="red"
+          />
+        </PageContent>
+      </PageLayout>
     );
   }
 
@@ -373,31 +400,29 @@ const LibraryTab: React.FC = () => {
   };
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Header with Tabs - Fixed at top */}
+    <PageLayout>
+      <PageHeader
+        icon={BookOpen}
+        title="Data Library"
+        subtitle={`${sources.length} sources • ${activeSources.length} active • ${totalItems.toLocaleString()} items`}
+        colorTheme="green"
+        actions={
+          activeTab === "installed" &&
+          hasSources && (
+            <button
+              onClick={() => setShowAddSource(true)}
+              className="inline-flex items-center px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              Add Source
+            </button>
+          )
+        }
+      />
+
+      {/* Tabs - Fixed below header */}
       <div className="px-6 py-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div>
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-3">
-              <div className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-                <Library className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              </div>
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                Data Sources
-              </h2>
-            </div>
-
-            {activeTab === "installed" && hasSources && (
-              <button
-                onClick={() => setShowAddSource(true)}
-                className="inline-flex items-center px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              >
-                <Plus className="w-4 h-4 mr-1" />
-                Add Source
-              </button>
-            )}
-          </div>
-
           {/* Tabs */}
           <div className="flex space-x-1 mb-4">
             <button
@@ -1258,7 +1283,7 @@ const LibraryTab: React.FC = () => {
           </div>
         </div>
       )}
-    </div>
+    </PageLayout>
   );
 };
 

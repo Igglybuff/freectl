@@ -1,10 +1,15 @@
 import React, { useState } from "react";
-import { Heart, Search, X } from "lucide-react";
+import { Heart, Search, X, Filter, Star } from "lucide-react";
 import { useFavorites } from "../../hooks";
 import LoadingSpinner from "../ui/LoadingSpinner";
-import EmptyState from "../ui/EmptyState";
 import SearchResultCard from "../ui/SearchResultCard";
 import SearchInput from "../ui/SearchInput";
+import {
+  PageLayout,
+  PageHeader,
+  PageContent,
+  WelcomeState,
+} from "../ui/PageLayout";
 
 const FavoritesTab: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -38,8 +43,6 @@ const FavoritesTab: React.FC = () => {
     return filtered;
   }, [favorites, searchQuery]);
 
-  // Get unique categories
-
   const handleRemoveFavorite = (favoriteUrl: string) => {
     if (removeFavorite?.mutate) {
       removeFavorite.mutate(favoriteUrl);
@@ -52,26 +55,46 @@ const FavoritesTab: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center py-12">
-        <LoadingSpinner size="lg" />
-      </div>
+      <PageLayout>
+        <PageHeader
+          icon={Heart}
+          title="Your Favorites"
+          subtitle="Your saved resources and tools"
+          colorTheme="red"
+        />
+        <PageContent className="flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <LoadingSpinner size="lg" />
+            <p className="text-gray-600 dark:text-gray-400">
+              Loading your favorites...
+            </p>
+          </div>
+        </PageContent>
+      </PageLayout>
     );
   }
 
   if (isError) {
     return (
-      <div className="text-center py-12">
-        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 mb-4">
-          <X className="w-6 h-6 text-red-600 dark:text-red-400" />
-        </div>
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-          Failed to load favorites
-        </h3>
-        <p className="text-gray-600 dark:text-gray-400">
-          {error?.message ||
-            "Something went wrong while loading your favorites."}
-        </p>
-      </div>
+      <PageLayout>
+        <PageHeader
+          icon={Heart}
+          title="Your Favorites"
+          subtitle="Your saved resources and tools"
+          colorTheme="red"
+        />
+        <PageContent>
+          <WelcomeState
+            icon={X}
+            title="Failed to load favorites"
+            description={
+              error?.message ||
+              "Something went wrong while loading your favorites. Please try again later."
+            }
+            colorTheme="red"
+          />
+        </PageContent>
+      </PageLayout>
     );
   }
 
@@ -79,79 +102,109 @@ const FavoritesTab: React.FC = () => {
   const hasFilteredResults = filteredFavorites.length > 0;
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Header with Search - Fixed at top */}
-      {/* Header - Fixed at top */}
-      <div className="px-6 py-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex items-center space-x-3 mb-4">
-          <div className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-red-100 dark:bg-red-900/30">
-            <Heart className="w-4 h-4 text-red-600 dark:text-red-400" />
+    <PageLayout>
+      <PageHeader
+        icon={Heart}
+        title="Your Favorites"
+        subtitle={`${favorites?.length || 0} saved items`}
+        colorTheme="red"
+        actions={
+          hasFavorites && (
+            <div className="flex items-center space-x-2">
+              <div className="text-sm text-gray-500 dark:text-gray-400">
+                {hasFilteredResults ? filteredFavorites.length : 0} of{" "}
+                {favorites.length} shown
+              </div>
+            </div>
+          )
+        }
+      />
+
+      {hasFavorites && (
+        <div className="px-6 py-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center space-x-3">
+            <div className="flex-1">
+              <SearchInput
+                value={searchQuery}
+                onChange={setSearchQuery}
+                placeholder="Search your favorites..."
+                hasError={false}
+                onClear={handleClearSearch}
+                autoFocus={false}
+              />
+            </div>
+            {searchQuery && (
+              <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
+                <Filter className="w-4 h-4" />
+                <span>Filtered</span>
+              </div>
+            )}
           </div>
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-            Your Favorites
-          </h2>
         </div>
+      )}
 
-        {hasFavorites && (
-          <div className="mb-4">
-            <SearchInput
-              value={searchQuery}
-              onChange={setSearchQuery}
-              placeholder="Search your favorites..."
-            />
-          </div>
-        )}
-      </div>
-
-      {/* Main Content Area - Scrollable */}
-      <div className="flex-1 overflow-y-auto px-6 py-4">
+      <PageContent>
         {!hasFavorites ? (
-          <div className="h-full flex items-center justify-center">
-            <EmptyState
-              icon={<Heart className="w-12 h-12" />}
-              title="No favorites yet"
-              description="Start exploring and add items to your favorites by clicking the heart icon on search results."
-              action={{
-                label: "Go to Search",
+          <WelcomeState
+            icon={Star}
+            title="No favorites yet"
+            description="Start exploring and save your favorite tools and resources. They'll appear here for quick access."
+            colorTheme="red"
+            suggestions={[
+              {
+                label: "Start Searching",
                 onClick: () => {
                   window.location.hash = "search";
                 },
-              }}
-            />
-          </div>
+              },
+            ]}
+          />
         ) : !hasFilteredResults ? (
-          <div className="h-full flex items-center justify-center">
-            <EmptyState
-              icon={<Search className="w-12 h-12" />}
-              title="No matching favorites"
-              description="No favorites match your search criteria."
-              action={{
-                label: "Clear search",
-                onClick: handleClearSearch,
-                variant: "secondary" as const,
-              }}
-            />
-          </div>
+          <WelcomeState
+            icon={Search}
+            title="No matching favorites"
+            description={`No favorites match "${searchQuery}". Try adjusting your search terms.`}
+            colorTheme="red"
+            actions={
+              <button
+                onClick={handleClearSearch}
+                className="px-4 py-2 bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-300 rounded-lg font-medium transition-colors duration-200"
+              >
+                Clear Search
+              </button>
+            }
+          />
         ) : (
           <>
-            {/* Results Header */}
-            <div className="flex items-center justify-between mb-4">
-              <div className="text-sm text-gray-600 dark:text-gray-400">
-                Found {filteredFavorites.length} favorite
-                {filteredFavorites.length === 1 ? "" : "s"}
-                {searchQuery && (
-                  <span className="ml-2 px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded text-xs">
-                    searching: "{searchQuery}"
-                  </span>
-                )}
+            {/* Enhanced Results Header */}
+            <div className="mb-6">
+              <div className="flex items-center justify-between p-4 bg-gradient-to-r from-red-50/50 to-pink-50/50 dark:from-red-900/10 dark:to-pink-900/10 rounded-xl border border-red-100/50 dark:border-red-800/30 backdrop-blur-sm">
+                <div className="flex items-center space-x-3">
+                  <div className="w-2 h-2 rounded-full bg-gradient-to-r from-red-400 to-red-500 shadow-sm shadow-red-500/25"></div>
+                  <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <span className="font-bold text-red-600 dark:text-red-400">
+                      {filteredFavorites.length}
+                    </span>{" "}
+                    favorite{filteredFavorites.length !== 1 ? "s" : ""}
+                    {searchQuery && (
+                      <span className="text-gray-500 dark:text-gray-400">
+                        {" "}
+                        matching "{searchQuery}"
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">
+                  Sorted by newest first
+                </div>
               </div>
             </div>
 
-            {/* Results List */}
+            {/* Enhanced Results Grid */}
             <div className="space-y-4">
               {filteredFavorites.map((favorite) => (
                 <SearchResultCard
-                  key={favorite.id}
+                  key={favorite.url}
                   result={{
                     id: favorite.id,
                     title: favorite.title || "Untitled",
@@ -172,8 +225,8 @@ const FavoritesTab: React.FC = () => {
             </div>
           </>
         )}
-      </div>
-    </div>
+      </PageContent>
+    </PageLayout>
   );
 };
 

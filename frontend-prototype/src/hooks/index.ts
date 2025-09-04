@@ -664,3 +664,29 @@ export const useClipboard = () => {
 
   return { copy, copied };
 };
+
+// Hook for managing custom header with immediate updates
+export const useCustomHeader = () => {
+  const { settings } = useSettingsStore();
+  const [localHeader, setLocalHeader] = useState("");
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  // Initialize local header when settings load
+  useEffect(() => {
+    if (settings.customHeader !== undefined && !isInitialized) {
+      setLocalHeader(settings.customHeader || "");
+      setIsInitialized(true);
+    }
+  }, [settings.customHeader, isInitialized]);
+
+  // Return the local header if available, otherwise fall back to settings
+  const currentHeader = isInitialized
+    ? localHeader
+    : settings.customHeader || "";
+
+  return {
+    customHeader: currentHeader,
+    setLocalHeader,
+    originalHeader: settings.customHeader || "",
+  };
+};
