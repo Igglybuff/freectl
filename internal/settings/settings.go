@@ -116,6 +116,20 @@ func LoadSettings() (Settings, error) {
 		return DefaultSettings(), nil
 	}
 
+	// Fix empty cache directory by setting to default
+	if settings.CacheDir == "" {
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			log.Error("Failed to get home directory", "error", err)
+			homeDir = "~"
+		}
+		settings.CacheDir = filepath.Join(homeDir, ".local", "cache", "freectl")
+		// Save the corrected settings
+		if err := SaveSettings(settings); err != nil {
+			log.Error("Failed to save corrected settings", "error", err)
+		}
+	}
+
 	return settings, nil
 }
 

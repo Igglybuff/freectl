@@ -6,7 +6,7 @@ export interface SearchResult {
   url: string;
   category: string;
   source: string;
-  sourceType: 'git' | 'reddit_wiki';
+  sourceType: "git" | "reddit_wiki";
   isFavorite: boolean;
   createdAt: string;
   updatedAt: string;
@@ -34,12 +34,12 @@ export interface DataSource {
   id: string;
   name: string;
   url: string;
-  type: 'git' | 'reddit_wiki';
+  type: "git" | "reddit_wiki" | "hn5000";
   enabled: boolean;
   lastUpdated: string;
   itemCount: number;
-  status: 'active' | 'updating' | 'error' | 'disabled';
-  description?: string;
+  status: "active" | "updating" | "error" | "disabled";
+  description: string;
   categories: string[];
 }
 
@@ -55,13 +55,21 @@ export interface Favorite {
 }
 
 export interface Settings {
-  theme: 'light' | 'dark' | 'system';
+  theme: "light" | "dark" | "system";
   minQueryLength: number;
   maxQueryLength: number;
   resultsPerPage: number;
   queryDelay: number;
   enabledSources: string[];
   autoUpdateSources: boolean;
+  usePreprocessedSearch: boolean;
+  showScores: boolean;
+  truncateTitles: boolean;
+  maxTitleLength: number;
+  customHeader: string;
+  minFuzzyScore: number;
+  searchConcurrency: number;
+  cacheDir: string;
   notifications: {
     enabled: boolean;
     newSources: boolean;
@@ -73,6 +81,32 @@ export interface Settings {
     showDescriptions: boolean;
     animationsEnabled: boolean;
   };
+}
+
+// Backend Settings type (matches Go struct)
+export interface BackendSettings {
+  minQueryLength: number;
+  maxQueryLength: number;
+  searchDelay: number;
+  showScores: boolean;
+  resultsPerPage: number;
+  usePreprocessedSearch: boolean;
+  cache_dir: string;
+  auto_update: boolean;
+  truncateTitles: boolean;
+  maxTitleLength: number;
+  customHeader: string;
+  minFuzzyScore: number;
+  searchConcurrency: number;
+  sources: Array<{
+    name: string;
+    path: string;
+    url: string;
+    enabled: boolean;
+    type: string;
+    size?: number;
+    lastUpdated?: string;
+  }>;
 }
 
 export interface Stats {
@@ -101,7 +135,7 @@ export interface Stats {
 
 export interface Toast {
   id: string;
-  type: 'success' | 'error' | 'warning' | 'info';
+  type: "success" | "error" | "warning" | "info";
   title: string;
   message?: string;
   duration?: number;
@@ -118,7 +152,7 @@ export interface AppState {
   error: string | null;
 }
 
-export type TabType = 'search' | 'favorites' | 'library' | 'stats' | 'settings';
+export type TabType = "search" | "favorites" | "library" | "stats" | "settings";
 
 export interface ApiError {
   error: string;
@@ -139,7 +173,7 @@ export interface PaginationInfo {
 export interface AddSourceForm {
   name: string;
   url: string;
-  type: 'git' | 'reddit_wiki';
+  type: "git" | "reddit_wiki" | "hn5000";
   description?: string;
 }
 
@@ -161,7 +195,7 @@ export interface ConfirmDialogProps {
   message: string;
   confirmText?: string;
   cancelText?: string;
-  variant?: 'danger' | 'warning' | 'info';
+  variant?: "danger" | "warning" | "info";
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -169,7 +203,7 @@ export interface ConfirmDialogProps {
 // PWA types
 export interface PWAInstallPrompt {
   prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
 export interface ServiceWorkerUpdateAvailable {
@@ -178,10 +212,14 @@ export interface ServiceWorkerUpdateAvailable {
 }
 
 // Theme types
-export type ThemeMode = 'light' | 'dark' | 'system';
+export type ThemeMode = "light" | "dark" | "system";
 
 // Utility types
 export type Optional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
-export type RequireAtLeastOne<T, Keys extends keyof T = keyof T> = Pick<T, Exclude<keyof T, Keys>> & {
-  [K in Keys]-?: Required<Pick<T, K>> & Partial<Pick<T, Exclude<Keys, K>>>;
-}[Keys];
+export type RequireAtLeastOne<T, Keys extends keyof T = keyof T> = Pick<
+  T,
+  Exclude<keyof T, Keys>
+> &
+  {
+    [K in Keys]-?: Required<Pick<T, K>> & Partial<Pick<T, Exclude<Keys, K>>>;
+  }[Keys];

@@ -9,10 +9,11 @@ import {
 } from "../stores/appStore";
 import type {
   SearchParams,
-  SearchResponse,
-  DataSource,
   Favorite,
   Stats,
+  BackendSettings,
+  Settings,
+  AddSourceForm,
 } from "../types";
 
 // Theme hook
@@ -64,60 +65,9 @@ export const useSearch = () => {
     limit: settings.resultsPerPage,
   });
 
-  // Mock search function for now
-  const mockSearch = useCallback(
-    async (params: SearchParams): Promise<SearchResponse> => {
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 300));
-
-      if (!params.query) {
-        throw new Error("Query is required");
-      }
-
-      // Mock search results
-      const mockResults = [
-        {
-          id: "1",
-          title: `Awesome ${params.query} Library`,
-          description: `A comprehensive collection of ${params.query} tools and resources for developers.`,
-          url: `https://github.com/awesome/${params.query.toLowerCase()}`,
-          category: "Development Tools",
-          source: "awesome-lists",
-          sourceType: "git" as const,
-          isFavorite: false,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        {
-          id: "2",
-          title: `${params.query} Framework`,
-          description: `Modern ${params.query} framework for building scalable applications.`,
-          url: `https://github.com/framework/${params.query.toLowerCase()}`,
-          category: "Frameworks",
-          source: "awesome-frameworks",
-          sourceType: "git" as const,
-          isFavorite: false,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      ];
-
-      return {
-        results: mockResults,
-        totalResults: mockResults.length,
-        currentPage: params.page || 1,
-        totalPages: 1,
-        query: params.query,
-        categories: ["Development Tools", "Frameworks"],
-        executionTime: 150,
-      };
-    },
-    [],
-  );
-
   const query = useQuery({
     queryKey: ["search", searchParams],
-    queryFn: () => mockSearch(searchParams),
+    queryFn: () => apiClient.search(searchParams),
     enabled:
       !!searchParams.query &&
       searchParams.query.length >= settings.minQueryLength,
@@ -183,51 +133,35 @@ export const useSources = () => {
   const queryClient = useQueryClient();
   const addToast = useToastStore((state) => state.addToast);
 
-  // Mock sources function
-  const mockGetSources = useCallback(async (): Promise<DataSource[]> => {
-    await new Promise((resolve) => setTimeout(resolve, 200));
-    return [
-      {
-        id: "1",
-        name: "Awesome Lists",
-        url: "https://github.com/sindresorhus/awesome",
-        type: "git",
-        enabled: true,
-        lastUpdated: new Date().toISOString(),
-        itemCount: 1250,
-        status: "active",
-        description: "A curated list of awesome lists",
-        categories: ["Lists", "Resources"],
-      },
-      {
-        id: "2",
-        name: "Reddit Piracy Wiki",
-        url: "https://old.reddit.com/r/Piracy/wiki/megathread",
-        type: "reddit_wiki",
-        enabled: true,
-        lastUpdated: new Date().toISOString(),
-        itemCount: 340,
-        status: "active",
-        description: "Piracy megathread resources",
-        categories: ["Media", "Tools"],
-      },
-    ];
-  }, []);
-
   const sourcesQuery = useQuery({
     queryKey: ["sources"],
-    queryFn: mockGetSources,
+    queryFn: async () => {
+      const response = await apiClient.getSources();
+      return response.sources.map((source: any) => ({
+        id: source.name,
+        name: source.name,
+        url: source.url,
+        type: source.type,
+        enabled: source.enabled,
+        lastUpdated: source.lastUpdated || new Date().toISOString(),
+        itemCount: source.itemCount || 0,
+        status: source.enabled ? "active" : "disabled",
+        description: source.description || "",
+        categories: [],
+      }));
+    },
     staleTime: 10 * 60 * 1000, // 10 minutes
   });
 
   const addSourceMutation = useMutation({
-    mutationFn: apiClient.addSource,
-    onSuccess: () => {
+    mutationFn: (source: AddSourceForm) => apiClient.addSource(source),
+    onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ["sources"] });
       addToast({
         type: "success",
         title: "Source added",
-        message: "The data source has been added successfully",
+        message:
+          response.message || "The data source has been added successfully",
       });
     },
     onError: (error) => {
@@ -240,13 +174,14 @@ export const useSources = () => {
   });
 
   const updateSourceMutation = useMutation({
-    mutationFn: apiClient.updateSource,
-    onSuccess: () => {
+    mutationFn: (name: string) => apiClient.updateSource(name),
+    onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ["sources"] });
       addToast({
         type: "success",
         title: "Source updated",
-        message: "The data source has been updated successfully",
+        message:
+          response.message || "The data source has been updated successfully",
       });
     },
     onError: (error) => {
@@ -259,13 +194,14 @@ export const useSources = () => {
   });
 
   const deleteSourceMutation = useMutation({
-    mutationFn: apiClient.deleteSource,
-    onSuccess: () => {
+    mutationFn: (name: string) => apiClient.deleteSource(name),
+    onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ["sources"] });
       addToast({
         type: "success",
         title: "Source deleted",
-        message: "The data source has been deleted successfully",
+        message:
+          response.message || "The data source has been deleted successfully",
       });
     },
     onError: (error) => {
@@ -277,11 +213,31 @@ export const useSources = () => {
     },
   });
 
+  const toggleSourceMutation = useMutation({
+    mutationFn: (name: string) => apiClient.toggleSource(name),
+    onSuccess: (response) => {
+      queryClient.invalidateQueries({ queryKey: ["sources"] });
+      addToast({
+        type: "success",
+        title: "Source toggled",
+        message: response.message || "The data source status has been updated",
+      });
+    },
+    onError: (error) => {
+      addToast({
+        type: "error",
+        title: "Failed to toggle source",
+        message: handleApiError(error),
+      });
+    },
+  });
+
   return {
     ...sourcesQuery,
     addSource: addSourceMutation,
     updateSource: updateSourceMutation,
     deleteSource: deleteSourceMutation,
+    toggleSource: toggleSourceMutation,
   };
 };
 
@@ -291,23 +247,18 @@ export const useFavorites = () => {
   const addToast = useToastStore((state) => state.addToast);
   const favoritesStore = useFavoritesStore();
 
-  // Mock favorites function
-  const mockGetFavorites = useCallback(async (): Promise<Favorite[]> => {
-    await new Promise((resolve) => setTimeout(resolve, 150));
-    return [];
-  }, []);
-
   const favoritesQuery = useQuery({
     queryKey: ["favorites"],
-    queryFn: mockGetFavorites,
+    queryFn: () => apiClient.getFavorites(),
     staleTime: 5 * 60 * 1000,
   });
 
   const addFavoriteMutation = useMutation({
-    mutationFn: apiClient.addFavorite,
+    mutationFn: (favorite: Omit<Favorite, "id" | "addedAt">) =>
+      apiClient.addFavorite(favorite),
     onSuccess: (favorite) => {
       queryClient.invalidateQueries({ queryKey: ["favorites"] });
-      favoritesStore.addFavorite(favorite.id);
+      favoritesStore.addFavorite(favorite.url);
       addToast({
         type: "success",
         title: "Added to favorites",
@@ -324,10 +275,11 @@ export const useFavorites = () => {
   });
 
   const removeFavoriteMutation = useMutation({
-    mutationFn: apiClient.removeFavorite,
-    onSuccess: (_, favoriteId) => {
+    mutationFn: (favoriteUrl: string) => apiClient.removeFavorite(favoriteUrl),
+    onSuccess: (_, favoriteUrl) => {
       queryClient.invalidateQueries({ queryKey: ["favorites"] });
-      favoritesStore.removeFavorite(favoriteId);
+      // Remove from store using URL
+      favoritesStore.removeFavorite(favoriteUrl);
       addToast({
         type: "success",
         title: "Removed from favorites",
@@ -351,8 +303,8 @@ export const useFavorites = () => {
       category: string;
       source: string;
     }) => {
-      if (favoritesStore.isFavorite(item.id)) {
-        removeFavoriteMutation.mutate(item.id);
+      if (favoritesStore.isFavorite(item.url)) {
+        removeFavoriteMutation.mutate(item.url);
       } else {
         addFavoriteMutation.mutate({
           title: item.title,
@@ -418,6 +370,111 @@ export const useStats = () => {
     queryFn: mockGetStats,
     staleTime: 5 * 60 * 1000,
   });
+};
+
+// Settings API hook
+export const useSettingsApi = () => {
+  const queryClient = useQueryClient();
+  const addToast = useToastStore((state) => state.addToast);
+
+  const settingsQuery = useQuery({
+    queryKey: ["settings"],
+    queryFn: async () => {
+      const backendSettings: BackendSettings = await apiClient.getSettings();
+      // Transform backend settings to frontend format
+      return {
+        theme: "system" as const,
+        minQueryLength: backendSettings.minQueryLength || 2,
+        maxQueryLength: backendSettings.maxQueryLength || 1000,
+        resultsPerPage: backendSettings.resultsPerPage || 10,
+        queryDelay: backendSettings.searchDelay || 300,
+        enabledSources: Array.isArray(backendSettings.sources)
+          ? backendSettings.sources.filter((s) => s.enabled).map((s) => s.name)
+          : [],
+        autoUpdateSources: backendSettings.auto_update || false,
+        usePreprocessedSearch: backendSettings.usePreprocessedSearch || false,
+        showScores: backendSettings.showScores || false,
+        truncateTitles: backendSettings.truncateTitles || false,
+        maxTitleLength: backendSettings.maxTitleLength || 100,
+        customHeader: backendSettings.customHeader || "",
+        minFuzzyScore: backendSettings.minFuzzyScore || 0,
+        searchConcurrency: backendSettings.searchConcurrency || 1,
+        cacheDir: backendSettings.cache_dir || "",
+        notifications: {
+          enabled: false, // Not implemented in backend yet
+          newSources: false,
+          updates: false,
+        },
+        ui: {
+          compactMode: false, // Not implemented in backend yet
+          showCategories: true, // Not implemented in backend yet
+          showDescriptions: true, // Not implemented in backend yet
+          animationsEnabled: true, // Not implemented in backend yet
+        },
+      };
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const updateSettingsMutation = useMutation({
+    mutationFn: async (frontendSettings: Partial<Settings>) => {
+      // Get current backend settings first
+      const currentBackend = await apiClient.getSettings();
+
+      // Transform frontend settings to backend format
+      const backendSettings = {
+        ...currentBackend, // Keep existing backend settings
+        minQueryLength:
+          frontendSettings.minQueryLength ?? currentBackend.minQueryLength,
+        maxQueryLength:
+          frontendSettings.maxQueryLength ?? currentBackend.maxQueryLength,
+        resultsPerPage:
+          frontendSettings.resultsPerPage ?? currentBackend.resultsPerPage,
+        searchDelay: frontendSettings.queryDelay ?? currentBackend.searchDelay,
+        showScores: frontendSettings.showScores ?? currentBackend.showScores,
+        usePreprocessedSearch:
+          frontendSettings.usePreprocessedSearch ??
+          currentBackend.usePreprocessedSearch,
+        cache_dir: frontendSettings.cacheDir ?? currentBackend.cache_dir,
+        auto_update:
+          frontendSettings.autoUpdateSources ?? currentBackend.auto_update,
+        truncateTitles:
+          frontendSettings.truncateTitles ?? currentBackend.truncateTitles,
+        maxTitleLength:
+          frontendSettings.maxTitleLength ?? currentBackend.maxTitleLength,
+        customHeader:
+          frontendSettings.customHeader ?? currentBackend.customHeader,
+        minFuzzyScore:
+          frontendSettings.minFuzzyScore ?? currentBackend.minFuzzyScore,
+        searchConcurrency:
+          frontendSettings.searchConcurrency ??
+          currentBackend.searchConcurrency,
+        sources: currentBackend.sources,
+      };
+
+      return apiClient.updateSettings(backendSettings);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["settings"] });
+      addToast({
+        type: "success",
+        title: "Settings saved",
+        message: "Your settings have been saved successfully",
+      });
+    },
+    onError: (error) => {
+      addToast({
+        type: "error",
+        title: "Failed to save settings",
+        message: handleApiError(error),
+      });
+    },
+  });
+
+  return {
+    ...settingsQuery,
+    updateSettings: updateSettingsMutation,
+  };
 };
 
 // Local storage hook

@@ -64,7 +64,17 @@ func (s Source) Add(cacheDir string) error {
 
 // ExpandCacheDir expands the cache directory path, handling "~" expansion
 func ExpandCacheDir(cacheDir string) (string, error) {
-	if cacheDir[:2] == "~/" {
+	// If cache directory is empty, use default
+	if cacheDir == "" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return "", fmt.Errorf("failed to get home directory: %w", err)
+		}
+		return filepath.Join(home, ".local", "cache", "freectl"), nil
+	}
+
+	// Handle ~ expansion
+	if len(cacheDir) >= 2 && cacheDir[:2] == "~/" {
 		home, err := os.UserHomeDir()
 		if err != nil {
 			return "", fmt.Errorf("failed to get home directory: %w", err)

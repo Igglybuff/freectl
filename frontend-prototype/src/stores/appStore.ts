@@ -1,6 +1,7 @@
-import { create } from 'zustand';
-import { devtools, persist } from 'zustand/middleware';
-import type { TabType, Settings, AppState } from '../types';
+import { create } from "zustand";
+import { devtools, persist } from "zustand/middleware";
+import type { TabType, Settings, AppState } from "../types";
+import { apiClient } from "../utils/api";
 
 interface AppStore extends AppState {
   // State
@@ -21,42 +22,48 @@ export const useAppStore = create<AppStore>()(
   devtools(
     (set) => ({
       // Initial state
-      currentTab: 'search',
-      searchQuery: '',
+      currentTab: (() => {
+        const hash = window.location.hash.slice(1);
+        return hash &&
+          ["search", "favorites", "library", "stats", "settings"].includes(hash)
+          ? (hash as TabType)
+          : "search";
+      })(),
+      searchQuery: "",
       isLoading: false,
       error: null,
 
       // Actions
-      setCurrentTab: (tab) =>
-        set({ currentTab: tab }, false, 'setCurrentTab'),
+      setCurrentTab: (tab) => set({ currentTab: tab }, false, "setCurrentTab"),
 
       setSearchQuery: (query) =>
-        set({ searchQuery: query }, false, 'setSearchQuery'),
+        set({ searchQuery: query }, false, "setSearchQuery"),
 
       setIsLoading: (loading) =>
-        set({ isLoading: loading }, false, 'setIsLoading'),
+        set({ isLoading: loading }, false, "setIsLoading"),
 
-      setError: (error) =>
-        set({ error }, false, 'setError'),
+      setError: (error) => set({ error }, false, "setError"),
 
-      clearError: () =>
-        set({ error: null }, false, 'clearError'),
+      clearError: () => set({ error: null }, false, "clearError"),
     }),
     {
-      name: 'app-store',
-    }
-  )
+      name: "app-store",
+    },
+  ),
 );
 
 // Settings store with persistence
 interface SettingsStore {
   settings: Settings;
-  updateSettings: (updates: Partial<Settings>) => void;
+  isLoading: boolean;
+  error: string | null;
+  updateSettings: (updates: Partial<Settings>) => Promise<void>;
+  loadSettings: () => Promise<void>;
   resetSettings: () => void;
 }
 
 const defaultSettings: Settings = {
-  theme: 'system',
+  theme: "system",
   minQueryLength: 2,
   maxQueryLength: 100,
   resultsPerPage: 20,
@@ -81,37 +88,128 @@ export const useSettingsStore = create<SettingsStore>()(
     persist(
       (set, get) => ({
         settings: defaultSettings,
+        isLoading: false,
+        error: null,
 
-        updateSettings: (updates) =>
-          set(
-            (state) => ({
-              settings: { ...state.settings, ...updates },
-            }),
-            false,
-            'updateSettings'
-          ),
+        loadSettings: async () => {
+          set({ isLoading: true, error: null });
+          try {
+            const backendSettings = await apiClient.getSettings();
+            // Transform backend settings to frontend format
+            const frontendSettings: Settings = {
+              theme: get().settings.theme, // Keep current theme setting
+              minQueryLength: backendSettings.minQueryLength,
+              maxQueryLength: backendSettings.maxQueryLength,
+              resultsPerPage: backendSettings.resultsPerPage,
+              queryDelay: backendSettings.searchDelay,
+              enabledSources: Array.isArray(backendSettings.sources)
+                ? backendSettings.sources
+                    .filter((s: any) => s.enabled)
+                    .map((s: any) => s.name)
+                : [],
+              autoUpdateSources: backendSettings.auto_update,
+              usePreprocessedSearch:
+                backendSettings.usePreprocessedSearch || false,
+              showScores: backendSettings.showScores || false,
+              truncateTitles: backendSettings.truncateTitles || false,
+              maxTitleLength: backendSettings.maxTitleLength || 100,
+              customHeader: backendSettings.customHeader || "",
+              minFuzzyScore: backendSettings.minFuzzyScore || 0,
+              searchConcurrency: backendSettings.searchConcurrency || 1,
+              cacheDir: backendSettings.cache_dir || "",
+              notifications: {
+                enabled: true,
+                newSources: true,
+                updates: true,
+              },
+              ui: {
+                compactMode: false,
+                showCategories: !backendSettings.truncateTitles,
+                showDescriptions: backendSettings.showScores,
+                animationsEnabled: true,
+              },
+            };
+            set({ settings: frontendSettings, isLoading: false });
+          } catch (error) {
+            console.error("Failed to load settings:", error);
+            set({
+              error:
+                error instanceof Error
+                  ? error.message
+                  : "Failed to load settings",
+              isLoading: false,
+            });
+          }
+        },
+
+        updateSettings: async (updates) => {
+          const currentSettings = get().settings;
+          const newSettings = { ...currentSettings, ...updates };
+
+          // Optimistically update local state
+          set({ settings: newSettings, isLoading: true, error: null });
+
+          try {
+            // Get current backend settings first
+            const currentBackend = await apiClient.getSettings();
+
+            // Transform frontend settings to backend format
+            const backendSettings = {
+              ...currentBackend,
+              minQueryLength: newSettings.minQueryLength,
+              maxQueryLength: newSettings.maxQueryLength,
+              resultsPerPage: newSettings.resultsPerPage,
+              searchDelay: newSettings.queryDelay,
+              showScores: newSettings.showScores,
+              usePreprocessedSearch: newSettings.usePreprocessedSearch,
+              auto_update: newSettings.autoUpdateSources,
+              truncateTitles: newSettings.truncateTitles,
+              maxTitleLength: newSettings.maxTitleLength,
+              customHeader: newSettings.customHeader,
+              minFuzzyScore: newSettings.minFuzzyScore,
+              searchConcurrency: newSettings.searchConcurrency,
+              cache_dir: newSettings.cacheDir,
+              sources: currentBackend.sources,
+            };
+
+            await apiClient.updateSettings(backendSettings);
+            set({ isLoading: false });
+          } catch (error) {
+            console.error("Failed to save settings:", error);
+            // Revert optimistic update
+            set({
+              settings: currentSettings,
+              error:
+                error instanceof Error
+                  ? error.message
+                  : "Failed to save settings",
+              isLoading: false,
+            });
+            throw error;
+          }
+        },
 
         resetSettings: () =>
-          set({ settings: defaultSettings }, false, 'resetSettings'),
+          set({ settings: defaultSettings }, false, "resetSettings"),
       }),
       {
-        name: 'freectl-settings',
+        name: "freectl-settings",
         version: 1,
-      }
+      },
     ),
     {
-      name: 'settings-store',
-    }
-  )
+      name: "settings-store",
+    },
+  ),
 );
 
 // Favorites store with persistence
 interface FavoritesStore {
-  favoriteIds: Set<string>;
-  addFavorite: (id: string) => void;
-  removeFavorite: (id: string) => void;
-  toggleFavorite: (id: string) => void;
-  isFavorite: (id: string) => boolean;
+  favoriteUrls: Set<string>;
+  addFavorite: (url: string) => void;
+  removeFavorite: (url: string) => void;
+  toggleFavorite: (url: string) => void;
+  isFavorite: (url: string) => boolean;
   clearFavorites: () => void;
 }
 
@@ -119,44 +217,44 @@ export const useFavoritesStore = create<FavoritesStore>()(
   devtools(
     persist(
       (set, get) => ({
-        favoriteIds: new Set(),
+        favoriteUrls: new Set(),
 
-        addFavorite: (id) =>
+        addFavorite: (url) =>
           set(
             (state) => ({
-              favoriteIds: new Set([...state.favoriteIds, id]),
+              favoriteUrls: new Set([...state.favoriteUrls, url]),
             }),
             false,
-            'addFavorite'
+            "addFavorite",
           ),
 
-        removeFavorite: (id) =>
+        removeFavorite: (url) =>
           set(
             (state) => {
-              const newFavorites = new Set(state.favoriteIds);
-              newFavorites.delete(id);
-              return { favoriteIds: newFavorites };
+              const newFavorites = new Set(state.favoriteUrls);
+              newFavorites.delete(url);
+              return { favoriteUrls: newFavorites };
             },
             false,
-            'removeFavorite'
+            "removeFavorite",
           ),
 
-        toggleFavorite: (id) => {
-          const { favoriteIds, addFavorite, removeFavorite } = get();
-          if (favoriteIds.has(id)) {
-            removeFavorite(id);
+        toggleFavorite: (url) => {
+          const { favoriteUrls, addFavorite, removeFavorite } = get();
+          if (favoriteUrls.has(url)) {
+            removeFavorite(url);
           } else {
-            addFavorite(id);
+            addFavorite(url);
           }
         },
 
-        isFavorite: (id) => get().favoriteIds.has(id),
+        isFavorite: (url) => get().favoriteUrls.has(url),
 
         clearFavorites: () =>
-          set({ favoriteIds: new Set() }, false, 'clearFavorites'),
+          set({ favoriteUrls: new Set() }, false, "clearFavorites"),
       }),
       {
-        name: 'freectl-favorites',
+        name: "freectl-favorites",
         version: 1,
         storage: {
           getItem: (name) => {
@@ -165,31 +263,31 @@ export const useFavoritesStore = create<FavoritesStore>()(
             const { state } = JSON.parse(str);
             return {
               ...state,
-              favoriteIds: new Set(state.favoriteIds || []),
+              favoriteUrls: new Set(state.favoriteUrls || []),
             };
           },
           setItem: (name, value) => {
             const { state } = value;
             const serialized = {
               ...state,
-              favoriteIds: Array.from(state.favoriteIds),
+              favoriteUrls: Array.from(state.favoriteUrls),
             };
             localStorage.setItem(name, JSON.stringify({ state: serialized }));
           },
           removeItem: (name) => localStorage.removeItem(name),
         },
-      }
+      },
     ),
     {
-      name: 'favorites-store',
-    }
-  )
+      name: "favorites-store",
+    },
+  ),
 );
 
 // Toast notifications store
 export interface Toast {
   id: string;
-  type: 'success' | 'error' | 'warning' | 'info';
+  type: "success" | "error" | "warning" | "info";
   title: string;
   message?: string;
   duration?: number;
@@ -201,7 +299,7 @@ export interface Toast {
 
 interface ToastStore {
   toasts: Toast[];
-  addToast: (toast: Omit<Toast, 'id'>) => string;
+  addToast: (toast: Omit<Toast, "id">) => string;
   removeToast: (id: string) => void;
   clearToasts: () => void;
 }
@@ -220,7 +318,7 @@ export const useToastStore = create<ToastStore>()(
             toasts: [...state.toasts, newToast],
           }),
           false,
-          'addToast'
+          "addToast",
         );
 
         // Auto remove after duration (default 5 seconds)
@@ -239,14 +337,13 @@ export const useToastStore = create<ToastStore>()(
             toasts: state.toasts.filter((toast) => toast.id !== id),
           }),
           false,
-          'removeToast'
+          "removeToast",
         ),
 
-      clearToasts: () =>
-        set({ toasts: [] }, false, 'clearToasts'),
+      clearToasts: () => set({ toasts: [] }, false, "clearToasts"),
     }),
     {
-      name: 'toast-store',
-    }
-  )
+      name: "toast-store",
+    },
+  ),
 );

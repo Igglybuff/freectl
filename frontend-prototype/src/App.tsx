@@ -29,21 +29,29 @@ function App() {
   const { theme, toggleTheme } = useTheme();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  // Initialize theme and handle URL hash
+  // Handle hash changes (initial state handled by store)
   useEffect(() => {
-    // Set initial tab from URL hash
-    const hash = window.location.hash.slice(1);
-    if (
-      hash &&
-      ["search", "favorites", "library", "stats", "settings"].includes(hash)
-    ) {
-      setCurrentTab(hash as any);
-    }
+    const handleHashChange = () => {
+      const newHash = window.location.hash.slice(1);
+      if (
+        newHash &&
+        ["search", "favorites", "library", "stats", "settings"].includes(
+          newHash,
+        )
+      ) {
+        setCurrentTab(newHash as any);
+      }
+    };
+
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
   }, [setCurrentTab]);
 
   // Update URL hash when tab changes
   useEffect(() => {
-    window.location.hash = currentTab;
+    if (window.location.hash.slice(1) !== currentTab) {
+      window.location.hash = currentTab;
+    }
   }, [currentTab]);
 
   const renderCurrentTab = () => {

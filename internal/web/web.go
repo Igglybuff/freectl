@@ -382,27 +382,31 @@ func HandleUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get list of sources from settings
-	sourceList, err := settings.ListSources()
+	// Parse request body to get source name
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		log.Error("Failed to list sources", "error", err)
-		http.Error(w, fmt.Errorf("failed to list sources: %w", err).Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	if len(sourceList) == 0 {
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success": true,
-			"message": "No sources found. Please add a source using 'freectl add'",
-		})
+	var req struct {
+		Name string `json:"name"`
+	}
+	if err := json.Unmarshal(body, &req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	// Update all sources using the wrapper function
+	if req.Name == "" {
+		http.Error(w, "source name is required", http.StatusBadRequest)
+		return
+	}
+
+	// Update the specific source
 	start := time.Now()
-	if err := settings.UpdateAllSources(); err != nil {
-		http.Error(w, fmt.Errorf("failed to update sources: %w", err).Error(), http.StatusInternalServerError)
+	if err := settings.UpdateSource(req.Name); err != nil {
+		log.Error("Failed to update source", "name", req.Name, "error", err)
+		http.Error(w, fmt.Errorf("failed to update source: %w", err).Error(), http.StatusInternalServerError)
 		return
 	}
 	duration := time.Since(start).Round(100 * time.Millisecond)
@@ -411,7 +415,7 @@ func HandleUpdate(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success":  true,
 		"duration": duration.String(),
-		"message":  "Sources updated successfully",
+		"message":  fmt.Sprintf("Source '%s' updated successfully", req.Name),
 	})
 }
 

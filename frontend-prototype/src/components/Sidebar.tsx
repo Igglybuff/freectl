@@ -11,7 +11,7 @@ import {
   Sun,
   Github,
 } from "lucide-react";
-import { useAppStore } from "../stores/appStore";
+import { useAppStore, useSettingsStore } from "../stores/appStore";
 import type { TabType } from "../types";
 
 interface TabConfig {
@@ -62,6 +62,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   onToggleTheme,
 }) => {
   const { currentTab, setCurrentTab } = useAppStore();
+  const { settings } = useSettingsStore();
 
   return (
     <aside
@@ -83,7 +84,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 freectl
               </h1>
               <p className="text-xs text-gray-500 dark:text-gray-400 -mt-0.5">
-                find cool stuff
+                {settings?.customHeader || "find cool stuff"}
               </p>
             </div>
           </div>
