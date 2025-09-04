@@ -1,13 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { Search, Filter, X } from "lucide-react";
 import { useSearch, useFavorites, useDebounce } from "../../hooks";
-import { useSettingsStore } from "../../stores/appStore";
 import SearchResultCard from "../ui/SearchResultCard";
 import SearchInput from "../ui/SearchInput";
 import LoadingSpinner from "../ui/LoadingSpinner";
-import EmptyState from "../ui/EmptyState";
 import Pagination from "../ui/Pagination";
 import CategoryFilter from "../ui/CategoryFilter";
+import {
+  PageLayout,
+  PageHeader,
+  PageContent,
+  WelcomeState,
+} from "../ui/PageLayout";
+import { useSettingsStore } from "../../stores/appStore";
 
 const SearchTab: React.FC = () => {
   const [query, setQuery] = useState("");
@@ -61,20 +66,26 @@ const SearchTab: React.FC = () => {
   const validationError = query ? validateQuery(query) : null;
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Enhanced Search Header - Fixed at top */}
-      <div className="px-6 py-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-3">
-            <div className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30">
-              <Search className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+    <PageLayout>
+      <PageHeader
+        icon={Search}
+        title="Search"
+        subtitle="Find tools, libraries, and resources from awesome lists"
+        colorTheme="blue"
+        actions={
+          settings?.usePreprocessedSearch && (
+            <div className="flex items-center space-x-2 text-sm">
+              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+              <span className="text-gray-600 dark:text-gray-400 font-medium">
+                Fast Search Enabled
+              </span>
             </div>
-            <h2 className="text-xl font-semibold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-200 bg-clip-text text-transparent">
-              Search
-            </h2>
-          </div>
-        </div>
+          )
+        }
+      />
 
+      {/* Search Input Section */}
+      <div className="px-6 py-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <SearchInput
           value={query}
           onChange={setQuery}
@@ -127,11 +138,10 @@ const SearchTab: React.FC = () => {
           )}
       </div>
 
-      {/* Main Content Area - Scrollable */}
-      <div className="flex-1 overflow-hidden">
+      <PageContent>
         {/* Search Results */}
         {showResults && (
-          <div className="h-full overflow-y-auto px-6 py-6">
+          <>
             {isLoading && (
               <div className="flex justify-center py-12">
                 <LoadingSpinner size="lg" />
@@ -139,25 +149,23 @@ const SearchTab: React.FC = () => {
             )}
 
             {isError && (
-              <div className="text-center py-12">
-                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 mb-4">
-                  <X className="w-6 h-6 text-red-600 dark:text-red-400" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                  Search Error
-                </h3>
-                <p className="text-gray-600 dark:text-gray-400">
-                  {error?.message ||
-                    "Something went wrong while searching. Please try again."}
-                </p>
-              </div>
+              <WelcomeState
+                icon={X}
+                title="Search Error"
+                description={
+                  error?.message ||
+                  "Something went wrong while searching. Please try again."
+                }
+                colorTheme="red"
+              />
             )}
 
             {!isLoading && !isError && !hasResults && (
-              <EmptyState
-                icon={<Search className="w-12 h-12" />}
+              <WelcomeState
+                icon={Search}
                 title="No results found"
                 description={`No results found for "${debouncedQuery}". Try adjusting your search terms or removing filters.`}
+                colorTheme="blue"
               />
             )}
 
@@ -210,53 +218,30 @@ const SearchTab: React.FC = () => {
                 )}
               </>
             )}
-          </div>
+          </>
         )}
 
         {/* Enhanced Welcome State */}
         {!debouncedQuery && (
-          <div className="h-full flex items-center justify-center px-6 py-6">
-            <div className="text-center space-y-8 max-w-2xl">
-              <div className="inline-flex items-center justify-center w-24 h-24 rounded-2xl bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 border border-blue-200/50 dark:border-blue-700/50 shadow-lg">
-                <Search className="w-12 h-12 text-blue-600 dark:text-blue-400" />
-              </div>
-              <div>
-                <h3 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-200 bg-clip-text text-transparent mb-3">
-                  Start searching
-                </h3>
-                <p className="text-gray-600 dark:text-gray-400 text-lg leading-relaxed">
-                  Enter a search query above to find tools, libraries, and
-                  resources from awesome lists.
-                </p>
-              </div>
-
-              <div className="flex flex-col items-center gap-4">
-                <span className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                  Try searching for:
-                </span>
-                <div className="flex flex-wrap justify-center gap-3">
-                  {[
-                    "React",
-                    "Python",
-                    "Machine Learning",
-                    "DevOps",
-                    "Design",
-                  ].map((term) => (
-                    <button
-                      key={term}
-                      onClick={() => setQuery(term)}
-                      className="px-4 py-2 bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:from-blue-100 hover:to-indigo-100 dark:hover:from-blue-900/30 dark:hover:to-indigo-900/30 hover:text-blue-700 dark:hover:text-blue-300 transition-all duration-200 font-medium shadow-sm hover:shadow-md border border-gray-200/50 dark:border-gray-600/50"
-                    >
-                      {term}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
+          <WelcomeState
+            icon={Search}
+            title="Start searching"
+            description="Enter a search query above to find tools, libraries, and resources from awesome lists."
+            colorTheme="blue"
+            suggestions={[
+              { label: "React", onClick: () => setQuery("React") },
+              { label: "Python", onClick: () => setQuery("Python") },
+              {
+                label: "Machine Learning",
+                onClick: () => setQuery("Machine Learning"),
+              },
+              { label: "DevOps", onClick: () => setQuery("DevOps") },
+              { label: "Design", onClick: () => setQuery("Design") },
+            ]}
+          />
         )}
-      </div>
-    </div>
+      </PageContent>
+    </PageLayout>
   );
 };
 

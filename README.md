@@ -214,30 +214,41 @@ go build
 - [ ] support for book databases
 - [ ] implement a search index using [bleve](https://github.com/blevesearch/bleve) as an alternative to fuzzy-search
 - [ ] advanced search queries
-- [ ] rest API
 - [ ] [user authentication via OIDC](https://github.com/zitadel/oidc)
 - [ ] custom markdown parsing rules for non-standard repos
 - [ ] group data sources into "collections"
 - [ ] semantic search using word embedding model
 - [ ] integration with read-it-later/bookmarking apps like karakeep, linkwarden, wallabag
 
+##### Experimental UI
+
+- [ ] stats page doesn't show real data sources
+- [ ] can't add multiple category filters to search results
+- [ ] can't search a specific data source
+- [ ] "found x sources" count in library page doesn't match other pages
+- [ ] need more curated sources in "Browse Sources" page
+- [ ] custom header setting doesn't update live
+- [ ] add custom footer setting
+- [ ] add custom icon setting
+- [ ] make better use of empty space in data source cards on Library page
+- [ ] title texts aren't clickable in library/search/favorites pages
+- [ ] copy URL button does not react to clicks visually
+- [ ] fuzzy score indicator on search results
+- [ ] deleting a source from the Library page doesn't delete processed JSON for that source
+- [ ] data source type tag is incorrect in search results (says "Wiki" for everything)
+
 ##### Improvements
 
-- [ ] alternative search results layout + link previews
-- [ ] mobile-compatible web UI
 - [ ] search history
 - [ ] search suggestions/autocomplete
-- [ ] support for sending links to Hoarder/LinkWarden
 - [ ] make the repository tag clickable in search results
 - [ ] support for bulk-adding repos
-- [ ] implement virustotal URL scanning (vt-go is unmaintained so will have to make my own)
 - [ ] add reachability check button to quickly see if a link is dead
 - [ ] add share button
 - [ ] export favourites as OPML/CSV/JSON/HTML
 - [ ] add a --config arg to use a custom config file path
 - [ ] add a `set` command to add CLI support for changing settings like the web UI can
 - [ ] add viper to configure settings via environment variables
-- [ ] UI improvements
 
 ##### SDLC
 
